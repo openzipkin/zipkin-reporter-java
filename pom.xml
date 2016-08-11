@@ -25,6 +25,7 @@
   <packaging>pom</packaging>
 
   <modules>
+    <module>core</module>
     <module>kafka08</module>
     <module>urlconnection</module>
   </modules>
@@ -87,6 +88,16 @@
     <system>Github</system>
     <url>https://github.com/openzipkin/zipkin-java-reporter/issues</url>
   </issueManagement>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>zipkin-reporter</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
 
   <dependencies>
     <dependency>
@@ -295,6 +306,8 @@
             <version>2.10.4</version>
             <configuration>
               <failOnError>false</failOnError>
+              <excludePackageNames>zipkin.reporter.internal,zipkin.reporter.internal.*</excludePackageNames>
+              <!-- hush pedantic warnings: we don't put param and return on everything! -->
               <additionalparam>-Xdoclint:none</additionalparam>
             </configuration>
             <executions>

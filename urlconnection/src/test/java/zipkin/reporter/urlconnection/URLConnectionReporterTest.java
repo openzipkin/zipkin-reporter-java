@@ -23,11 +23,10 @@ import org.junit.Rule;
 import org.junit.Test;
 import zipkin.Span;
 import zipkin.TestObjects;
-import zipkin.internal.CallbackCaptor;
-import zipkin.internal.Nullable;
 import zipkin.junit.HttpFailure;
 import zipkin.junit.ZipkinRule;
-import zipkin.storage.Callback;
+import zipkin.reporter.Reporter.Callback;
+import zipkin.reporter.internal.AwaitableCallback;
 
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -41,8 +40,8 @@ public class URLConnectionReporterTest {
       .postUrl(zipkinRule.httpUrl() + "/api/v1/spans").build();
 
   @Test
-  public void postsSpans() throws Exception {
-    accept(TestObjects.TRACE);
+  public void reportsSpans() throws Exception {
+    report(TestObjects.TRACE);
 
     // Ensure only one request was sent
     assertThat(zipkinRule.httpRequestCount()).isEqualTo(1);
@@ -63,7 +62,7 @@ public class URLConnectionReporterTest {
     for (int i = 0; i < 3; i++) {
       zipkinRule = new ZipkinRule();
       try {
-        accept(TestObjects.TRACE);
+        report(TestObjects.TRACE);
         assertThat(zipkinRule.getTraces()).containsExactly(TestObjects.TRACE);
       } finally {
         zipkinRule.shutdown();
@@ -84,7 +83,7 @@ public class URLConnectionReporterTest {
         server.enqueue(new MockResponse());
 
         // write a complete trace so that it gets reported
-        accept(TestObjects.TRACE);
+        report(TestObjects.TRACE);
 
         // block until the request arrived
         requests.add(server.takeRequest());
@@ -116,7 +115,7 @@ public class URLConnectionReporterTest {
     AtomicReference<Throwable> t = new AtomicReference<>();
     Callback callback = new Callback() {
 
-      @Override public void onSuccess(@Nullable Object o) {
+      @Override public void onComplete() {
 
       }
 
@@ -126,16 +125,16 @@ public class URLConnectionReporterTest {
     };
 
     // Default invocation is blocking
-    reporter.accept(TestObjects.TRACE, callback);
+    reporter.report(TestObjects.TRACE, callback);
 
     // We didn't throw, rather, the exception went to the callback.
     assertThat(t.get()).isNotNull();
   }
 
   /** Blocks until the callback completes to allow read-your-writes consistency during tests. */
-  void accept(List<Span> spans) {
-    CallbackCaptor<Void> captor = new CallbackCaptor<>();
-    reporter.accept(spans, captor);
-    captor.get(); // block on result
+  void report(List<Span> spans) {
+    AwaitableCallback callback = new AwaitableCallback();
+    reporter.report(spans, callback);
+    callback.await();
   }
 }

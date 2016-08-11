@@ -34,6 +34,11 @@
 
   <dependencies>
     <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>zipkin-reporter</artifactId>
+    </dependency>
+
+    <dependency>
       <groupId>org.apache.kafka</groupId>
       <artifactId>kafka-clients</artifactId>
       <!-- This is pinned to Kafka 0.8.x client as 0.9.x brokers work with them, but not visa-versa
