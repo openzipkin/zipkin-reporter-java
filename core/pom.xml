@@ -25,24 +25,26 @@
     <version>0.0.1-SNAPSHOT</version>
   </parent>
 
-  <artifactId>zipkin-reporter-urlconnection</artifactId>
-  <name>Zipkin Reporter: URLConnection</name>
+  <artifactId>zipkin-reporter</artifactId>
+  <name>Zipkin Reporter: Core</name>
 
   <properties>
     <main.basedir>${project.basedir}/..</main.basedir>
   </properties>
 
-  <dependencies>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>zipkin-reporter</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>io.zipkin.java</groupId>
-      <artifactId>zipkin-junit</artifactId>
-      <version>${zipkin.version}</version>
-      <scope>test</scope>
-    </dependency>
-  </dependencies>
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <executions>
+          <execution>
+            <goals>
+              <goal>test-jar</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
 </project>

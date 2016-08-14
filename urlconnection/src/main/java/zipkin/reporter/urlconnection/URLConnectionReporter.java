@@ -24,14 +24,13 @@ import java.util.concurrent.Executor;
 import java.util.zip.GZIPOutputStream;
 import zipkin.Codec;
 import zipkin.Span;
-import zipkin.storage.AsyncSpanConsumer;
-import zipkin.storage.Callback;
+import zipkin.reporter.Reporter;
 
 /**
  * Reports spans to Zipkin, using its {@code POST /spans} endpoint.
  */
 @AutoValue
-public abstract class URLConnectionReporter implements AsyncSpanConsumer {
+public abstract class URLConnectionReporter implements Reporter {
 
   /**
    * Returns the POST URL for zipkin's <a href="http://zipkin.io/zipkin-api/#/">v1 api</a>, usually
@@ -103,14 +102,13 @@ public abstract class URLConnectionReporter implements AsyncSpanConsumer {
 
   abstract Executor executor();
 
-  /**
-   * Asynchronously sends the spans as a json POST to {@link #postUrl()}.
-   */
-  @Override public void accept(List<Span> spans, Callback<Void> callback) {
+  /** Asynchronously sends the spans as a json POST to {@link #postUrl()}. */
+  @Override public void report(List<Span> spans, Callback callback) {
     executor().execute(() -> {
       try {
-        send(spans);
-        callback.onSuccess(null);
+        byte[] body = Codec.JSON.writeSpans(spans);
+        send(body, "application/json");
+        callback.onComplete();
       } catch (RuntimeException | IOException | Error e) {
         callback.onError(e);
         if (e instanceof Error) throw (Error) e;
@@ -118,9 +116,7 @@ public abstract class URLConnectionReporter implements AsyncSpanConsumer {
     });
   }
 
-  void send(List<Span> spans) throws IOException {
-    byte[] body = Codec.JSON.writeSpans(spans);
-    String mediaType = "application/json";
+  void send(byte[] body, String mediaType) throws IOException {
     URL postUrl = new URL(postUrl().get());
     // intentionally not closing the connection, so as to use keep-alives
     HttpURLConnection connection = (HttpURLConnection) postUrl.openConnection();

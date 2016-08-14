@@ -22,14 +22,11 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import zipkin.Codec;
 import zipkin.Span;
-import zipkin.storage.AsyncSpanConsumer;
-import zipkin.storage.Callback;
+import zipkin.reporter.Reporter;
 
-/**
- * Reports spans to Zipkin, using a Kafka topic.
- */
+/** Reports spans to Zipkin, using a Kafka topic. */
 @AutoValue
-public abstract class KafkaReporter implements AsyncSpanConsumer, Closeable {
+public abstract class KafkaReporter implements Reporter, Closeable {
 
   public static Builder builder() {
     return new AutoValue_KafkaReporter.Builder()
@@ -81,13 +78,12 @@ public abstract class KafkaReporter implements AsyncSpanConsumer, Closeable {
 
   abstract Executor executor();
 
-  /**
-   * Asynchronously sends the spans as a thrift message to the Kafka {@link #topic()}.
-   */
-  @Override public void accept(List<Span> spans, final Callback<Void> callback) {
+  /** Asynchronously sends the spans as a thrift message to the Kafka {@link #topic()}. */
+  @Override public void report(List<Span> spans, final Callback callback) {
     executor().execute(() -> {
       try {
-        send(spans, callback);
+        byte[] value = Codec.THRIFT.writeSpans(spans);
+        send(value, callback);
       } catch (RuntimeException | Error e) {
         callback.onError(e);
         if (e instanceof Error) throw (Error) e;
@@ -95,13 +91,11 @@ public abstract class KafkaReporter implements AsyncSpanConsumer, Closeable {
     });
   }
 
-  void send(List<Span> spans, Callback<Void> callback) {
-    byte[] thrift = Codec.THRIFT.writeSpans(spans);
-
+  void send(byte[] value, Callback callback) {
     // NOTE: this blocks until the metadata server is available
-    producer().send(new ProducerRecord<byte[], byte[]>(topic(), thrift), (metadata, exception) -> {
+    producer().send(new ProducerRecord<byte[], byte[]>(topic(), value), (metadata, exception) -> {
       if (exception == null) {
-        callback.onSuccess(null);
+        callback.onComplete();
       } else {
         callback.onError(exception);
       }

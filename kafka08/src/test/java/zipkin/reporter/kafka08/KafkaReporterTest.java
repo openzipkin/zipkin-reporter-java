@@ -24,7 +24,7 @@ import org.junit.rules.ExpectedException;
 import zipkin.Codec;
 import zipkin.Span;
 import zipkin.TestObjects;
-import zipkin.internal.CallbackCaptor;
+import zipkin.reporter.internal.AwaitableCallback;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -44,8 +44,8 @@ public class KafkaReporterTest {
   }
 
   @Test
-  public void sendsSpans() throws Exception {
-    accept(TestObjects.TRACE);
+  public void reportsSpans() throws Exception {
+    report(TestObjects.TRACE);
 
     List<byte[]> messages = readMessages();
     assertThat(messages).hasSize(1);
@@ -55,12 +55,12 @@ public class KafkaReporterTest {
   }
 
   @Test
-  public void submitsSpansToCorrectTopic() throws Exception {
+  public void reportsSpansToCorrectTopic() throws Exception {
     reporter.close();
     reporter = KafkaReporter.builder("localhost:" + kafka.kafkaBrokerPort())
         .topic("customzipkintopic").build();
 
-    accept(TestObjects.TRACE);
+    report(TestObjects.TRACE);
 
     List<byte[]> messages = readMessages("customzipkintopic");
     assertThat(messages).hasSize(1);
@@ -70,10 +70,10 @@ public class KafkaReporterTest {
   }
 
   /** Blocks until the callback completes to allow read-your-writes consistency during tests. */
-  void accept(List<Span> spans) {
-    CallbackCaptor<Void> captor = new CallbackCaptor<>();
-    reporter.accept(spans, captor);
-    captor.get(); // block on result
+  void report(List<Span> spans) {
+    AwaitableCallback callback = new AwaitableCallback();
+    reporter.report(spans, callback);
+    callback.await();
   }
 
   private List<byte[]> readMessages(String topic) throws TimeoutException {
