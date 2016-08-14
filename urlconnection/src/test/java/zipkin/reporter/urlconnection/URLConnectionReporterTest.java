@@ -30,6 +30,7 @@ import zipkin.reporter.internal.AwaitableCallback;
 
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.failBecauseExceptionWasNotThrown;
 
 public class URLConnectionReporterTest {
 
@@ -37,7 +38,18 @@ public class URLConnectionReporterTest {
   public ZipkinRule zipkinRule = new ZipkinRule();
 
   URLConnectionReporter reporter = URLConnectionReporter.builder()
-      .postUrl(zipkinRule.httpUrl() + "/api/v1/spans").build();
+      .endpoint(zipkinRule.httpUrl() + "/api/v1/spans").build();
+
+  @Test
+  public void badUrlIsAnIllegalArgument() throws Exception {
+    try {
+      URLConnectionReporter.builder()
+          .endpoint("htp://localhost:9411/api/v1/spans").build();
+      failBecauseExceptionWasNotThrown(IllegalArgumentException.class);
+    } catch (IllegalArgumentException e) {
+      assertThat(e).hasMessage("unknown protocol: htp");
+    }
+  }
 
   @Test
   public void reportsSpans() throws Exception {
@@ -50,31 +62,11 @@ public class URLConnectionReporterTest {
     assertThat(zipkinRule.getTraces()).containsExactly(TestObjects.TRACE);
   }
 
-  @Test
-  public void dynamicUrl() throws Exception {
-    zipkinRule.shutdown();
-
-    // make the url dynamically look up the endpoint
-    reporter = URLConnectionReporter.builder()
-        .postUrl(() -> zipkinRule.httpUrl() + "/api/v1/spans").build();
-
-    // round robin between a few zipkin servers
-    for (int i = 0; i < 3; i++) {
-      zipkinRule = new ZipkinRule();
-      try {
-        report(TestObjects.TRACE);
-        assertThat(zipkinRule.getTraces()).containsExactly(TestObjects.TRACE);
-      } finally {
-        zipkinRule.shutdown();
-      }
-    }
-  }
-
   @Test public void compression() throws Exception {
     zipkinRule.shutdown(); // shutdown the normal zipkin rule
 
     MockWebServer server = new MockWebServer();
-    reporter = reporter.toBuilder().postUrl(server.url("/").toString()).build();
+    reporter = reporter.toBuilder().endpoint(server.url("/api/v1/spans").toString()).build();
     try {
       List<RecordedRequest> requests = new ArrayList<>();
       for (boolean compressionEnabled : asList(true, false)) {

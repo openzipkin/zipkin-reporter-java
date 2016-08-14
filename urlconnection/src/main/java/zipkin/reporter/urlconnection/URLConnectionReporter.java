@@ -18,6 +18,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.List;
 import java.util.concurrent.Executor;
@@ -26,27 +27,13 @@ import zipkin.Codec;
 import zipkin.Span;
 import zipkin.reporter.Reporter;
 
+import static zipkin.internal.Util.checkNotNull;
+
 /**
- * Reports spans to Zipkin, using its {@code POST /spans} endpoint.
+ * Reports spans to Zipkin, using its <a href="http://zipkin.io/zipkin-api/#/">POST</a> endpoint.
  */
 @AutoValue
 public abstract class URLConnectionReporter implements Reporter {
-
-  /**
-   * Returns the POST URL for zipkin's <a href="http://zipkin.io/zipkin-api/#/">v1 api</a>, usually
-   * "http://zipkinhost:9411/api/v1/spans".
-   *
-   * <p>This is exposed for those who wish to set this dynamically.
-   */
-  // @FunctionalInterface except library compatible w/ JRE 7
-  public interface PostURL {
-    /** This will be called for each POST request. Do not return null. */
-    String get();
-  }
-
-  @AutoValue // for pretty toString
-  static abstract class HardCodedPostURL implements PostURL {
-  }
 
   public static Builder builder() {
     return new AutoValue_URLConnectionReporter.Builder()
@@ -58,17 +45,21 @@ public abstract class URLConnectionReporter implements Reporter {
 
   @AutoValue.Builder
   public static abstract class Builder {
-    /** @see #postUrl(PostURL) */
-    public abstract Builder postUrl(PostURL postUrl);
-
     /**
-     * No default. URL to POST json-encoded spans to. Ex http://zipkinhost:9411/api/v1/spans
-     *
-     * @see PostURL
+     * No default. The POST URL for zipkin's <a href="http://zipkin.io/zipkin-api/#/">v1 api</a>,
+     * usually "http://zipkinhost:9411/api/v1/spans"
      */
-    public final Builder postUrl(String postUrl) {
-      return postUrl(new AutoValue_URLConnectionReporter_HardCodedPostURL(postUrl));
+    // customizable so that users can re-map /api/v1/spans ex for browser-originated traces
+    public final Builder endpoint(String endpoint) {
+      checkNotNull(endpoint, "endpoint ex: http://zipkinhost:9411/api/v1/spans");
+      try {
+        return endpoint(new URL(endpoint));
+      } catch (MalformedURLException e) {
+        throw new IllegalArgumentException(e.getMessage());
+      }
     }
+
+    public abstract Builder endpoint(URL postUrl);
 
     /** Default 10 * 1000 milliseconds. 0 implies no timeout. */
     public abstract Builder connectTimeout(int connectTimeout);
@@ -92,7 +83,7 @@ public abstract class URLConnectionReporter implements Reporter {
     return new AutoValue_URLConnectionReporter.Builder(this);
   }
 
-  abstract PostURL postUrl();
+  abstract URL endpoint();
 
   abstract int connectTimeout();
 
@@ -102,7 +93,7 @@ public abstract class URLConnectionReporter implements Reporter {
 
   abstract Executor executor();
 
-  /** Asynchronously sends the spans as a json POST to {@link #postUrl()}. */
+  /** Asynchronously sends the spans as a json POST to {@link #endpoint()}. */
   @Override public void report(List<Span> spans, Callback callback) {
     executor().execute(() -> {
       try {
@@ -117,9 +108,8 @@ public abstract class URLConnectionReporter implements Reporter {
   }
 
   void send(byte[] body, String mediaType) throws IOException {
-    URL postUrl = new URL(postUrl().get());
     // intentionally not closing the connection, so as to use keep-alives
-    HttpURLConnection connection = (HttpURLConnection) postUrl.openConnection();
+    HttpURLConnection connection = (HttpURLConnection) endpoint().openConnection();
     connection.setConnectTimeout(connectTimeout());
     connection.setReadTimeout(readTimeout());
     connection.setRequestMethod("POST");
