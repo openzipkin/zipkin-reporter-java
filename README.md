@@ -14,7 +14,7 @@ class Recorder implements Flushable {
 
   --snip--
   URLConnectionReporter reporter = URLConnectionReporter.builder()
-                                                        .postUrl("http://localhost:9411/api/v1/spans")
+                                                        .endpoint("http://localhost:9411/api/v1/spans")
                                                         .build();
 
   Callback callback = new IncrementSpanMetricsCallback(metrics);
