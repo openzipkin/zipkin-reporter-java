@@ -1,6 +1,6 @@
-[![Gitter chat](http://img.shields.io/badge/gitter-join%20chat%20%E2%86%92-brightgreen.svg)](https://gitter.im/openzipkin/zipkin) [![Build Status](https://travis-ci.org/openzipkin/zipkin-java-reporter.svg?branch=master)](https://travis-ci.org/openzipkin/zipkin-java-reporter) [![Download](https://api.bintray.com/packages/openzipkin/maven/zipkin-java-reporter/images/download.svg) ](https://bintray.com/openzipkin/maven/zipkin-java-reporter/_latestVersion)
+[![Gitter chat](http://img.shields.io/badge/gitter-join%20chat%20%E2%86%92-brightgreen.svg)](https://gitter.im/openzipkin/zipkin) [![Build Status](https://travis-ci.org/openzipkin/zipkin-reporter-java.svg?branch=master)](https://travis-ci.org/openzipkin/zipkin-reporter-java) [![Download](https://api.bintray.com/packages/openzipkin/maven/zipkin-reporter-java/images/download.svg) ](https://bintray.com/openzipkin/maven/zipkin-reporter-java/_latestVersion)
 
-# zipkin-java-reporter
+# zipkin-reporter-java
 Shared library for reporting zipkin spans on transports including http and kafka.
 
 # Usage

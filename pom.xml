@@ -42,7 +42,7 @@
 
   <name>Zipkin Reporter (Parent)</name>
   <description>Zipkin Reporter (Parent)</description>
-  <url>https://github.com/openzipkin/zipkin-java-reporter</url>
+  <url>https://github.com/openzipkin/zipkin-reporter-java</url>
   <inceptionYear>2016</inceptionYear>
 
   <organization>
@@ -59,9 +59,9 @@
   </licenses>
 
   <scm>
-    <url>https://github.com/openzipkin/zipkin-java-reporter</url>
-    <connection>scm:git:https://github.com/openzipkin/zipkin-java-reporter.git</connection>
-    <developerConnection>scm:git:https://github.com/openzipkin/zipkin-java-reporter.git</developerConnection>
+    <url>https://github.com/openzipkin/zipkin-reporter-java</url>
+    <connection>scm:git:https://github.com/openzipkin/zipkin-reporter-java.git</connection>
+    <developerConnection>scm:git:https://github.com/openzipkin/zipkin-reporter-java.git</developerConnection>
     <tag>HEAD</tag>
   </scm>
 
@@ -76,7 +76,7 @@
   <distributionManagement>
     <repository>
       <id>bintray</id>
-      <url>https://api.bintray.com/maven/openzipkin/maven/zipkin-java-reporter/;publish=1</url>
+      <url>https://api.bintray.com/maven/openzipkin/maven/zipkin-reporter-java/;publish=1</url>
     </repository>
     <snapshotRepository>
       <id>jfrog-snapshots</id>
@@ -86,7 +86,7 @@
 
   <issueManagement>
     <system>Github</system>
-    <url>https://github.com/openzipkin/zipkin-java-reporter/issues</url>
+    <url>https://github.com/openzipkin/zipkin-reporter-java/issues</url>
   </issueManagement>
 
   <dependencyManagement>
@@ -276,7 +276,7 @@
         <artifactId>centralsync-maven-plugin</artifactId>
         <version>0.1.0</version>
         <configuration>
-          <packageName>zipkin-java-reporter</packageName>
+          <packageName>zipkin-reporter-java</packageName>
         </configuration>
       </plugin>
     </plugins>
