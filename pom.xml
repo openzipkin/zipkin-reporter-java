@@ -32,9 +32,13 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.build.resourceEncoding>UTF-8</project.build.resourceEncoding>
 
+    <!-- default bytecode version for src/main -->
+    <main.java.version>1.6</main.java.version>
+    <main.signature.artifact>java16</main.signature.artifact>
+
     <main.basedir>${project.basedir}</main.basedir>
 
-    <zipkin.version>1.6.0</zipkin.version>
+    <zipkin.version>1.7.0</zipkin.version>
     <license-maven-plugin.version>2.11</license-maven-plugin.version>
   </properties>
 
@@ -154,7 +158,7 @@
         <inherited>true</inherited>
         <artifactId>maven-compiler-plugin</artifactId>
         <configuration>
-          <!-- Retrolamda will rewrite lambdas as Java 7 bytecode -->
+          <!-- Retrolambda will rewrite lambdas as Java 6 bytecode -->
           <source>1.8</source>
           <target>1.8</target>
           <compilerId>javac-with-errorprone</compilerId>
@@ -185,7 +189,7 @@
               <goal>process-main</goal>
             </goals>
             <configuration>
-              <target>1.7</target>
+              <target>${main.java.version}</target>
               <fork>false</fork>
             </configuration>
           </execution>
@@ -199,7 +203,7 @@
         <configuration>
           <signature>
             <groupId>org.codehaus.mojo.signature</groupId>
-            <artifactId>java17</artifactId>
+            <artifactId>${main.signature.artifact}</artifactId>
             <version>1.0</version>
           </signature>
         </configuration>
