@@ -23,8 +23,8 @@
     <version>0.2.1-SNAPSHOT</version>
   </parent>
 
-  <artifactId>zipkin-reporter-urlconnection</artifactId>
-  <name>Zipkin Reporter: URLConnection</name>
+  <artifactId>zipkin-sender-urlconnection</artifactId>
+  <name>Zipkin Sender: URLConnection</name>
 
   <properties>
     <main.basedir>${project.basedir}/..</main.basedir>

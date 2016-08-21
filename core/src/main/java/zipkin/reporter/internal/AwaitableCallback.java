@@ -15,7 +15,7 @@ package zipkin.reporter.internal;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
-import zipkin.reporter.Reporter.Callback;
+import zipkin.reporter.Callback;
 
 /**
  * Blocks until {@link Callback#onComplete()} or {@link Callback#onError(Throwable)}.

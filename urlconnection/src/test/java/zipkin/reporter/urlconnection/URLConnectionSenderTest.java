@@ -21,39 +21,41 @@ import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import zipkin.Span;
 import zipkin.TestObjects;
 import zipkin.junit.HttpFailure;
 import zipkin.junit.ZipkinRule;
-import zipkin.reporter.Reporter.Callback;
+import zipkin.reporter.Callback;
+import zipkin.reporter.Encoding;
+import zipkin.reporter.SpanEncoder;
 import zipkin.reporter.internal.AwaitableCallback;
 
 import static java.util.Arrays.asList;
+import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.failBecauseExceptionWasNotThrown;
 
-public class URLConnectionReporterTest {
+public class URLConnectionSenderTest {
 
   @Rule
   public ZipkinRule zipkinRule = new ZipkinRule();
+  @Rule
+  public ExpectedException thrown = ExpectedException.none();
 
-  URLConnectionReporter reporter = URLConnectionReporter.builder()
+  URLConnectionSender sender = URLConnectionSender.builder()
       .endpoint(zipkinRule.httpUrl() + "/api/v1/spans").build();
 
   @Test
   public void badUrlIsAnIllegalArgument() throws Exception {
-    try {
-      URLConnectionReporter.builder()
-          .endpoint("htp://localhost:9411/api/v1/spans").build();
-      failBecauseExceptionWasNotThrown(IllegalArgumentException.class);
-    } catch (IllegalArgumentException e) {
-      assertThat(e).hasMessage("unknown protocol: htp");
-    }
+    thrown.expect(IllegalArgumentException.class);
+    thrown.expectMessage("unknown protocol: htp");
+
+    URLConnectionSender.builder().endpoint("htp://localhost:9411/api/v1/spans").build();
   }
 
   @Test
-  public void reportsSpans() throws Exception {
-    report(TestObjects.TRACE);
+  public void sendsSpans() throws Exception {
+    send(TestObjects.TRACE);
 
     // Ensure only one request was sent
     assertThat(zipkinRule.httpRequestCount()).isEqualTo(1);
@@ -62,20 +64,32 @@ public class URLConnectionReporterTest {
     assertThat(zipkinRule.getTraces()).containsExactly(TestObjects.TRACE);
   }
 
+  @Test
+  public void sendsSpans_thrift() throws Exception {
+    AwaitableCallback callback = new AwaitableCallback();
+    sender.sendSpans(asList(SpanEncoder.THRIFT.encode(TestObjects.TRACE.get(0))), callback);
+    callback.await();
+
+    // Ensure only one request was sent
+    assertThat(zipkinRule.httpRequestCount()).isEqualTo(1);
+
+    // Now, let's read back the spans we sent!
+    assertThat(zipkinRule.getTraces()).containsExactly(asList(TestObjects.TRACE.get(0)));
+  }
+
   @Test public void compression() throws Exception {
     zipkinRule.shutdown(); // shutdown the normal zipkin rule
 
     MockWebServer server = new MockWebServer();
-    reporter = reporter.toBuilder().endpoint(server.url("/api/v1/spans").toString()).build();
+    sender = sender.toBuilder().endpoint(server.url("/api/v1/spans").toString()).build();
     try {
       List<RecordedRequest> requests = new ArrayList<>();
       for (boolean compressionEnabled : asList(true, false)) {
-        reporter = reporter.toBuilder().compressionEnabled(compressionEnabled).build();
+        sender = sender.toBuilder().compressionEnabled(compressionEnabled).build();
 
         server.enqueue(new MockResponse());
 
-        // write a complete trace so that it gets reported
-        report(TestObjects.TRACE);
+        send(TestObjects.TRACE);
 
         // block until the request arrived
         requests.add(server.takeRequest());
@@ -84,6 +98,27 @@ public class URLConnectionReporterTest {
       // we expect the first compressed request to be smaller than the uncompressed one.
       assertThat(requests.get(0).getBodySize())
           .isLessThan(requests.get(1).getBodySize());
+    } finally {
+      server.shutdown();
+    }
+  }
+
+  @Test public void manuallyAssignEncoding() throws Exception {
+    zipkinRule.shutdown(); // shutdown the normal zipkin rule
+    MockWebServer server = new MockWebServer();
+    try {
+      sender = sender.toBuilder()
+          .endpoint(server.url("/api/v1/spans").toString())
+          .encoding(Encoding.THRIFT)
+          .build();
+
+      server.enqueue(new MockResponse());
+
+      send(TestObjects.TRACE); // objects are in json, but we tell it the wrong thing
+
+      // block until the request arrived
+      assertThat(server.takeRequest().getHeader("Content-Type"))
+          .isEqualTo("application/x-thrift");
     } finally {
       server.shutdown();
     }
@@ -103,6 +138,20 @@ public class URLConnectionReporterTest {
     thenCallbackCatchesTheThrowable();
   }
 
+  @Test
+  public void check_ok() throws Exception {
+    assertThat(sender.check().ok).isTrue();
+
+    assertThat(zipkinRule.httpRequestCount()).isEqualTo(1);
+  }
+
+  @Test
+  public void check_fail() throws Exception {
+    zipkinRule.enqueueFailure(HttpFailure.disconnectDuringBody());
+
+    assertThat(sender.check().ok).isFalse();
+  }
+
   void thenCallbackCatchesTheThrowable() {
     AtomicReference<Throwable> t = new AtomicReference<>();
     Callback callback = new Callback() {
@@ -117,16 +166,16 @@ public class URLConnectionReporterTest {
     };
 
     // Default invocation is blocking
-    reporter.report(TestObjects.TRACE, callback);
+    sender.sendSpans(asList(new byte[0]), callback);
 
     // We didn't throw, rather, the exception went to the callback.
     assertThat(t.get()).isNotNull();
   }
 
   /** Blocks until the callback completes to allow read-your-writes consistency during tests. */
-  void report(List<Span> spans) {
+  void send(List<Span> spans) {
     AwaitableCallback callback = new AwaitableCallback();
-    reporter.report(spans, callback);
+    sender.sendSpans(spans.stream().map(SpanEncoder.JSON::encode).collect(toList()), callback);
     callback.await();
   }
 }

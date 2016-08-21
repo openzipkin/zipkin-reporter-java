@@ -1,31 +1,44 @@
 [![Gitter chat](http://img.shields.io/badge/gitter-join%20chat%20%E2%86%92-brightgreen.svg)](https://gitter.im/openzipkin/zipkin) [![Build Status](https://travis-ci.org/openzipkin/zipkin-reporter-java.svg?branch=master)](https://travis-ci.org/openzipkin/zipkin-reporter-java) [![Download](https://api.bintray.com/packages/openzipkin/maven/zipkin-reporter-java/images/download.svg) ](https://bintray.com/openzipkin/maven/zipkin-reporter-java/_latestVersion)
 
 # zipkin-reporter-java
-Shared library for reporting zipkin spans on transports including http and kafka. Requires JRE 6 or later.
+Shared library for reporting zipkin spans onto transports including http and kafka. Requires JRE 6 or later.
 
 # Usage
 These components can be called when spans have been recorded and ready to send to zipkin.
 
-For example, you may have a class called Recorder, which flushes on an interval. The reporter
-component handles the last step.
+## SpanEncoder
+The span encoder is a specialized form of Zipkin's Codec, which only deals with encoding one span.
+
+## Sender
+The sender component handles the last step of sending a list of serialized spans onto a transport.
+This involves I/O, so you can call `Sender.check()` to check its health on a given frequency. 
 
 ```java
-class Recorder implements Flushable {
+class Reporter implements Flushable {
 
   --snip--
-  URLConnectionReporter reporter = URLConnectionReporter.builder()
-                                                        .endpoint("http://localhost:9411/api/v1/spans")
-                                                        .build();
+  URLConnectionSender sender = URLConnectionSender.builder()
+                                                  .endpoint("http://localhost:9411/api/v1/spans")
+                                                  .build();
 
   Callback callback = new IncrementSpanMetricsCallback(metrics);
+
+  // Is the connection healthy?
+  public boolean ok() {
+    return sender.check().ok;
+  }
+
+  public void report(Span span) {
+    pending.add(SpanEncoder.THRIFT.encode(span));
+  }
 
   @Override
   public void flush() {
     if (pending.isEmpty()) return;
-    List<Span> drained = new ArrayList<Span>(pending.size());
+    List<byte[]> drained = new ArrayList<byte[]>(pending.size());
     pending.drainTo(drained);
     if (drained.isEmpty()) return;
 
-    reporter.accept(drained, callback);
+    sender.sendSpans(drained, callback);
   }
 ```

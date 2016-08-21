@@ -23,8 +23,8 @@
     <version>0.2.1-SNAPSHOT</version>
   </parent>
 
-  <artifactId>zipkin-reporter-kafka08</artifactId>
-  <name>Zipkin Reporter: Kafka</name>
+  <artifactId>zipkin-sender-kafka08</artifactId>
+  <name>Zipkin Sender: Kafka 0.8</name>
 
   <properties>
     <main.basedir>${project.basedir}/..</main.basedir>
