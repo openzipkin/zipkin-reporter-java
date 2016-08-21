@@ -32,10 +32,10 @@ import zipkin.collector.Collector;
  * message}. For example, a large span might need to be sent as a separate message to avoid kafka
  * limits. Also, logging transports like scribe will likely write each span as a separate log line.
  *
- * <p>This accepts a list of @link Encoder#encode(Object) encoded buffers}, such as a byte arrays,
+ * <p>This accepts a list of @link Encoder#encode(Object) encoded elements}, such as a byte arrays,
  * as opposed a list of spans like {@link zipkin.Span}. This allows senders to be re-usable as model
  * shapes change. This also allows them to use their most natural item type. For example, okhttp
- * would more naturally send http bodies as okio buffers.
+ * would more naturally send http bodies as okio elements.
  *
  * <p>If performance is critical, {@link Encoding#THRIFT thrift encoding} is most efficient,
  * sometimes an order of magnitude faster than json.
