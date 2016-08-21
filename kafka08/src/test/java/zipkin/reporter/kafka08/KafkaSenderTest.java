@@ -14,38 +14,43 @@
 package zipkin.reporter.kafka08;
 
 import com.github.charithe.kafka.KafkaJunitRule;
+import java.io.IOException;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeoutException;
 import kafka.serializer.DefaultDecoder;
+import org.apache.kafka.clients.producer.ProducerConfig;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import zipkin.Codec;
+import zipkin.Component;
 import zipkin.Span;
 import zipkin.TestObjects;
+import zipkin.reporter.SpanEncoder;
 import zipkin.reporter.internal.AwaitableCallback;
 
+import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class KafkaReporterTest {
+public class KafkaSenderTest {
 
-  @Rule
-  public KafkaJunitRule kafka = new KafkaJunitRule();
-  @Rule
-  public ExpectedException thrown = ExpectedException.none();
+  @Rule public KafkaJunitRule kafka = new KafkaJunitRule();
+  @Rule public ExpectedException thrown = ExpectedException.none();
 
-  KafkaReporter reporter =
-      KafkaReporter.builder("localhost:" + kafka.kafkaBrokerPort()).build();
+  KafkaSender sender = KafkaSender.builder()
+      .bootstrapServers("localhost:" + kafka.kafkaBrokerPort()).build();
 
   @After
-  public void close() {
-    reporter.close();
+  public void close() throws IOException {
+    sender.close();
   }
 
   @Test
-  public void reportsSpans() throws Exception {
-    report(TestObjects.TRACE);
+  public void sendsSpans() throws Exception {
+    send(TestObjects.TRACE);
 
     List<byte[]> messages = readMessages();
     assertThat(messages).hasSize(1);
@@ -55,12 +60,13 @@ public class KafkaReporterTest {
   }
 
   @Test
-  public void reportsSpansToCorrectTopic() throws Exception {
-    reporter.close();
-    reporter = KafkaReporter.builder("localhost:" + kafka.kafkaBrokerPort())
+  public void sendsSpansToCorrectTopic() throws Exception {
+    sender.close();
+    sender = KafkaSender.builder()
+        .bootstrapServers("localhost:" + kafka.kafkaBrokerPort())
         .topic("customzipkintopic").build();
 
-    report(TestObjects.TRACE);
+    send(TestObjects.TRACE);
 
     List<byte[]> messages = readMessages("customzipkintopic");
     assertThat(messages).hasSize(1);
@@ -69,10 +75,28 @@ public class KafkaReporterTest {
         .isEqualTo(TestObjects.TRACE);
   }
 
+  @Test
+  public void checkFalseWhenKafkaIsDown() throws Exception {
+    kafka.shutdownKafka();
+
+    // Make a new tracer that fails faster than 60 seconds
+    sender.close();
+    Map<String, String> overrides = new LinkedHashMap<>();
+    overrides.put(ProducerConfig.METADATA_FETCH_TIMEOUT_CONFIG, "100");
+    sender = KafkaSender.builder()
+        .bootstrapServers("localhost:" + kafka.kafkaBrokerPort())
+        .overrides(overrides).build();
+
+    Component.CheckResult check = sender.check();
+    assertThat(check.ok).isFalse();
+    assertThat(check.exception)
+        .isInstanceOf(org.apache.kafka.common.errors.TimeoutException.class);
+  }
+
   /** Blocks until the callback completes to allow read-your-writes consistency during tests. */
-  void report(List<Span> spans) {
+  void send(List<Span> spans) {
     AwaitableCallback callback = new AwaitableCallback();
-    reporter.report(spans, callback);
+    sender.sendSpans(spans.stream().map(SpanEncoder.THRIFT::encode).collect(toList()), callback);
     callback.await();
   }
 

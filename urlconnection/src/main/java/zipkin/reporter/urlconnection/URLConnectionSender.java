@@ -21,11 +21,13 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.List;
-import java.util.concurrent.Executor;
 import java.util.zip.GZIPOutputStream;
-import zipkin.Codec;
-import zipkin.Span;
-import zipkin.reporter.Reporter;
+import zipkin.internal.Nullable;
+import zipkin.reporter.Callback;
+import zipkin.reporter.Encoding;
+import zipkin.reporter.ListEncoder;
+import zipkin.reporter.Sender;
+import zipkin.reporter.SpanEncoder;
 
 import static zipkin.internal.Util.checkNotNull;
 
@@ -33,14 +35,13 @@ import static zipkin.internal.Util.checkNotNull;
  * Reports spans to Zipkin, using its <a href="http://zipkin.io/zipkin-api/#/">POST</a> endpoint.
  */
 @AutoValue
-public abstract class URLConnectionReporter implements Reporter {
+public abstract class URLConnectionSender implements Sender {
 
   public static Builder builder() {
-    return new AutoValue_URLConnectionReporter.Builder()
+    return new AutoValue_URLConnectionSender.Builder()
         .connectTimeout(10 * 1000)
         .readTimeout(60 * 1000)
-        .compressionEnabled(true)
-        .executor(Runnable::run);
+        .compressionEnabled(true);
   }
 
   @AutoValue.Builder
@@ -70,17 +71,24 @@ public abstract class URLConnectionReporter implements Reporter {
     /** Default true. true implies that spans will be gzipped before transport. */
     public abstract Builder compressionEnabled(boolean compressSpans);
 
-    /** Default calling thread. The executor used to defer http requests. */
-    public abstract Builder executor(Executor executor);
+    /**
+     * Controls the "Content-Type" header and {@link ListEncoder list encoding} when sending spans.
+     * Defaults to detect based on the first span.
+     *
+     * <p>For example, if you are using {@link SpanEncoder#JSON} or similar, use {@link
+     * Encoding#JSON}. If you are using {@link SpanEncoder#THRIFT} or similar, use {@link
+     * Encoding#THRIFT}
+     */
+    public abstract Builder encoding(Encoding encoding);
 
-    public abstract URLConnectionReporter build();
+    public abstract URLConnectionSender build();
 
     Builder() {
     }
   }
 
   public Builder toBuilder() {
-    return new AutoValue_URLConnectionReporter.Builder(this);
+    return new AutoValue_URLConnectionSender.Builder(this);
   }
 
   abstract URL endpoint();
@@ -91,20 +99,51 @@ public abstract class URLConnectionReporter implements Reporter {
 
   abstract boolean compressionEnabled();
 
-  abstract Executor executor();
+  @Nullable abstract Encoding encoding();
 
-  /** Asynchronously sends the spans as a json POST to {@link #endpoint()}. */
-  @Override public void report(List<Span> spans, Callback callback) {
-    executor().execute(() -> {
-      try {
-        byte[] body = Codec.JSON.writeSpans(spans);
-        send(body, "application/json");
-        callback.onComplete();
-      } catch (RuntimeException | IOException | Error e) {
-        callback.onError(e);
-        if (e instanceof Error) throw (Error) e;
+  /** Asynchronously sends the spans as a POST to {@link #endpoint()}. */
+  @Override public void sendSpans(List<byte[]> spans, Callback callback) {
+    if (spans.isEmpty()) {
+      callback.onComplete();
+      return;
+    }
+    try {
+      Encoding encoding = encoding() != null ? encoding() : Encoding.detectFromSpan(spans.get(0));
+      final String mediaType;
+      final ListEncoder listEncoder;
+      switch (encoding) {
+        case JSON:
+          mediaType = "application/json";
+          listEncoder = ListEncoder.JSON;
+          break;
+        case THRIFT:
+          mediaType = "application/x-thrift";
+          listEncoder = ListEncoder.THRIFT;
+          break;
+        default:
+          throw new UnsupportedOperationException("Unsupported encoding: " + encoding.name());
       }
-    });
+      byte[] message = listEncoder.encode(spans);
+      send(message, mediaType);
+      callback.onComplete();
+    } catch (Throwable e) {
+      callback.onError(e);
+      if (e instanceof Error) throw (Error) e;
+    }
+  }
+
+  /** Sends an empty json message to the configured endpoint. */
+  @Override public CheckResult check() {
+    try {
+      send(new byte[] {'[', ']'}, "application/json");
+      return CheckResult.OK;
+    } catch (Exception e) {
+      return CheckResult.failed(e);
+    }
+  }
+
+  @Override public void close() {
+    // Nothing to close
   }
 
   void send(byte[] body, String mediaType) throws IOException {
@@ -138,6 +177,6 @@ public abstract class URLConnectionReporter implements Reporter {
     }
   }
 
-  URLConnectionReporter() {
+  URLConnectionSender() {
   }
 }
