@@ -9,17 +9,15 @@ These components can be called when spans have been recorded and ready to send t
 ## SpanEncoder
 The span encoder is a specialized form of Zipkin's Codec, which only deals with encoding one span.
 
-## Sender
-The sender component handles the last step of sending a list of serialized spans onto a transport.
+### Sender
+The sender component handles the last step of sending a list of encoded spans onto a transport.
 This involves I/O, so you can call `Sender.check()` to check its health on a given frequency. 
 
 ```java
-class Reporter implements Flushable {
+class CustomReporter implements Flushable {
 
   --snip--
-  URLConnectionSender sender = URLConnectionSender.builder()
-                                                  .endpoint("http://localhost:9411/api/v1/spans")
-                                                  .build();
+  URLConnectionSender sender = URLConnectionSender.create("http://localhost:9411/api/v1/spans");
 
   Callback callback = new IncrementSpanMetricsCallback(metrics);
 
@@ -29,7 +27,7 @@ class Reporter implements Flushable {
   }
 
   public void report(Span span) {
-    pending.add(SpanEncoder.THRIFT.encode(span));
+    pending.add(Encoder.THRIFT_BYTES.encode(span));
   }
 
   @Override
@@ -41,4 +39,17 @@ class Reporter implements Flushable {
 
     sender.sendSpans(drained, callback);
   }
+```
+
+## Json Encoding
+By default, components use thrift encoding, as it is the most compatible
+and efficient. However, json is readable and helpful during debugging.
+
+Here's an example of how to switch to json encoding:
+
+```java
+sender = URLConnectionSender.builder()
+                            .messageEncoder(MessageEncoder.JSON_BYTES)
+                            .endpoint("http://localhost:9411/api/v1/spans")
+                            .build();
 ```

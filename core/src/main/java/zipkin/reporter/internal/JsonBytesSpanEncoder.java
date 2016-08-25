@@ -11,20 +11,24 @@
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
  */
-package zipkin.reporter;
+package zipkin.reporter.internal;
 
 import zipkin.Codec;
 import zipkin.Span;
+import zipkin.reporter.Encoder;
+import zipkin.reporter.Encoding;
 
-public interface SpanEncoder {
+public final class JsonBytesSpanEncoder implements Encoder<Span, byte[]> {
 
-  SpanEncoder JSON = Codec.JSON::writeSpan;
-  SpanEncoder THRIFT = Codec.THRIFT::writeSpan;
+  @Override public Encoding encoding() {
+    return Encoding.JSON;
+  }
 
-  /**
-   * Encodes a span recorded from instrumentation into its binary form.
-   *
-   * @param span cannot be null
-   */
-  byte[] encode(Span span);
+  @Override public int sizeInBytes(byte[] buffer) {
+    return buffer.length;
+  }
+
+  @Override public byte[] encode(Span span) {
+    return Codec.JSON.writeSpan(span);
+  }
 }

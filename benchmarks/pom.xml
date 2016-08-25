@@ -26,7 +26,7 @@
   </parent>
 
   <artifactId>benchmarks</artifactId>
-  <name>Benchmarks</name>
+  <name>Zipkin Reporter: Benchmarks</name>
   <description>Benchmarks (JMH)</description>
 
   <properties>

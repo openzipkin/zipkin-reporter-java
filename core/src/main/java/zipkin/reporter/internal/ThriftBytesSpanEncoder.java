@@ -11,9 +11,24 @@
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
  */
-package zipkin.reporter;
+package zipkin.reporter.internal;
 
-public enum Encoding {
-  JSON,
-  THRIFT;
+import zipkin.Codec;
+import zipkin.Span;
+import zipkin.reporter.Encoder;
+import zipkin.reporter.Encoding;
+
+public final class ThriftBytesSpanEncoder implements Encoder<Span, byte[]> {
+
+  @Override public Encoding encoding() {
+    return Encoding.THRIFT;
+  }
+
+  @Override public int sizeInBytes(byte[] buffer) {
+    return buffer.length;
+  }
+
+  @Override public byte[] encode(Span span) {
+    return Codec.THRIFT.writeSpan(span);
+  }
 }

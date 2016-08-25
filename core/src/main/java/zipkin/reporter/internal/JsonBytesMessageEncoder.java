@@ -14,33 +14,43 @@
 package zipkin.reporter.internal;
 
 import java.util.List;
-import zipkin.reporter.ListEncoder;
+import zipkin.reporter.Encoding;
+import zipkin.reporter.MessageEncoder;
+import zipkin.reporter.Sender.MessageEncoding;
 
-public final class ThriftListEncoder implements ListEncoder {
+import static zipkin.internal.Util.checkArgument;
+
+public final class JsonBytesMessageEncoder
+    implements MessageEncoder<byte[], byte[]>, MessageEncoding {
+
+  @Override public Encoding encoding() {
+    return Encoding.JSON;
+  }
+
+  /** Encoding overheadInBytes is brackets and a comma for each span (unless only one single span) */
+  @Override public int overheadInBytes(int spanCount) {
+    checkArgument(spanCount > 0, "spanCount must be positive");
+    return 2 + spanCount - 1;
+  }
 
   @Override public byte[] encode(List<byte[]> values) {
-    int sizeOfArray = 5;
+    int sizeOfArray = 2;
     int length = values.size();
-    for (int i = 0; i < length; i++) {
-      sizeOfArray += values.get(i).length;
+    for (int i = 0; i < length; ) {
+      sizeOfArray += values.get(i++).length;
+      if (i < length) sizeOfArray++;
     }
 
     byte[] buf = new byte[sizeOfArray];
     int pos = 0;
-
-    // TBinaryProtocol List header is element type followed by count
-    buf[pos++] = 12; // TYPE_STRUCT
-    buf[pos++] = (byte) ((length >>> 24L) & 0xff);
-    buf[pos++] = (byte) ((length >>> 16L) & 0xff);
-    buf[pos++] = (byte) ((length >>> 8L) & 0xff);
-    buf[pos++] = (byte) (length & 0xff);
-
-    // Then each struct is written one-at-a-time with no delimiters until done.
+    buf[pos++] = '[';
     for (int i = 0; i < length; ) {
       byte[] v = values.get(i++);
       System.arraycopy(v, 0, buf, pos, v.length);
       pos += v.length;
+      if (i < length) buf[pos++] = ',';
     }
+    buf[pos] = ']';
     return buf;
   }
 }

@@ -13,22 +13,21 @@
  */
 package zipkin.reporter.kafka08;
 
-import java.io.IOException;
+import com.google.auto.value.AutoValue;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import zipkin.internal.LazyCloseable;
-import zipkin.internal.Nullable;
 import zipkin.reporter.Callback;
 import zipkin.reporter.Encoding;
-import zipkin.reporter.ListEncoder;
+import zipkin.reporter.MessageEncoder;
 import zipkin.reporter.Sender;
-import zipkin.reporter.SpanEncoder;
 
 import static zipkin.internal.Util.checkNotNull;
 
@@ -37,24 +36,38 @@ import static zipkin.internal.Util.checkNotNull;
  *
  * <p>This sender remains a Kafka 0.8.x consumer, while Zipkin systems update to 0.9+.
  */
-public final class KafkaSender implements Sender {
+@AutoValue
+public abstract class KafkaSender<B> extends LazyCloseable<KafkaProducer<byte[], byte[]>>
+    implements Sender<B> {
+
+  public static KafkaSender<byte[]> create(String endpoint) {
+    return builder().messageEncoder(MessageEncoder.THRIFT_BYTES).bootstrapServers(endpoint).build();
+  }
 
   public static Builder builder() {
-    return new Builder();
+    // Settings below correspond to "Producer Configs"
+    // http://kafka.apache.org/08/documentation.html#producerconfigs
+    Properties properties = new Properties();
+    properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class.getName());
+    properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
+        ByteArraySerializer.class.getName());
+    properties.put(ProducerConfig.ACKS_CONFIG, "0");
+    return new AutoValue_KafkaSender.Builder()
+        .properties(properties)
+        .topic("zipkin")
+        .overrides(Collections.EMPTY_MAP)
+        .messageMaxBytes(1000000);
   }
 
   /** Configuration including defaults needed to send spans to a Kafka topic. */
-  public static final class Builder {
-    String topic = "zipkin";
-    String bootstrapServers;
-    Map<String, String> overrides = Collections.emptyMap();
-    ListEncoder listEncoder;
+  @AutoValue.Builder
+  public static abstract class Builder<B> {
+    abstract Builder<B> properties(Properties properties);
 
     /** Topic zipkin spans will be send to. Defaults to "zipkin" */
-    public Builder topic(String topic) {
-      this.topic = checkNotNull(topic, "topic");
-      return this;
-    }
+    public abstract Builder<B> topic(String topic);
+
+    abstract Properties properties();
 
     /**
      * Initial set of kafka servers to connect to, rest of cluster will be discovered (comma
@@ -62,10 +75,17 @@ public final class KafkaSender implements Sender {
      *
      * @see ProducerConfig#BOOTSTRAP_SERVERS_CONFIG
      */
-    public Builder bootstrapServers(String bootstrapServers) {
-      this.bootstrapServers = checkNotNull(bootstrapServers, "bootstrapServers");
+    public final Builder<B> bootstrapServers(String bootstrapServers) {
+      properties().put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,
+          checkNotNull(bootstrapServers, "bootstrapServers"));
       return this;
     }
+
+    /**
+     * Maximum size of a message. Must be equal to or less than the server's "message.max.bytes".
+     * Default 1000000.
+     */
+    public abstract Builder<B> messageMaxBytes(int messageMaxBytes);
 
     /**
      * By default, a producer will be created, targeted to {@link #bootstrapServers(String)} with 0
@@ -81,51 +101,50 @@ public final class KafkaSender implements Sender {
      *
      * @see ProducerConfig
      */
-    public Builder overrides(Map<String, String> overrides) {
-      this.overrides = checkNotNull(overrides, "overrides");
+    public final Builder<B> overrides(Map<String, String> overrides) {
+      properties().putAll(checkNotNull(overrides, "overrides"));
       return this;
     }
 
     /**
-     * Controls how to encode a list of spans into a single message. Defaults to detect based on the
-     * first span sent.
-     *
-     * <p>For example, if you are using {@link SpanEncoder#JSON} or similar, use {@link
-     * ListEncoder#JSON}. If you are using {@link SpanEncoder#THRIFT} or similar, use {@link
-     * ListEncoder#THRIFT}
+     * Controls the "Content-Type" header and {@link MessageEncoder#encode(List) message encoding}
+     * when sending spans. Defaults to {@link Encoding#JSON}.
      */
-    public Builder listEncoder(ListEncoder listEncoder) {
-      this.listEncoder = listEncoder;
-      return this;
+    public abstract Builder<B> messageEncoder(MessageEncoder<B, byte[]> messageEncoder);
+
+    abstract MessageEncoder<B, byte[]> messageEncoder();
+
+    abstract Builder<B> messageEncoding(MessageEncoding messageEncoding);
+
+    public final KafkaSender<B> build() {
+      return messageEncoding(messageEncoder()).autoBuild();
     }
 
-    public KafkaSender build() {
-      return new KafkaSender(this);
-    }
+    abstract KafkaSender<B> autoBuild();
 
     Builder() {
     }
   }
 
-  final LazyCloseable<KafkaProducer<byte[], byte[]>> producer;
-  final String topic;
-  final @Nullable ListEncoder listEncoder;
-
-  KafkaSender(Builder builder) {
-    producer = new LazyProducer(builder);
-    topic = builder.topic;
-    listEncoder = builder.listEncoder;
+  public Builder toBuilder() {
+    return new AutoValue_KafkaSender.Builder(this);
   }
+
+  abstract String topic();
+
+  abstract Properties properties();
+
+  abstract MessageEncoder<B, byte[]> messageEncoder();
 
   /**
    * This sends all of the spans as a single message.
    *
    * <p>NOTE: this blocks until the metadata server is available.
    */
-  @Override public void sendSpans(List<byte[]> spans, Callback callback) {
+  @Override public void sendSpans(List<B> encodedSpans, Callback callback) {
     try {
-      final byte[] message = encodeMessage(spans);
-      producer.get().send(new ProducerRecord<>(topic, message), (metadata, exception) -> {
+      final byte[] message = messageEncoder().encode(encodedSpans);
+      get().send(new ProducerRecord<>(topic(), message), (metadata, exception) -> {
         if (exception == null) {
           callback.onComplete();
         } else {
@@ -138,65 +157,26 @@ public final class KafkaSender implements Sender {
     }
   }
 
-  byte[] encodeMessage(List<byte[]> spans) {
-    final byte[] message;
-    if (listEncoder != null) {
-      message = listEncoder.encode(spans);
-    } else {
-      Encoding encoding = Encoding.detectFromSpan(spans.get(0));
-      switch (encoding) {
-        case JSON:
-          message = ListEncoder.JSON.encode(spans);
-          break;
-        case THRIFT:
-          message = ListEncoder.THRIFT.encode(spans);
-          break;
-        default:
-          throw new UnsupportedOperationException("Unsupported encoding: " + encoding.name());
-      }
-    }
-    return message;
-  }
-
   /** Ensures there are no problems reading metadata about the topic. */
   @Override public CheckResult check() {
     try {
-      producer.get().partitionsFor(topic); // make sure we can query the metadata
+      get().partitionsFor(topic()); // make sure we can query the metadata
       return CheckResult.OK;
     } catch (RuntimeException e) {
       return CheckResult.failed(e);
     }
   }
 
-  @Override
-  public void close() throws IOException {
-    producer.close();
+  @Override protected KafkaProducer<byte[], byte[]> compute() {
+    return new KafkaProducer<byte[], byte[]>(properties());
   }
 
-  static final class LazyProducer extends LazyCloseable<KafkaProducer<byte[], byte[]>> {
+  @Override
+  public void close() {
+    KafkaProducer<byte[], byte[]> maybeNull = maybeNull();
+    if (maybeNull != null) maybeNull.close();
+  }
 
-    final Properties props;
-
-    LazyProducer(Builder builder) {
-      // Settings below correspond to "Producer Configs"
-      // http://kafka.apache.org/08/documentation.html#producerconfigs
-      Properties props = new Properties();
-      props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, builder.bootstrapServers);
-      props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class.getName());
-      props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class.getName());
-      props.put(ProducerConfig.ACKS_CONFIG, "0");
-      props.putAll(builder.overrides);
-      this.props = props;
-    }
-
-    @Override protected KafkaProducer<byte[], byte[]> compute() {
-      return new KafkaProducer<>(props);
-    }
-
-    @Override
-    public void close() {
-      KafkaProducer<byte[], byte[]> maybeNull = maybeNull();
-      if (maybeNull != null) maybeNull.close();
-    }
+  KafkaSender() {
   }
 }

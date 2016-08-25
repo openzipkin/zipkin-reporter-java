@@ -29,7 +29,7 @@ import zipkin.Codec;
 import zipkin.Component;
 import zipkin.Span;
 import zipkin.TestObjects;
-import zipkin.reporter.SpanEncoder;
+import zipkin.reporter.Encoder;
 import zipkin.reporter.internal.AwaitableCallback;
 
 import static java.util.stream.Collectors.toList;
@@ -40,8 +40,7 @@ public class KafkaSenderTest {
   @Rule public KafkaJunitRule kafka = new KafkaJunitRule();
   @Rule public ExpectedException thrown = ExpectedException.none();
 
-  KafkaSender sender = KafkaSender.builder()
-      .bootstrapServers("localhost:" + kafka.kafkaBrokerPort()).build();
+  KafkaSender sender = KafkaSender.create("localhost:" + kafka.kafkaBrokerPort());
 
   @After
   public void close() throws IOException {
@@ -62,9 +61,7 @@ public class KafkaSenderTest {
   @Test
   public void sendsSpansToCorrectTopic() throws Exception {
     sender.close();
-    sender = KafkaSender.builder()
-        .bootstrapServers("localhost:" + kafka.kafkaBrokerPort())
-        .topic("customzipkintopic").build();
+    sender = sender.toBuilder().topic("customzipkintopic").build();
 
     send(TestObjects.TRACE);
 
@@ -83,9 +80,7 @@ public class KafkaSenderTest {
     sender.close();
     Map<String, String> overrides = new LinkedHashMap<>();
     overrides.put(ProducerConfig.METADATA_FETCH_TIMEOUT_CONFIG, "100");
-    sender = KafkaSender.builder()
-        .bootstrapServers("localhost:" + kafka.kafkaBrokerPort())
-        .overrides(overrides).build();
+    sender = sender.toBuilder().overrides(overrides).build();
 
     Component.CheckResult check = sender.check();
     assertThat(check.ok).isFalse();
@@ -96,7 +91,7 @@ public class KafkaSenderTest {
   /** Blocks until the callback completes to allow read-your-writes consistency during tests. */
   void send(List<Span> spans) {
     AwaitableCallback callback = new AwaitableCallback();
-    sender.sendSpans(spans.stream().map(SpanEncoder.THRIFT::encode).collect(toList()), callback);
+    sender.sendSpans(spans.stream().map(Encoder.THRIFT_BYTES::encode).collect(toList()), callback);
     callback.await();
   }
 
