@@ -14,28 +14,45 @@
 package zipkin.reporter.internal;
 
 import java.util.List;
-import zipkin.reporter.ListEncoder;
+import zipkin.reporter.Encoding;
+import zipkin.reporter.MessageEncoder;
+import zipkin.reporter.Sender.MessageEncoding;
 
-public final class JsonListEncoder implements ListEncoder {
+public final class ThriftBytesMessageEncoder
+    implements MessageEncoder<byte[], byte[]>, MessageEncoding {
+
+  @Override public Encoding encoding() {
+    return Encoding.THRIFT;
+  }
+
+  /** Encoding overhead is thrift type plus 32-bit length prefix */
+  @Override public int overheadInBytes(int spanCount) {
+    return 5;
+  }
 
   @Override public byte[] encode(List<byte[]> values) {
-    int sizeOfArray = 2;
+    int sizeOfArray = 5;
     int length = values.size();
-    for (int i = 0; i < length; ) {
-      sizeOfArray += values.get(i++).length;
-      if (i < length) sizeOfArray++;
+    for (int i = 0; i < length; i++) {
+      sizeOfArray += values.get(i).length;
     }
 
     byte[] buf = new byte[sizeOfArray];
     int pos = 0;
-    buf[pos++] = '[';
+
+    // TBinaryProtocol List header is element type followed by count
+    buf[pos++] = 12; // TYPE_STRUCT
+    buf[pos++] = (byte) ((length >>> 24L) & 0xff);
+    buf[pos++] = (byte) ((length >>> 16L) & 0xff);
+    buf[pos++] = (byte) ((length >>> 8L) & 0xff);
+    buf[pos++] = (byte) (length & 0xff);
+
+    // Then each struct is written one-at-a-time with no delimiters until done.
     for (int i = 0; i < length; ) {
       byte[] v = values.get(i++);
       System.arraycopy(v, 0, buf, pos, v.length);
       pos += v.length;
-      if (i < length) buf[pos++] = ',';
     }
-    buf[pos] = ']';
     return buf;
   }
 }

@@ -27,8 +27,8 @@ import zipkin.TestObjects;
 import zipkin.junit.HttpFailure;
 import zipkin.junit.ZipkinRule;
 import zipkin.reporter.Callback;
-import zipkin.reporter.Encoding;
-import zipkin.reporter.SpanEncoder;
+import zipkin.reporter.Encoder;
+import zipkin.reporter.MessageEncoder;
 import zipkin.reporter.internal.AwaitableCallback;
 
 import static java.util.Arrays.asList;
@@ -42,15 +42,15 @@ public class URLConnectionSenderTest {
   @Rule
   public ExpectedException thrown = ExpectedException.none();
 
-  URLConnectionSender sender = URLConnectionSender.builder()
-      .endpoint(zipkinRule.httpUrl() + "/api/v1/spans").build();
+  URLConnectionSender<byte[]> sender =
+      URLConnectionSender.create(zipkinRule.httpUrl() + "/api/v1/spans");
 
   @Test
   public void badUrlIsAnIllegalArgument() throws Exception {
     thrown.expect(IllegalArgumentException.class);
     thrown.expectMessage("unknown protocol: htp");
 
-    URLConnectionSender.builder().endpoint("htp://localhost:9411/api/v1/spans").build();
+    URLConnectionSender.create("htp://localhost:9411/api/v1/spans");
   }
 
   @Test
@@ -65,9 +65,11 @@ public class URLConnectionSenderTest {
   }
 
   @Test
-  public void sendsSpans_thrift() throws Exception {
+  public void sendsSpans_json() throws Exception {
+    sender = sender.toBuilder().messageEncoder(MessageEncoder.JSON_BYTES).build();
+
     AwaitableCallback callback = new AwaitableCallback();
-    sender.sendSpans(asList(SpanEncoder.THRIFT.encode(TestObjects.TRACE.get(0))), callback);
+    sender.sendSpans(asList(Encoder.JSON_BYTES.encode(TestObjects.TRACE.get(0))), callback);
     callback.await();
 
     // Ensure only one request was sent
@@ -103,13 +105,13 @@ public class URLConnectionSenderTest {
     }
   }
 
-  @Test public void manuallyAssignEncoding() throws Exception {
+  @Test public void mediaTypeBasedOnMessageEncoder() throws Exception {
     zipkinRule.shutdown(); // shutdown the normal zipkin rule
     MockWebServer server = new MockWebServer();
     try {
       sender = sender.toBuilder()
           .endpoint(server.url("/api/v1/spans").toString())
-          .encoding(Encoding.THRIFT)
+          .messageEncoder(MessageEncoder.JSON_BYTES)
           .build();
 
       server.enqueue(new MockResponse());
@@ -118,7 +120,7 @@ public class URLConnectionSenderTest {
 
       // block until the request arrived
       assertThat(server.takeRequest().getHeader("Content-Type"))
-          .isEqualTo("application/x-thrift");
+          .isEqualTo("application/json");
     } finally {
       server.shutdown();
     }
@@ -175,7 +177,7 @@ public class URLConnectionSenderTest {
   /** Blocks until the callback completes to allow read-your-writes consistency during tests. */
   void send(List<Span> spans) {
     AwaitableCallback callback = new AwaitableCallback();
-    sender.sendSpans(spans.stream().map(SpanEncoder.JSON::encode).collect(toList()), callback);
+    sender.sendSpans(spans.stream().map(Encoder.THRIFT_BYTES::encode).collect(toList()), callback);
     callback.await();
   }
 }

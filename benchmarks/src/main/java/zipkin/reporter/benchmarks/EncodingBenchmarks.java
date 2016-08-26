@@ -32,8 +32,8 @@ import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 import zipkin.Span;
 import zipkin.TestObjects;
-import zipkin.reporter.ListEncoder;
-import zipkin.reporter.SpanEncoder;
+import zipkin.reporter.Encoder;
+import zipkin.reporter.MessageEncoder;
 
 @Measurement(iterations = 5, time = 1)
 @Warmup(iterations = 10, time = 1)
@@ -44,33 +44,33 @@ import zipkin.reporter.SpanEncoder;
 @Threads(1)
 public class EncodingBenchmarks {
   static final Span clientSpan = TestObjects.TRACE.get(2);
-  static final List<byte[]> clientSpansJson = encode100Spans(SpanEncoder.JSON);
-  static final List<byte[]> clientSpansThrift = encode100Spans(SpanEncoder.THRIFT);
+  static final List<byte[]> clientSpansJson = encode100Spans(Encoder.JSON_BYTES);
+  static final List<byte[]> clientSpansThrift = encode100Spans(Encoder.THRIFT_BYTES);
 
   @Benchmark
   public List<byte[]> encode100Spans_thrift() {
-    return encode100Spans(SpanEncoder.THRIFT);
+    return encode100Spans(Encoder.THRIFT_BYTES);
   }
 
   @Benchmark
   public List<byte[]> encode100Spans_json() {
-    return encode100Spans(SpanEncoder.JSON);
+    return encode100Spans(Encoder.JSON_BYTES);
   }
 
   @Benchmark
   public byte[] encodeListOf100Spans_thrift() {
-    return ListEncoder.THRIFT.encode(clientSpansThrift);
+    return MessageEncoder.THRIFT_BYTES.encode(clientSpansThrift);
   }
 
   @Benchmark
   public byte[] encodeListOf100Spans_json() {
-    return ListEncoder.JSON.encode(clientSpansJson);
+    return MessageEncoder.JSON_BYTES.encode(clientSpansJson);
   }
 
-  static List<byte[]> encode100Spans(SpanEncoder spanEncoder) {
+  static List<byte[]> encode100Spans(Encoder<Span, byte[]> encoder) {
     List<byte[]> spans = new ArrayList<>(100);
     for (int i = 0; i < 100; i++) {
-      spans.add(spanEncoder.encode(clientSpan));
+      spans.add(encoder.encode(clientSpan));
     }
     return spans;
   }
