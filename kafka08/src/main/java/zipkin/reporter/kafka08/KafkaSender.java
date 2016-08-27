@@ -40,8 +40,8 @@ import static zipkin.internal.Util.checkNotNull;
 public abstract class KafkaSender<B> extends LazyCloseable<KafkaProducer<byte[], byte[]>>
     implements Sender<B> {
 
-  public static KafkaSender<byte[]> create(String endpoint) {
-    return builder().messageEncoder(MessageEncoder.THRIFT_BYTES).bootstrapServers(endpoint).build();
+  public static KafkaSender<byte[]> create(String bootstrapServers) {
+    return builder().messageEncoder(MessageEncoder.THRIFT_BYTES).bootstrapServers(bootstrapServers).build();
   }
 
   public static Builder builder() {
