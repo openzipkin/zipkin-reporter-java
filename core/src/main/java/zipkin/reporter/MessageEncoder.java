@@ -22,7 +22,7 @@ import zipkin.reporter.internal.ThriftBytesMessageEncoder;
  * @param <B> buffer holding the encoded span. For example "byte[]"
  * @param <M> encoded form of a message including one or more spans. Often, but not always the same
  * item type. For example, Kafka messages need to take the form of a "byte[]" although that has
- * no bearing on the span item type. For example, almost all buffers can output to a byte array.
+ * no bearing on the span item type. For example, almost all elements can output to a byte array.
  */
 public interface MessageEncoder<B, M> extends MessageEncoding {
   MessageEncoder<byte[], byte[]> JSON_BYTES = new JsonBytesMessageEncoder();
