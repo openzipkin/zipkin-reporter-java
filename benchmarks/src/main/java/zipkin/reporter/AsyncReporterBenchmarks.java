@@ -27,6 +27,7 @@ import org.openjdk.jmh.annotations.Level;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.annotations.OutputTimeUnit;
+import org.openjdk.jmh.annotations.Param;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
@@ -45,6 +46,9 @@ public class AsyncReporterBenchmarks {
   static final Span clientSpan = TestObjects.TRACE.get(2);
   static final InMemoryReporterMetrics metrics = new InMemoryReporterMetrics();
   static final AtomicLong spanBacklog = new AtomicLong();
+
+  @Param
+  public Encoding encoding;
 
   @AuxCounters
   @State(Scope.Thread)
@@ -81,10 +85,10 @@ public class AsyncReporterBenchmarks {
 
   @Setup(Level.Trial)
   public void setup() {
-    reporter = AsyncReporter.builder(new NoopSender())
+    reporter = AsyncReporter.builder(new NoopSender(encoding))
         .messageMaxBytes(1000000) // example default from Kafka message.max.bytes
         .metrics(metrics)
-        .build(Encoder.THRIFT_BYTES);
+        .build();
   }
 
   @Benchmark @Group("no_contention") @GroupThreads(1)

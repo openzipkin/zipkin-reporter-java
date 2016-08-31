@@ -18,7 +18,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -30,6 +29,8 @@ import zipkin.reporter.MessageEncoder;
 import zipkin.reporter.Sender;
 
 import static zipkin.internal.Util.checkNotNull;
+import static zipkin.reporter.MessageEncoder.JSON_BYTES;
+import static zipkin.reporter.MessageEncoder.THRIFT_BYTES;
 
 /**
  * This sends (usually TBinaryProtocol big-endian) encoded spans to a Kafka topic.
@@ -37,11 +38,11 @@ import static zipkin.internal.Util.checkNotNull;
  * <p>This sender remains a Kafka 0.8.x consumer, while Zipkin systems update to 0.9+.
  */
 @AutoValue
-public abstract class KafkaSender<B> extends LazyCloseable<KafkaProducer<byte[], byte[]>>
-    implements Sender<B> {
+public abstract class KafkaSender extends LazyCloseable<KafkaProducer<byte[], byte[]>>
+    implements Sender<byte[]> {
 
-  public static KafkaSender<byte[]> create(String bootstrapServers) {
-    return builder().messageEncoder(MessageEncoder.THRIFT_BYTES).bootstrapServers(bootstrapServers).build();
+  public static KafkaSender create(String bootstrapServers) {
+    return builder().spanEncoding(Encoding.THRIFT).bootstrapServers(bootstrapServers).build();
   }
 
   public static Builder builder() {
@@ -61,11 +62,11 @@ public abstract class KafkaSender<B> extends LazyCloseable<KafkaProducer<byte[],
 
   /** Configuration including defaults needed to send spans to a Kafka topic. */
   @AutoValue.Builder
-  public static abstract class Builder<B> {
-    abstract Builder<B> properties(Properties properties);
+  public static abstract class Builder {
+    abstract Builder properties(Properties properties);
 
     /** Topic zipkin spans will be send to. Defaults to "zipkin" */
-    public abstract Builder<B> topic(String topic);
+    public abstract Builder topic(String topic);
 
     abstract Properties properties();
 
@@ -75,7 +76,7 @@ public abstract class KafkaSender<B> extends LazyCloseable<KafkaProducer<byte[],
      *
      * @see ProducerConfig#BOOTSTRAP_SERVERS_CONFIG
      */
-    public final Builder<B> bootstrapServers(String bootstrapServers) {
+    public final Builder bootstrapServers(String bootstrapServers) {
       properties().put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,
           checkNotNull(bootstrapServers, "bootstrapServers"));
       return this;
@@ -85,7 +86,7 @@ public abstract class KafkaSender<B> extends LazyCloseable<KafkaProducer<byte[],
      * Maximum size of a message. Must be equal to or less than the server's "message.max.bytes".
      * Default 1000000.
      */
-    public abstract Builder<B> messageMaxBytes(int messageMaxBytes);
+    public abstract Builder messageMaxBytes(int messageMaxBytes);
 
     /**
      * By default, a producer will be created, targeted to {@link #bootstrapServers(String)} with 0
@@ -101,26 +102,27 @@ public abstract class KafkaSender<B> extends LazyCloseable<KafkaProducer<byte[],
      *
      * @see ProducerConfig
      */
-    public final Builder<B> overrides(Map<String, String> overrides) {
+    public final Builder overrides(Map<String, String> overrides) {
       properties().putAll(checkNotNull(overrides, "overrides"));
       return this;
     }
 
-    /**
-     * Controls the "Content-Type" header and {@link MessageEncoder#encode(List) message encoding}
-     * when sending spans. Defaults to {@link Encoding#JSON}.
-     */
-    public abstract Builder<B> messageEncoder(MessageEncoder<B, byte[]> messageEncoder);
+    public abstract Builder spanEncoding(Encoding spanEncoding);
 
-    abstract MessageEncoder<B, byte[]> messageEncoder();
+    abstract Encoding spanEncoding();
 
-    abstract Builder<B> messageEncoding(MessageEncoding messageEncoding);
-
-    public final KafkaSender<B> build() {
-      return messageEncoding(messageEncoder()).autoBuild();
+    public final KafkaSender build() {
+      if (spanEncoding() == Encoding.JSON) {
+        return encoder(JSON_BYTES).autoBuild();
+      } else if (spanEncoding() == Encoding.THRIFT) {
+        return encoder(THRIFT_BYTES).autoBuild();
+      }
+      throw new UnsupportedOperationException("Unsupported spanEncoding: " + spanEncoding().name());
     }
 
-    abstract KafkaSender<B> autoBuild();
+    abstract Builder encoder(MessageEncoder<byte[]> encoder);
+
+    public abstract KafkaSender autoBuild();
 
     Builder() {
     }
@@ -130,20 +132,20 @@ public abstract class KafkaSender<B> extends LazyCloseable<KafkaProducer<byte[],
     return new AutoValue_KafkaSender.Builder(this);
   }
 
+  @Override public abstract MessageEncoder<byte[]> encoder(); // auto-value can't resolve M
+
   abstract String topic();
 
   abstract Properties properties();
-
-  abstract MessageEncoder<B, byte[]> messageEncoder();
 
   /**
    * This sends all of the spans as a single message.
    *
    * <p>NOTE: this blocks until the metadata server is available.
    */
-  @Override public void sendSpans(List<B> encodedSpans, Callback callback) {
+  @Override public void sendSpans(List encodedSpans, Callback callback) {
     try {
-      final byte[] message = messageEncoder().encode(encodedSpans);
+      final byte[] message = encoder().encode(encodedSpans);
       get().send(new ProducerRecord<>(topic(), message), (metadata, exception) -> {
         if (exception == null) {
           callback.onComplete();
@@ -168,7 +170,7 @@ public abstract class KafkaSender<B> extends LazyCloseable<KafkaProducer<byte[],
   }
 
   @Override protected KafkaProducer<byte[], byte[]> compute() {
-    return new KafkaProducer<byte[], byte[]>(properties());
+    return new KafkaProducer<>(properties());
   }
 
   @Override

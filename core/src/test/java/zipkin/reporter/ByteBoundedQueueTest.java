@@ -20,26 +20,26 @@ import org.junit.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class ByteBoundedQueueTest {
-  ByteBoundedQueue<Boolean> queue = new ByteBoundedQueue(10, 10);
+  ByteBoundedQueue queue = new ByteBoundedQueue(10, 10);
 
   @Test
   public void offer_failsWhenFull_size() {
     for (int i = 0; i < queue.maxSize; i++) {
-      assertThat(queue.offer(Boolean.TRUE, 1)).isTrue();
+      assertThat(queue.offer(new byte[1])).isTrue();
     }
-    assertThat(queue.offer(Boolean.TRUE, 1)).isFalse();
+    assertThat(queue.offer(new byte[1])).isFalse();
   }
 
   @Test
   public void offer_failsWhenFull_sizeInBytes() {
-    assertThat(queue.offer(Boolean.TRUE, 10)).isTrue();
-    assertThat(queue.offer(Boolean.TRUE, 1)).isFalse();
+    assertThat(queue.offer(new byte[10])).isTrue();
+    assertThat(queue.offer(new byte[1])).isFalse();
   }
 
   @Test
   public void offer_updatesCount() {
     for (int i = 0; i < queue.maxSize; i++) {
-      queue.offer(Boolean.TRUE, 1);
+      queue.offer(new byte[1]);
     }
     assertThat(queue.count).isEqualTo(10);
   }
@@ -47,21 +47,21 @@ public class ByteBoundedQueueTest {
   @Test
   public void offer_sizeInBytes() {
     for (int i = 0; i < queue.maxSize; i++) {
-      queue.offer(Boolean.TRUE, 1);
+      queue.offer(new byte[1]);
     }
     assertThat(queue.sizeInBytes).isEqualTo(queue.maxSize);
   }
 
   @Test
   public void circular() {
-    ByteBoundedQueue<Integer> queue = new ByteBoundedQueue(10, 10);
+    ByteBoundedQueue queue = new ByteBoundedQueue(10, 10);
 
     List<Integer> polled = new ArrayList<>();
-    ByteBoundedQueue.Consumer<Integer> consumer = (buffer, size) -> polled.add(buffer);
+    ByteBoundedQueue.Consumer consumer = buffer -> polled.add((int) buffer[0]);
 
     // Offer more than the capacity, flushing via poll on interval
-    for (int i = 0; i < 15; i++) {
-      queue.offer(i, 1);
+    for (byte i = 0; i < 15; i++) {
+      queue.offer(new byte[] {i});
       queue.drainTo(consumer, 1);
     }
 

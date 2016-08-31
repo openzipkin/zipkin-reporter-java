@@ -18,15 +18,37 @@ import java.util.List;
 
 final class NoopSender implements Sender<byte[]> {
 
+  final Encoding spanEncoding;
+  final MessageEncoder<byte[]> messageEncoder;
+
+  NoopSender(Encoding spanEncoding) {
+    this.spanEncoding = spanEncoding;
+    switch (spanEncoding) {
+      case JSON:
+        messageEncoder = MessageEncoder.JSON_BYTES;
+        break;
+      case THRIFT:
+        messageEncoder = MessageEncoder.THRIFT_BYTES;
+        break;
+      default:
+        throw new UnsupportedOperationException(spanEncoding.name());
+    }
+  }
+
   @Override public int messageMaxBytes() {
     return Integer.MAX_VALUE;
   }
 
-  @Override public MessageEncoding messageEncoding() {
-    return MessageEncoder.THRIFT_BYTES;
+  @Override public Encoding spanEncoding() {
+    return spanEncoding;
+  }
+
+  @Override public MessageEncoder<byte[]> encoder() {
+    return messageEncoder;
   }
 
   @Override public void sendSpans(List<byte[]> encodedSpans, Callback callback) {
+    encoder().encode(encodedSpans);
     callback.onComplete();
   }
 

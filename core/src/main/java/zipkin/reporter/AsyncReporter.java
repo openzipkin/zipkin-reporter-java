@@ -20,6 +20,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 import zipkin.Component;
+import zipkin.Span;
 
 import static java.lang.String.format;
 import static java.util.logging.Level.WARNING;
@@ -40,8 +41,8 @@ public abstract class AsyncReporter<S> implements Reporter<S>, Flushable, Compon
    * After a certain threshold, spans are drained and {@link Sender#sendSpans(List, Callback) sent}
    * to Zipkin collectors.
    */
-  public static <B> Builder<B> builder(Sender<B> sender) {
-    return new Builder<>(sender);
+  public static Builder builder(Sender<?> sender) {
+    return new Builder(sender);
   }
 
   /**
@@ -57,8 +58,8 @@ public abstract class AsyncReporter<S> implements Reporter<S>, Flushable, Compon
   /** Shuts down the sender thread, and increments drop metrics if there were any unsent spans. */
   @Override public abstract void close();
 
-  public static final class Builder<B> {
-    final Sender<B> sender;
+  public static final class Builder {
+    final Sender<?> sender;
     ReporterMetrics metrics = ReporterMetrics.NOOP_METRICS;
     int messageMaxBytes;
     long messageTimeoutNanos = TimeUnit.SECONDS.toNanos(1);
@@ -71,7 +72,7 @@ public abstract class AsyncReporter<S> implements Reporter<S>, Flushable, Compon
       return (int) Math.max(Math.min(Integer.MAX_VALUE, result), Integer.MIN_VALUE);
     }
 
-    Builder(Sender<B> sender) {
+    Builder(Sender<?> sender) {
       this.sender = checkNotNull(sender, "sender");
       this.messageMaxBytes = sender.messageMaxBytes();
     }
@@ -80,13 +81,13 @@ public abstract class AsyncReporter<S> implements Reporter<S>, Flushable, Compon
      * Aggregates and reports reporter metrics to a monitoring system. Should be {@link
      * ReporterMetrics#forTransport(String) scoped to this transport}.  Defaults to no-op.
      */
-    public Builder<B> metrics(ReporterMetrics metrics) {
+    public Builder metrics(ReporterMetrics metrics) {
       this.metrics = checkNotNull(metrics, "metrics");
       return this;
     }
 
     /**
-     * Maximum bytes sendable per message including {@link Sender.MessageEncoding#overheadInBytes(int)
+     * Maximum bytes sendable per message including {@link MessageEncoder#overheadInBytes(int)
      * overhead}. Defaults to, and is limited by {@link Sender#messageMaxBytes()}.
      */
     public Builder messageMaxBytes(int messageMaxBytes) {
@@ -122,26 +123,38 @@ public abstract class AsyncReporter<S> implements Reporter<S>, Flushable, Compon
       return this;
     }
 
-    /** Builds an async reporter that encodes spans as they are reported. */
-    public <S> AsyncReporter<S> build(Encoder<S, B> encoder) {
-      checkNotNull(encoder, "encoder");
-      checkArgument(encoder.encoding() == sender.messageEncoding().encoding(),
-          "Sender.encoding() %s != Encoder.encoding() %s", sender.messageEncoding().encoding(),
-          encoder.encoding());
+    /** Builds an async reporter that encodes zipkin spans as they are reported. */
+    public AsyncReporter<Span> build() {
+      switch (sender.spanEncoding()) {
+        case JSON:
+          return build(Encoder.JSON);
+        case THRIFT:
+          return build(Encoder.THRIFT);
+        default:
+          throw new UnsupportedOperationException(sender.spanEncoding().name());
+      }
+    }
 
-      final BoundedAsyncReporter<S, B> result = new BoundedAsyncReporter<>(this, encoder);
+    /** Builds an async reporter that encodes arbitrary spans as they are reported. */
+    public <S> AsyncReporter<S> build(Encoder<S> encoder) {
+      checkNotNull(encoder, "encoder");
+      checkArgument(encoder.encoding() == sender.spanEncoding(),
+          "Encoder.encoding() %s != Sender.spanEncoding() %s",
+          encoder.encoding(), sender.spanEncoding());
+
+      final BoundedAsyncReporter<S> result = new BoundedAsyncReporter<>(this, encoder);
 
       if (messageTimeoutNanos > 0) { // Start a thread that flushes the queue in a loop.
-        final BufferNextMessage<B> consumer =
-            new BufferNextMessage<>(sender.messageEncoding(), messageMaxBytes, messageTimeoutNanos);
+        final BufferNextMessage consumer =
+            new BufferNextMessage(sender.encoder(), messageMaxBytes, messageTimeoutNanos);
         new Thread(() -> {
           try {
             while (!result.closed.get()) {
               result.flush(consumer);
             }
           } finally {
-            for (B next : consumer.drain()) {
-              result.pending.offer(next, result.encoder.sizeInBytes(next));
+            for (byte[] next : consumer.drain()) {
+              result.pending.offer(next);
             }
             result.close.countDown();
           }
@@ -151,23 +164,23 @@ public abstract class AsyncReporter<S> implements Reporter<S>, Flushable, Compon
     }
   }
 
-  static final class BoundedAsyncReporter<S, B> extends AsyncReporter<S> {
+  static final class BoundedAsyncReporter<S> extends AsyncReporter<S> {
     static final Logger logger = Logger.getLogger(BoundedAsyncReporter.class.getName());
     final AtomicBoolean closed = new AtomicBoolean(false);
-    final Encoder<S, B> encoder;
-    final ByteBoundedQueue<B> pending;
-    final Sender<B> sender;
+    final Encoder<S> encoder;
+    final ByteBoundedQueue pending;
+    final Sender<?> sender;
     final int messageMaxBytes;
     final int messageOverheadOfSingleton;
     final long messageTimeoutNanos;
     final CountDownLatch close;
     final ReporterMetrics metrics;
 
-    BoundedAsyncReporter(Builder builder, Encoder<S, B> encoder) {
+    BoundedAsyncReporter(Builder builder, Encoder<S> encoder) {
       this.pending = new ByteBoundedQueue(builder.queuedMaxSpans, builder.queuedMaxBytes);
       this.sender = builder.sender;
       this.messageMaxBytes = builder.messageMaxBytes;
-      this.messageOverheadOfSingleton = sender.messageEncoding().overheadInBytes(1);
+      this.messageOverheadOfSingleton = sender.encoder().overheadInBytes(1);
       this.messageTimeoutNanos = builder.messageTimeoutNanos;
       this.close = new CountDownLatch(builder.messageTimeoutNanos > 0 ? 1 : 0);
       this.metrics = builder.metrics;
@@ -179,13 +192,13 @@ public abstract class AsyncReporter<S> implements Reporter<S>, Flushable, Compon
     public void report(S span) {
       checkNotNull(span, "span");
       metrics.incrementSpans(1);
-      B next = encoder.encode(span);
-      int nextSizeInBytes = encoder.sizeInBytes(next);
+      byte[] next = encoder.encode(span);
+      int nextSizeInBytes = next.length;
       metrics.incrementSpanBytes(nextSizeInBytes);
       if (closed.get() ||
           // don't enqueue something larger than we can drain
           messageOverheadOfSingleton + nextSizeInBytes > messageMaxBytes ||
-          !pending.offer(next, nextSizeInBytes)) {
+          !pending.offer(next)) {
         metrics.incrementSpansDropped(1);
       }
     }
@@ -193,17 +206,17 @@ public abstract class AsyncReporter<S> implements Reporter<S>, Flushable, Compon
     @Override
     public final void flush() {
       if (closed.get()) throw new IllegalStateException("closed");
-      flush(new BufferNextMessage<>(sender.messageEncoding(), messageMaxBytes, 0));
+      flush(new BufferNextMessage(sender.encoder(), messageMaxBytes, 0));
     }
 
-    void flush(BufferNextMessage<B> bundler) {
+    void flush(BufferNextMessage bundler) {
       pending.drainTo(bundler, bundler.remainingNanos());
       if (closed.get() || !bundler.isReady()) return;
 
       // Signal that we are about to send a message of a known size in bytes
       metrics.incrementMessages();
       metrics.incrementMessageBytes(bundler.sizeInBytes());
-      List<B> nextMessage = bundler.drain();
+      List<byte[]> nextMessage = bundler.drain();
 
       // In failure case, we increment messages and spans dropped.
       Callback failureCallback = sendSpansCallback(nextMessage.size());

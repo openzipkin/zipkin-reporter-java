@@ -91,7 +91,7 @@ public class KafkaSenderTest {
   /** Blocks until the callback completes to allow read-your-writes consistency during tests. */
   void send(List<Span> spans) {
     AwaitableCallback callback = new AwaitableCallback();
-    sender.sendSpans(spans.stream().map(Encoder.THRIFT_BYTES::encode).collect(toList()), callback);
+    sender.sendSpans(spans.stream().map(Encoder.THRIFT::encode).collect(toList()), callback);
     callback.await();
   }
 

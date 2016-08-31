@@ -32,7 +32,7 @@ public class AsyncReporterTest {
 
   Span span = TestObjects.TRACE.get(2);
   int sizeInBytesOfSingleSpanMessage =
-      MessageEncoder.THRIFT_BYTES.overheadInBytes(1) + Encoder.THRIFT_BYTES.encode(span).length;
+      MessageEncoder.THRIFT_BYTES.overheadInBytes(1) + Encoder.THRIFT.encode(span).length;
 
   AsyncReporter<Span> reporter;
   InMemoryReporterMetrics metrics = new InMemoryReporterMetrics();
@@ -49,7 +49,7 @@ public class AsyncReporterTest {
         .onSpans(spans -> sentSpans.addAndGet(spans.size()))
         .messageMaxBytes(sizeInBytesOfSingleSpanMessage))
         .messageTimeout(0, TimeUnit.MILLISECONDS)
-        .build(Encoder.THRIFT_BYTES);
+        .build();
 
     reporter.report(span);
     reporter.report(span); // drops
@@ -65,7 +65,7 @@ public class AsyncReporterTest {
         .onSpans(spans -> sentSpans.addAndGet(spans.size())))
         .messageMaxBytes(sizeInBytesOfSingleSpanMessage)
         .messageTimeout(0, TimeUnit.MILLISECONDS)
-        .build(Encoder.THRIFT_BYTES);
+        .build();
 
     reporter.report(span);
     reporter.report(span); // dropped the one that queued more than allowed bytes
@@ -81,7 +81,7 @@ public class AsyncReporterTest {
         .onSpans(spans -> sentSpans.addAndGet(spans.size())))
         .messageMaxBytes(sizeInBytesOfSingleSpanMessage)
         .messageTimeout(0, TimeUnit.MILLISECONDS)
-        .build(Encoder.THRIFT_BYTES);
+        .build();
 
     reporter.report(span.toBuilder().addAnnotation(Annotation.create(1L, "fooooo", null)).build());
     reporter.flush();
@@ -96,7 +96,7 @@ public class AsyncReporterTest {
         .onSpans(spans -> sentSpans.addAndGet(spans.size())))
         .queuedMaxSpans(1)
         .messageTimeout(0, TimeUnit.MILLISECONDS)
-        .build(Encoder.THRIFT_BYTES);
+        .build();
 
     reporter.report(span);
     reporter.report(span); // dropped the one that queued more than allowed count
@@ -110,12 +110,12 @@ public class AsyncReporterTest {
     reporter = AsyncReporter.builder(FakeSender.create())
         .metrics(metrics)
         .messageTimeout(0, TimeUnit.MILLISECONDS)
-        .build(Encoder.THRIFT_BYTES);
+        .build();
 
     reporter.report(span);
     reporter.report(span);
     assertThat(metrics.spans()).isEqualTo(2);
-    assertThat(metrics.spanBytes()).isEqualTo(Encoder.THRIFT_BYTES.encode(span).length * 2);
+    assertThat(metrics.spanBytes()).isEqualTo(Encoder.THRIFT.encode(span).length * 2);
   }
 
   @Test
@@ -124,7 +124,7 @@ public class AsyncReporterTest {
         .queuedMaxSpans(1)
         .metrics(metrics)
         .messageTimeout(0, TimeUnit.MILLISECONDS)
-        .build(Encoder.THRIFT_BYTES);
+        .build();
 
     reporter.report(span);
     reporter.report(span);
@@ -138,7 +138,7 @@ public class AsyncReporterTest {
     reporter = AsyncReporter.builder(FakeSender.create())
         .metrics(metrics)
         .messageTimeout(0, TimeUnit.MILLISECONDS)
-        .build(Encoder.THRIFT_BYTES);
+        .build();
 
     reporter.report(span);
     reporter.report(span);
@@ -157,7 +157,7 @@ public class AsyncReporterTest {
         }))
         .metrics(metrics)
         .messageTimeout(0, TimeUnit.MILLISECONDS)
-        .build(Encoder.THRIFT_BYTES);
+        .build();
 
     reporter.report(span);
 
@@ -172,7 +172,7 @@ public class AsyncReporterTest {
     reporter = AsyncReporter.builder(FakeSender.create()
         .onSpans(spans -> sentSpans.countDown()))
         .messageTimeout(10, TimeUnit.MILLISECONDS)
-        .build(Encoder.THRIFT_BYTES);
+        .build();
 
     reporter.report(span);
     assertThat(sentSpans.await(5, TimeUnit.MILLISECONDS))
@@ -187,7 +187,7 @@ public class AsyncReporterTest {
     reporter = AsyncReporter.builder(FakeSender.create()
         .onSpans(spans -> sentSpans.countDown()))
         .messageTimeout(0, TimeUnit.NANOSECONDS)
-        .build(Encoder.THRIFT_BYTES);
+        .build();
 
     reporter.report(span);
     assertThat(sentSpans.getCount()).isEqualTo(1);
@@ -202,7 +202,7 @@ public class AsyncReporterTest {
     BlockingQueue<String> threadName = new LinkedBlockingQueue<>();
     reporter = AsyncReporter.builder(FakeSender.create()
         .onSpans(spans -> threadName.offer(Thread.currentThread().getName())))
-        .build(Encoder.THRIFT_BYTES);
+        .build();
 
     reporter.report(span);
 
@@ -224,7 +224,7 @@ public class AsyncReporterTest {
         }))
         .metrics(metrics)
         .messageTimeout(2, TimeUnit.MILLISECONDS)
-        .build(Encoder.THRIFT_BYTES);
+        .build();
 
     reporter.report(span);
     Thread.sleep(5);
@@ -242,7 +242,7 @@ public class AsyncReporterTest {
     reporter = AsyncReporter.builder(FakeSender.create())
         .metrics(metrics)
         .messageTimeout(10, TimeUnit.MILLISECONDS)
-        .build(Encoder.THRIFT_BYTES);
+        .build();
 
     reporter.report(span);
     Thread.sleep(5); // flush thread got the first span, but still waiting for more
@@ -258,7 +258,7 @@ public class AsyncReporterTest {
     reporter = AsyncReporter.builder(FakeSender.create())
         .metrics(metrics)
         .messageTimeout(0, TimeUnit.MILLISECONDS)
-        .build(Encoder.THRIFT_BYTES);
+        .build();
 
     reporter.report(span);
     reporter.close(); // close while there's a pending span
@@ -270,7 +270,7 @@ public class AsyncReporterTest {
     reporter = AsyncReporter.builder(FakeSender.create())
         .metrics(metrics)
         .messageTimeout(0, TimeUnit.MILLISECONDS)
-        .build(Encoder.THRIFT_BYTES);
+        .build();
 
     reporter.close();
 

@@ -32,38 +32,26 @@ import zipkin.collector.Collector;
  * message}. For example, a large span might need to be sent as a separate message to avoid kafka
  * limits. Also, logging transports like scribe will likely write each span as a separate log line.
  *
- * <p>This accepts a list of @link Encoder#encode(Object) encoded elements}, such as a byte arrays,
- * as opposed a list of spans like {@link zipkin.Span}. This allows senders to be re-usable as model
- * shapes change. This also allows them to use their most natural item type. For example, okhttp
- * would more naturally send http bodies as okio elements.
+ * <p>This accepts a list of {@link Encoder#encode(Object) encoded spans}, as opposed a list of
+ * spans like {@link zipkin.Span}. This allows senders to be re-usable as model shapes change. This
+ * also allows them to use their most natural message type. For example, kafka would more naturally
+ * send messages as byte arrays.
  *
  * <p>If performance is critical, {@link Encoding#THRIFT thrift encoding} is most efficient,
- * sometimes an order of magnitude faster than json.
- *
- * @param <B> buffer holding the {@link Encoder#encode(Object) encoded span}. For example "byte[]"
+ * sometimes 3x faster than json.
  */
-public interface Sender<B> extends Component {
+public interface Sender<M> extends Component {
 
-  interface MessageEncoding {
-    /** Returns the encoding this sender requires. */
-    Encoding encoding();
-
-    /**
-     * Before invoking {@link #sendSpans(List, Callback)}, callers must consider encoding overhead,
-     * so as to not exceed {@link Sender#messageMaxBytes()}.
-     *
-     * <p>Ex. json encoding is typically 2 (for open-closing the array) + spanCount - 1 (for commas)
-     */
-    int overheadInBytes(int spanCount);
-  }
+  MessageEncoder<M> encoder();
 
   /**
-   * Maximum bytes sendable per message including {@link MessageEncoding#overheadInBytes(int)
+   * Maximum bytes sendable per message including {@link MessageEncoder#overheadInBytes(int)
    * overhead}.
    */
   int messageMaxBytes();
 
-  MessageEncoding messageEncoding();
+  /** Returns the encoding this sender requires spans to have. */
+  Encoding spanEncoding();
 
   /**
    * Sends a list of encoded spans to a transport such as http or Kafka.
@@ -74,5 +62,5 @@ public interface Sender<B> extends Component {
    * @param encodedSpans list of encoded spans.
    * @param callback signals either completion or failure
    */
-  void sendSpans(List<B> encodedSpans, Callback callback);
+  void sendSpans(List<byte[]> encodedSpans, Callback callback);
 }

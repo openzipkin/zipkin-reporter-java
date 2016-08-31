@@ -14,17 +14,9 @@
 package zipkin.reporter.internal;
 
 import java.util.List;
-import zipkin.reporter.Encoding;
 import zipkin.reporter.MessageEncoder;
-import zipkin.reporter.Sender.MessageEncoding;
 
-public final class ThriftBytesMessageEncoder
-    implements MessageEncoder<byte[], byte[]>, MessageEncoding {
-
-  @Override public Encoding encoding() {
-    return Encoding.THRIFT;
-  }
-
+public final class ThriftBytesMessageEncoder implements MessageEncoder<byte[]> {
   /** Encoding overhead is thrift type plus 32-bit length prefix */
   @Override public int overheadInBytes(int spanCount) {
     return 5;

@@ -26,7 +26,7 @@ import static zipkin.internal.Util.UTF_8;
  * zipkin2.Span).
  */
 public interface Reporter<S> {
-  Reporter<Span> CONSOLE = s -> System.out.println(new String(Encoder.JSON_BYTES.encode(s), UTF_8));
+  Reporter<Span> CONSOLE = s -> System.out.println(new String(Encoder.JSON.encode(s), UTF_8));
 
   /**
    * Schedules the span to be sent onto the transport.

@@ -18,17 +18,15 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
- * Multi-producer, multi-consumer queue that can measure the count of entries as they are added.
+ * Multi-producer, multi-consumer queue that is bounded by both count and size.
  *
  * <p>This is similar to {@link java.util.concurrent.ArrayBlockingQueue} in implementation.
- *
- * @param <T> the type of the stream elements
  */
-final class ByteBoundedQueue<T> {
+final class ByteBoundedQueue {
 
-  interface Consumer<T> {
+  interface Consumer {
     /** Returns true if it accepted the next element */
-    boolean accept(T next, int nextSizeInBytes);
+    boolean accept(byte[] next);
   }
 
   final ReentrantLock lock = new ReentrantLock(false);
@@ -37,16 +35,14 @@ final class ByteBoundedQueue<T> {
   final int maxSize;
   final int maxBytes;
 
-  final T[] elements;
-  final int[] sizes;
+  final byte[][] elements;
   int count;
   int sizeInBytes;
   int writePos;
   int readPos;
 
   ByteBoundedQueue(int maxSize, int maxBytes) {
-    this.elements = (T[]) new Object[maxSize];
-    this.sizes = new int[maxSize];
+    this.elements = new byte[maxSize][];
     this.maxSize = maxSize;
     this.maxBytes = maxBytes;
   }
@@ -54,19 +50,18 @@ final class ByteBoundedQueue<T> {
   /**
    * Returns true if the element could be added or false if it could not due to its size.
    */
-  boolean offer(T next, int nextSizeInBytes) {
+  boolean offer(byte[] next) {
     lock.lock();
     try {
       if (count == elements.length) return false;
-      if (sizeInBytes + nextSizeInBytes > maxBytes) return false;
+      if (sizeInBytes + next.length > maxBytes) return false;
 
-      elements[writePos] = next;
-      sizes[writePos++] = nextSizeInBytes;
+      elements[writePos++] = next;
 
       if (writePos == elements.length) writePos = 0; // circle back to the front of the array
 
       count++;
-      sizeInBytes += nextSizeInBytes;
+      sizeInBytes += next.length;
 
       available.signal(); // alert any drainers
       return true;
@@ -76,7 +71,7 @@ final class ByteBoundedQueue<T> {
   }
 
   /** Blocks for up to nanosTimeout for elements to appear. Then, consume as many as possible. */
-  int drainTo(Consumer<T> consumer, long nanosTimeout) {
+  int drainTo(Consumer consumer, long nanosTimeout) {
     try {
       // This may be called by multiple threads. If one is holding a lock, another is waiting. We
       // use lockInterruptibly to ensure the one waiting can be interrupted.
@@ -109,17 +104,16 @@ final class ByteBoundedQueue<T> {
     }
   }
 
-  private int doDrain(Consumer<T> consumer) {
+  int doDrain(Consumer consumer) {
     int drainedCount = 0;
     int drainedSizeInBytes = 0;
     while (drainedCount < count) {
-      T element = elements[readPos];
-      int sizeInBytes = sizes[readPos];
+      byte[] next = elements[readPos];
 
-      if (element == null) break;
-      if (consumer.accept(element, sizeInBytes)) {
+      if (next == null) break;
+      if (consumer.accept(next)) {
         drainedCount++;
-        drainedSizeInBytes += sizeInBytes;
+        drainedSizeInBytes += next.length;
 
         elements[readPos] = null;
         if (++readPos == elements.length) readPos = 0; // circle back to the front of the array
