@@ -26,6 +26,7 @@
     <module>core</module>
     <module>kafka08</module>
     <module>urlconnection</module>
+    <module>okhttp3</module>
     <module>benchmarks</module>
   </modules>
 
