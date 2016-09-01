@@ -17,34 +17,33 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import zipkin.reporter.Sender.MessageEncoding;
 
-final class BufferNextMessage<B> implements ByteBoundedQueue.Consumer<B> {
-  private final MessageEncoding encoding;
+final class BufferNextMessage implements ByteBoundedQueue.Consumer {
+  private final MessageEncoder<?> encoding;
   private final int maxBytes;
   private final long timeoutNanos;
-  private final List<B> buffer = new LinkedList<>();
+  private final List<byte[]> buffer = new LinkedList<>();
 
   long deadlineNanoTime;
   int bufferSizeInBytes;
   boolean bufferFull;
 
-  BufferNextMessage(MessageEncoding encoding, int maxBytes, long timeoutNanos) {
+  BufferNextMessage(MessageEncoder<?> encoding, int maxBytes, long timeoutNanos) {
     this.encoding = encoding;
     this.maxBytes = maxBytes;
     this.timeoutNanos = timeoutNanos;
   }
 
   @Override
-  public boolean accept(B next, int nextSizeInBytes) {
-    int x = encoding.overheadInBytes(buffer.size() + 1) + bufferSizeInBytes + nextSizeInBytes;
+  public boolean accept(byte[] next) {
+    int x = encoding.overheadInBytes(buffer.size() + 1) + bufferSizeInBytes + next.length;
     int y = maxBytes;
     int includingNextVsMaxBytes = (x < y) ? -1 : ((x == y) ? 0 : 1);
 
     // If we can fit queued spans and the next into one message...
     if (includingNextVsMaxBytes <= 0) {
       buffer.add(next);
-      bufferSizeInBytes += nextSizeInBytes;
+      bufferSizeInBytes += next.length;
 
       // If there's still room, accept more.
       if (includingNextVsMaxBytes < 0) return true;
@@ -64,9 +63,9 @@ final class BufferNextMessage<B> implements ByteBoundedQueue.Consumer<B> {
     return bufferFull || remainingNanos() <= 0;
   }
 
-  List<B> drain() {
+  List<byte[]> drain() {
     if (buffer.isEmpty()) return Collections.emptyList();
-    ArrayList<B> result = new ArrayList<>(buffer);
+    ArrayList<byte[]> result = new ArrayList<>(buffer);
     buffer.clear();
     bufferSizeInBytes = 0;
     bufferFull = false;

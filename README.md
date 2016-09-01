@@ -6,8 +6,9 @@ Shared library for reporting zipkin spans onto transports including http and kaf
 # Usage
 These components can be called when spans have been recorded and ready to send to zipkin.
 
-## SpanEncoder
+## Encoder
 The span encoder is a specialized form of Zipkin's Codec, which only deals with encoding one span.
+It is also extensible in case the type of span reported is not `zipkin.Span`
 
 ## Reporter
 After recording an operation into a span, it needs to be reported out of process. There are two
@@ -25,42 +26,10 @@ before flushes any pending spans out of process via a Sender.
 
 ```java
 reporter = AsyncReporter.builder(URLConnectionSender.create("http://localhost:9411/api/v1/spans"))
-                        .build(Encoder.THRIFT_BYTES);
+                        .build();
 
 // Schedules the span to be sent, and won't block the calling thread on I/O
 reporter.report(span);
-```
-
-### Sender
-The sender component handles the last step of sending a list of encoded spans onto a transport.
-This involves I/O, so you can call `Sender.check()` to check its health on a given frequency. 
-
-```java
-class CustomReporter implements Flushable {
-
-  --snip--
-  URLConnectionSender sender = URLConnectionSender.create("http://localhost:9411/api/v1/spans");
-
-  Callback callback = new IncrementSpanMetricsCallback(metrics);
-
-  // Is the connection healthy?
-  public boolean ok() {
-    return sender.check().ok;
-  }
-
-  public void report(Span span) {
-    pending.add(Encoder.THRIFT_BYTES.encode(span));
-  }
-
-  @Override
-  public void flush() {
-    if (pending.isEmpty()) return;
-    List<byte[]> drained = new ArrayList<byte[]>(pending.size());
-    pending.drainTo(drained);
-    if (drained.isEmpty()) return;
-
-    sender.sendSpans(drained, callback);
-  }
 ```
 
 ### Tuning
@@ -85,7 +54,40 @@ will show in metrics as spans dropped. If you get into this position,
 switch to an asynchronous sender (like kafka), or increase the concurrency
 of your sender.
 
-## Json Encoding
+## Sender
+The sender component handles the last step of sending a list of encoded spans onto a transport.
+This involves I/O, so you can call `Sender.check()` to check its health on a given frequency. 
+
+Sender is used by AsyncReporter, but you can also create your own if you need to.
+```java
+class CustomReporter implements Flushable {
+
+  --snip--
+  URLConnectionSender sender = URLConnectionSender.create("http://localhost:9411/api/v1/spans");
+
+  Callback callback = new IncrementSpanMetricsCallback(metrics);
+
+  // Is the connection healthy?
+  public boolean ok() {
+    return sender.check().ok;
+  }
+
+  public void report(Span span) {
+    pending.add(Encoder.THRIFT.encode(span));
+  }
+
+  @Override
+  public void flush() {
+    if (pending.isEmpty()) return;
+    List<byte[]> drained = new ArrayList<byte[]>(pending.size());
+    pending.drainTo(drained);
+    if (drained.isEmpty()) return;
+
+    sender.sendSpans(drained, callback);
+  }
+```
+
+### Json Encoding
 By default, components use thrift encoding, as it is the most compatible
 and efficient. However, json is readable and helpful during debugging.
 
@@ -93,11 +95,7 @@ Here's an example of how to switch to json encoding:
 
 ```java
 sender = URLConnectionSender.builder()
-                            .messageEncoder(MessageEncoder.JSON_BYTES)
+                            .encoding(Encoding.JSON)
                             .endpoint("http://localhost:9411/api/v1/spans")
                             .build();
-
-// and if you are using the async reporter..
-reporter = AsyncReporter.builder(sender)
-                        .build(Encoder.JSON_BYTES);
 ```

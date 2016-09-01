@@ -13,26 +13,22 @@
  */
 package zipkin.reporter;
 
-import zipkin.reporter.internal.JsonBytesSpanEncoder;
-import zipkin.reporter.internal.ThriftBytesSpanEncoder;
+import zipkin.reporter.internal.JsonSpanEncoder;
+import zipkin.reporter.internal.ThriftSpanEncoder;
 
 /**
  * @param <S> type of the span, usually {@link zipkin.Span}
- * @param <B> buffer holding the encoded span. For example "byte[]"
  */
-public interface Encoder<S, B> {
-  Encoder<zipkin.Span, byte[]> JSON_BYTES = new JsonBytesSpanEncoder();
-  Encoder<zipkin.Span, byte[]> THRIFT_BYTES = new ThriftBytesSpanEncoder();
+public interface Encoder<S> {
+  Encoder<zipkin.Span> JSON = new JsonSpanEncoder();
+  Encoder<zipkin.Span> THRIFT = new ThriftSpanEncoder();
 
   Encoding encoding();
-
-  /** Returns the count in bytes of this buffer. */
-  int sizeInBytes(B buffer);
 
   /**
    * Serialize a span recorded from instrumentation into its binary form.
    *
    * @param span cannot be null
    */
-  B encode(S span);
+  byte[] encode(S span);
 }

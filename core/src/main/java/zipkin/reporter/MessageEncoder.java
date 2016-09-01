@@ -14,19 +14,23 @@
 package zipkin.reporter;
 
 import java.util.List;
-import zipkin.reporter.Sender.MessageEncoding;
 import zipkin.reporter.internal.JsonBytesMessageEncoder;
 import zipkin.reporter.internal.ThriftBytesMessageEncoder;
 
 /**
- * @param <B> buffer holding the encoded span. For example "byte[]"
- * @param <M> encoded form of a message including one or more spans. Often, but not always the same
- * item type. For example, Kafka messages need to take the form of a "byte[]" although that has
- * no bearing on the span item type. For example, almost all elements can output to a byte array.
+ * @param <M> encoded form of a message including one or more spans.
  */
-public interface MessageEncoder<B, M> extends MessageEncoding {
-  MessageEncoder<byte[], byte[]> JSON_BYTES = new JsonBytesMessageEncoder();
-  MessageEncoder<byte[], byte[]> THRIFT_BYTES = new ThriftBytesMessageEncoder();
+public interface MessageEncoder<M> {
+  MessageEncoder<byte[]> JSON_BYTES = new JsonBytesMessageEncoder();
+  MessageEncoder<byte[]> THRIFT_BYTES = new ThriftBytesMessageEncoder();
+
+  /**
+   * Before invoking {@link Sender#sendSpans(List, Callback)}, callers must consider encoding
+   * overhead, so as to not exceed {@link Sender#messageMaxBytes()}.
+   *
+   * <p>Ex. json encoding is typically 2 (for open-closing the array) + spanCount - 1 (for commas)
+   */
+  int overheadInBytes(int spanCount);
 
   /**
    * Combines a list of encoded spans into an encoded list. For example, in thrift, this would be
@@ -36,5 +40,5 @@ public interface MessageEncoder<B, M> extends MessageEncoding {
    * Encoder#encode(Object) encoded} one-by-one into a queue. This queue is drained up to a byte
    * threshold. Then, the list is encoded with this function and reported out-of-process.
    */
-  M encode(List<B> encodedSpans);
+  M encode(List<byte[]> encodedSpans);
 }

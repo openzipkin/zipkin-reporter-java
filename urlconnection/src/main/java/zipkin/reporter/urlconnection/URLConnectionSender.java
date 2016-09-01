@@ -28,15 +28,17 @@ import zipkin.reporter.MessageEncoder;
 import zipkin.reporter.Sender;
 
 import static zipkin.internal.Util.checkNotNull;
+import static zipkin.reporter.MessageEncoder.JSON_BYTES;
+import static zipkin.reporter.MessageEncoder.THRIFT_BYTES;
 
 /**
  * Reports spans to Zipkin, using its <a href="http://zipkin.io/zipkin-api/#/">POST</a> endpoint.
  */
 @AutoValue
-public abstract class URLConnectionSender<B> implements Sender<B> {
-  /** Creates a sender that posts {@link MessageEncoder#THRIFT_BYTES thrift} messages. */
-  public static URLConnectionSender<byte[]> create(String endpoint) {
-    return builder().messageEncoder(MessageEncoder.THRIFT_BYTES).endpoint(endpoint).build();
+public abstract class URLConnectionSender implements Sender<byte[]> {
+  /** Creates a sender that posts {@link Encoding#THRIFT} messages. */
+  public static URLConnectionSender create(String endpoint) {
+    return builder().spanEncoding(Encoding.THRIFT).endpoint(endpoint).build();
   }
 
   public static Builder builder() {
@@ -48,13 +50,13 @@ public abstract class URLConnectionSender<B> implements Sender<B> {
   }
 
   @AutoValue.Builder
-  public static abstract class Builder<B> {
+  public static abstract class Builder {
     /**
      * No default. The POST URL for zipkin's <a href="http://zipkin.io/zipkin-api/#/">v1 api</a>,
      * usually "http://zipkinhost:9411/api/v1/spans"
      */
     // customizable so that users can re-map /api/v1/spans ex for browser-originated traces
-    public final Builder<B> endpoint(String endpoint) {
+    public final Builder endpoint(String endpoint) {
       checkNotNull(endpoint, "endpoint ex: http://zipkinhost:9411/api/v1/spans");
       try {
         return endpoint(new URL(endpoint));
@@ -63,48 +65,42 @@ public abstract class URLConnectionSender<B> implements Sender<B> {
       }
     }
 
-    public abstract Builder<B> endpoint(URL postUrl);
+    public abstract Builder endpoint(URL postUrl);
 
     /** Default 10 * 1000 milliseconds. 0 implies no timeout. */
-    public abstract Builder<B> connectTimeout(int connectTimeout);
+    public abstract Builder connectTimeout(int connectTimeout);
 
     /** Default 60 * 1000 milliseconds. 0 implies no timeout. */
-    public abstract Builder<B> readTimeout(int readTimeout);
+    public abstract Builder readTimeout(int readTimeout);
 
     /** Default true. true implies that spans will be gzipped before transport. */
-    public abstract Builder<B> compressionEnabled(boolean compressSpans);
+    public abstract Builder compressionEnabled(boolean compressSpans);
 
     /** Maximum size of a message. Default 5MiB */
-    public abstract Builder<B> messageMaxBytes(int messageMaxBytes);
+    public abstract Builder messageMaxBytes(int messageMaxBytes);
 
     /**
      * Controls the "Content-Type" header and {@link MessageEncoder#encode(List) message encoding}
      * when sending spans.
      */
-    public abstract Builder<B> messageEncoder(MessageEncoder<B, byte[]> messageEncoder);
+    abstract Builder spanEncoding(Encoding spanEncoding);
 
-    abstract Builder<B> mediaType(String mediaType);
+    abstract Encoding spanEncoding();
 
-    abstract MessageEncoder<B, byte[]> messageEncoder();
-
-    abstract Builder<B> messageEncoding(MessageEncoding messageEncoding);
-
-    public final URLConnectionSender<B> build() {
-      Encoding encoding = checkNotNull(messageEncoder().encoding(), "messageEncoder.encoding");
-      switch (encoding) {
-        case JSON:
-          mediaType("application/json");
-          break;
-        case THRIFT:
-          mediaType("application/x-thrift");
-          break;
-        default:
-          throw new UnsupportedOperationException("Unsupported encoding: " + encoding.name());
+    public final URLConnectionSender build() {
+      if (spanEncoding() == Encoding.JSON) {
+        return mediaType("application/json").encoder(JSON_BYTES).autoBuild();
+      } else if (spanEncoding() == Encoding.THRIFT) {
+        return mediaType("application/x-thrift").encoder(THRIFT_BYTES).autoBuild();
       }
-      return messageEncoding(messageEncoder()).autoBuild();
+      throw new UnsupportedOperationException("Unsupported spanEncoding: " + spanEncoding().name());
     }
 
-    abstract URLConnectionSender<B> autoBuild();
+    abstract Builder encoder(MessageEncoder<byte[]> encoder);
+
+    abstract Builder mediaType(String mediaType);
+
+    abstract URLConnectionSender autoBuild();
 
     Builder() {
     }
@@ -113,6 +109,8 @@ public abstract class URLConnectionSender<B> implements Sender<B> {
   public Builder toBuilder() {
     return new AutoValue_URLConnectionSender.Builder(this);
   }
+
+  @Override public abstract MessageEncoder<byte[]> encoder(); // auto-value can't resolve M
 
   abstract URL endpoint();
 
@@ -124,16 +122,14 @@ public abstract class URLConnectionSender<B> implements Sender<B> {
 
   abstract String mediaType();
 
-  abstract MessageEncoder<B, byte[]> messageEncoder();
-
   /** Asynchronously sends the spans as a POST to {@link #endpoint()}. */
-  @Override public void sendSpans(List<B> encodedSpans, Callback callback) {
+  @Override public void sendSpans(List<byte[]> encodedSpans, Callback callback) {
     if (encodedSpans.isEmpty()) {
       callback.onComplete();
       return;
     }
     try {
-      byte[] message = messageEncoder().encode(encodedSpans);
+      byte[] message = encoder().encode(encodedSpans);
       send(message, mediaType());
       callback.onComplete();
     } catch (Throwable e) {

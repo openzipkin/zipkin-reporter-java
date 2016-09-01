@@ -18,17 +18,13 @@ import zipkin.Span;
 import zipkin.reporter.Encoder;
 import zipkin.reporter.Encoding;
 
-public final class JsonBytesSpanEncoder implements Encoder<Span, byte[]> {
+public final class ThriftSpanEncoder implements Encoder<Span> {
 
   @Override public Encoding encoding() {
-    return Encoding.JSON;
-  }
-
-  @Override public int sizeInBytes(byte[] buffer) {
-    return buffer.length;
+    return Encoding.THRIFT;
   }
 
   @Override public byte[] encode(Span span) {
-    return Codec.JSON.writeSpan(span);
+    return Codec.THRIFT.writeSpan(span);
   }
 }

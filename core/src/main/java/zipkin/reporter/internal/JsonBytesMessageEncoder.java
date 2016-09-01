@@ -14,23 +14,14 @@
 package zipkin.reporter.internal;
 
 import java.util.List;
-import zipkin.reporter.Encoding;
 import zipkin.reporter.MessageEncoder;
-import zipkin.reporter.Sender.MessageEncoding;
 
-import static zipkin.internal.Util.checkArgument;
-
-public final class JsonBytesMessageEncoder
-    implements MessageEncoder<byte[], byte[]>, MessageEncoding {
-
-  @Override public Encoding encoding() {
-    return Encoding.JSON;
-  }
-
-  /** Encoding overheadInBytes is brackets and a comma for each span (unless only one single span) */
+public final class JsonBytesMessageEncoder implements MessageEncoder<byte[]> {
+  /** Encoding overheadInBytes is brackets and a comma for each span over 1 */
   @Override public int overheadInBytes(int spanCount) {
-    checkArgument(spanCount > 0, "spanCount must be positive");
-    return 2 + spanCount - 1;
+    int sizeInBytes = 2; // brackets
+    if (spanCount > 1) sizeInBytes += spanCount - 1; // comma to join elements
+    return sizeInBytes;
   }
 
   @Override public byte[] encode(List<byte[]> values) {

@@ -28,6 +28,7 @@ import zipkin.junit.HttpFailure;
 import zipkin.junit.ZipkinRule;
 import zipkin.reporter.Callback;
 import zipkin.reporter.Encoder;
+import zipkin.reporter.Encoding;
 import zipkin.reporter.MessageEncoder;
 import zipkin.reporter.internal.AwaitableCallback;
 
@@ -42,8 +43,7 @@ public class URLConnectionSenderTest {
   @Rule
   public ExpectedException thrown = ExpectedException.none();
 
-  URLConnectionSender<byte[]> sender =
-      URLConnectionSender.create(zipkinRule.httpUrl() + "/api/v1/spans");
+  URLConnectionSender sender = URLConnectionSender.create(zipkinRule.httpUrl() + "/api/v1/spans");
 
   @Test
   public void badUrlIsAnIllegalArgument() throws Exception {
@@ -66,10 +66,10 @@ public class URLConnectionSenderTest {
 
   @Test
   public void sendsSpans_json() throws Exception {
-    sender = sender.toBuilder().messageEncoder(MessageEncoder.JSON_BYTES).build();
+    sender = sender.toBuilder().spanEncoding(Encoding.JSON).build();
 
     AwaitableCallback callback = new AwaitableCallback();
-    sender.sendSpans(asList(Encoder.JSON_BYTES.encode(TestObjects.TRACE.get(0))), callback);
+    sender.sendSpans(asList(Encoder.JSON.encode(TestObjects.TRACE.get(0))), callback);
     callback.await();
 
     // Ensure only one request was sent
@@ -105,13 +105,13 @@ public class URLConnectionSenderTest {
     }
   }
 
-  @Test public void mediaTypeBasedOnMessageEncoder() throws Exception {
+  @Test public void mediaTypeBasedOnSpanEncoding() throws Exception {
     zipkinRule.shutdown(); // shutdown the normal zipkin rule
     MockWebServer server = new MockWebServer();
     try {
       sender = sender.toBuilder()
           .endpoint(server.url("/api/v1/spans").toString())
-          .messageEncoder(MessageEncoder.JSON_BYTES)
+          .spanEncoding(Encoding.JSON)
           .build();
 
       server.enqueue(new MockResponse());
@@ -177,7 +177,7 @@ public class URLConnectionSenderTest {
   /** Blocks until the callback completes to allow read-your-writes consistency during tests. */
   void send(List<Span> spans) {
     AwaitableCallback callback = new AwaitableCallback();
-    sender.sendSpans(spans.stream().map(Encoder.THRIFT_BYTES::encode).collect(toList()), callback);
+    sender.sendSpans(spans.stream().map(Encoder.THRIFT::encode).collect(toList()), callback);
     callback.await();
   }
 }

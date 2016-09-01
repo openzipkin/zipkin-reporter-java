@@ -38,23 +38,23 @@ import zipkin.reporter.MessageEncoder;
 @Measurement(iterations = 5, time = 1)
 @Warmup(iterations = 10, time = 1)
 @Fork(3)
-@BenchmarkMode(Mode.Throughput)
-@OutputTimeUnit(TimeUnit.MILLISECONDS)
+@BenchmarkMode(Mode.AverageTime)
+@OutputTimeUnit(TimeUnit.MICROSECONDS)
 @State(Scope.Thread)
 @Threads(1)
 public class EncodingBenchmarks {
   static final Span clientSpan = TestObjects.TRACE.get(2);
-  static final List<byte[]> clientSpansJson = encode100Spans(Encoder.JSON_BYTES);
-  static final List<byte[]> clientSpansThrift = encode100Spans(Encoder.THRIFT_BYTES);
+  static final List<byte[]> clientSpansJson = encode100Spans(Encoder.JSON);
+  static final List<byte[]> clientSpansThrift = encode100Spans(Encoder.THRIFT);
 
   @Benchmark
   public List<byte[]> encode100Spans_thrift() {
-    return encode100Spans(Encoder.THRIFT_BYTES);
+    return encode100Spans(Encoder.THRIFT);
   }
 
   @Benchmark
   public List<byte[]> encode100Spans_json() {
-    return encode100Spans(Encoder.JSON_BYTES);
+    return encode100Spans(Encoder.JSON);
   }
 
   @Benchmark
@@ -67,7 +67,7 @@ public class EncodingBenchmarks {
     return MessageEncoder.JSON_BYTES.encode(clientSpansJson);
   }
 
-  static List<byte[]> encode100Spans(Encoder<Span, byte[]> encoder) {
+  static List<byte[]> encode100Spans(Encoder<Span> encoder) {
     List<byte[]> spans = new ArrayList<>(100);
     for (int i = 0; i < 100; i++) {
       spans.add(encoder.encode(clientSpan));
