@@ -53,10 +53,10 @@ public abstract class OkHttpSender implements Sender<RequestBody> {
 
   public static Builder builder() {
     return new AutoValue_OkHttpSender.Builder()
+        .spanEncoding(Encoding.THRIFT)
         .compressionEnabled(true)
         .maxRequests(64)
-        .messageMaxBytes(5 * 1024 * 1024)
-        .spanEncoding(Encoding.THRIFT);
+        .messageMaxBytes(5 * 1024 * 1024);
   }
 
   @AutoValue.Builder
