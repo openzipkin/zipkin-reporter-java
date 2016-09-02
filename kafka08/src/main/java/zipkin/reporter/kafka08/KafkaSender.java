@@ -23,14 +23,12 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import zipkin.internal.LazyCloseable;
+import zipkin.reporter.BytesMessageEncoder;
 import zipkin.reporter.Callback;
 import zipkin.reporter.Encoding;
-import zipkin.reporter.MessageEncoder;
 import zipkin.reporter.Sender;
 
 import static zipkin.internal.Util.checkNotNull;
-import static zipkin.reporter.MessageEncoder.JSON_BYTES;
-import static zipkin.reporter.MessageEncoder.THRIFT_BYTES;
 
 /**
  * This sends (usually TBinaryProtocol big-endian) encoded spans to a Kafka topic.
@@ -39,7 +37,7 @@ import static zipkin.reporter.MessageEncoder.THRIFT_BYTES;
  */
 @AutoValue
 public abstract class KafkaSender extends LazyCloseable<KafkaProducer<byte[], byte[]>>
-    implements Sender<byte[]> {
+    implements Sender {
 
   public static KafkaSender create(String bootstrapServers) {
     return builder().bootstrapServers(bootstrapServers).build();
@@ -54,7 +52,7 @@ public abstract class KafkaSender extends LazyCloseable<KafkaProducer<byte[], by
         ByteArraySerializer.class.getName());
     properties.put(ProducerConfig.ACKS_CONFIG, "0");
     return new AutoValue_KafkaSender.Builder()
-        .spanEncoding(Encoding.THRIFT)
+        .encoding(Encoding.THRIFT)
         .properties(properties)
         .topic("zipkin")
         .overrides(Collections.EMPTY_MAP)
@@ -108,20 +106,15 @@ public abstract class KafkaSender extends LazyCloseable<KafkaProducer<byte[], by
       return this;
     }
 
-    public abstract Builder spanEncoding(Encoding spanEncoding);
+    public abstract Builder encoding(Encoding encoding);
 
-    abstract Encoding spanEncoding();
+    abstract Encoding encoding();
 
     public final KafkaSender build() {
-      if (spanEncoding() == Encoding.JSON) {
-        return encoder(JSON_BYTES).autoBuild();
-      } else if (spanEncoding() == Encoding.THRIFT) {
-        return encoder(THRIFT_BYTES).autoBuild();
-      }
-      throw new UnsupportedOperationException("Unsupported spanEncoding: " + spanEncoding().name());
+      return encoder(BytesMessageEncoder.forEncoding(encoding())).autoBuild();
     }
 
-    abstract Builder encoder(MessageEncoder<byte[]> encoder);
+    abstract Builder encoder(BytesMessageEncoder encoder);
 
     public abstract KafkaSender autoBuild();
 
@@ -133,11 +126,15 @@ public abstract class KafkaSender extends LazyCloseable<KafkaProducer<byte[], by
     return new AutoValue_KafkaSender.Builder(this);
   }
 
-  @Override public abstract MessageEncoder<byte[]> encoder(); // auto-value can't resolve M
+  abstract BytesMessageEncoder encoder();
 
   abstract String topic();
 
   abstract Properties properties();
+
+  @Override public int messageSizeInBytes(List<byte[]> encodedSpans) {
+    return encoding().listSizeInBytes(encodedSpans);
+  }
 
   /**
    * This sends all of the spans as a single message.

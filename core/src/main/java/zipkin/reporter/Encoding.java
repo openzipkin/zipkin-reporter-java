@@ -13,7 +13,28 @@
  */
 package zipkin.reporter;
 
+import java.util.List;
+
 public enum Encoding {
-  JSON,
-  THRIFT;
+  JSON {
+    /** Encoding overhead is brackets and a comma for each span over 1 */
+    @Override public int listSizeInBytes(List<byte[]> values) {
+      int sizeInBytes = 2; // brackets
+      for (int i = 0, length = values.size(); i < length; ) {
+        sizeInBytes += values.get(i++).length;
+        if (i < length) sizeInBytes++;
+      }
+      return sizeInBytes;
+    }
+  },
+  THRIFT {
+    /** Encoding overhead is thrift type plus 32-bit length prefix */
+    @Override public int listSizeInBytes(List<byte[]> values) {
+      int sizeInBytes = 5;
+      for (byte[] value : values) sizeInBytes += value.length;
+      return sizeInBytes;
+    }
+  };
+
+  public abstract int listSizeInBytes(List<byte[]> values);
 }

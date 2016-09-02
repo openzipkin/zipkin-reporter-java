@@ -50,7 +50,7 @@ public class KafkaSenderBenchmarks extends SenderBenchmarks {
   KafkaServerStartable kafkaServer;
   ConsumerConnector consumer;
 
-  @Override Sender<?> createSender() throws Exception {
+  @Override Sender createSender() throws Exception {
     zookeeper = new TestingServer(true);
     String zookeeperConnect = "127.0.0.1:" + zookeeper.getPort();
 

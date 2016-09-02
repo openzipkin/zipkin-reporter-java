@@ -22,7 +22,7 @@ import zipkin.reporter.okhttp3.OkHttpSender;
 
 public class OkHttpSenderBenchmarks extends HttpSenderBenchmarks {
 
-  @Override Sender<?> newHttpSender(String endpoint) {
+  @Override Sender newHttpSender(String endpoint) {
     return OkHttpSender.create(endpoint);
   }
 

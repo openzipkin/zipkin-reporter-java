@@ -35,7 +35,6 @@ import okio.GzipSink;
 import okio.Okio;
 import zipkin.reporter.Callback;
 import zipkin.reporter.Encoding;
-import zipkin.reporter.MessageEncoder;
 import zipkin.reporter.Sender;
 
 import static zipkin.internal.Util.checkArgument;
@@ -45,7 +44,7 @@ import static zipkin.internal.Util.checkNotNull;
  * Reports spans to Zipkin, using its <a href="http://zipkin.io/zipkin-api/#/">POST</a> endpoint.
  */
 @AutoValue
-public abstract class OkHttpSender implements Sender<RequestBody> {
+public abstract class OkHttpSender implements Sender {
   /** Creates a sender that posts {@link Encoding#THRIFT thrift} messages. */
   public static OkHttpSender create(String endpoint) {
     return builder().endpoint(endpoint).build();
@@ -53,7 +52,7 @@ public abstract class OkHttpSender implements Sender<RequestBody> {
 
   public static Builder builder() {
     return new AutoValue_OkHttpSender.Builder()
-        .spanEncoding(Encoding.THRIFT)
+        .encoding(Encoding.THRIFT)
         .compressionEnabled(true)
         .maxRequests(64)
         .messageMaxBytes(5 * 1024 * 1024);
@@ -85,15 +84,12 @@ public abstract class OkHttpSender implements Sender<RequestBody> {
     /** Maximum in-flight requests. Default 64 */
     public abstract Builder maxRequests(int maxRequests);
 
-    /**
-     * Controls the "Content-Type" header and {@link MessageEncoder#encode(List) message encoder}
-     * when sending spans.
-     */
-    public abstract Builder spanEncoding(Encoding spanEncoding);
+    /** Controls the "Content-Type" header when sending spans. */
+    public abstract Builder encoding(Encoding encoding);
 
     abstract int maxRequests();
 
-    abstract Encoding spanEncoding();
+    abstract Encoding encoding();
 
     public final OkHttpSender build() {
       // bound the executor so that we get consistent performance
@@ -108,19 +104,19 @@ public abstract class OkHttpSender implements Sender<RequestBody> {
       client(new OkHttpClient.Builder()
           .dispatcher(dispatcher).build());
 
-      if (spanEncoding() == Encoding.JSON) {
+      if (encoding() == Encoding.JSON) {
         return encoder(RequestBodyMessageEncoder.JSON).autoBuild();
-      } else if (spanEncoding() == Encoding.THRIFT) {
+      } else if (encoding() == Encoding.THRIFT) {
         return encoder(RequestBodyMessageEncoder.THRIFT).autoBuild();
       }
-      throw new UnsupportedOperationException("Unsupported spanEncoding: " + spanEncoding().name());
+      throw new UnsupportedOperationException("Unsupported encoding: " + encoding().name());
     }
 
     abstract Builder dispatchExecutor(ExecutorService dispatchExecutor);
 
     abstract Builder client(OkHttpClient client);
 
-    abstract Builder encoder(MessageEncoder<RequestBody> encoder);
+    abstract Builder encoder(RequestBodyMessageEncoder encoder);
 
     abstract OkHttpSender autoBuild();
 
@@ -142,7 +138,11 @@ public abstract class OkHttpSender implements Sender<RequestBody> {
 
   abstract boolean compressionEnabled();
 
-  @Override public abstract MessageEncoder<RequestBody> encoder();
+  abstract RequestBodyMessageEncoder encoder();
+
+  @Override public int messageSizeInBytes(List<byte[]> encodedSpans) {
+    return encoding().listSizeInBytes(encodedSpans);
+  }
 
   /** Asynchronously sends the spans as a POST to {@link #endpoint()}. */
   @Override public void sendSpans(List<byte[]> encodedSpans, Callback callback) {

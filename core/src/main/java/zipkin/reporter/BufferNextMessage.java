@@ -19,34 +19,36 @@ import java.util.LinkedList;
 import java.util.List;
 
 final class BufferNextMessage implements ByteBoundedQueue.Consumer {
-  private final MessageEncoder<?> encoding;
+  private final Sender sender;
   private final int maxBytes;
   private final long timeoutNanos;
   private final List<byte[]> buffer = new LinkedList<>();
 
   long deadlineNanoTime;
-  int bufferSizeInBytes;
+  int sizeInBytes;
   boolean bufferFull;
 
-  BufferNextMessage(MessageEncoder<?> encoding, int maxBytes, long timeoutNanos) {
-    this.encoding = encoding;
+  BufferNextMessage(Sender sender, int maxBytes, long timeoutNanos) {
+    this.sender = sender;
     this.maxBytes = maxBytes;
     this.timeoutNanos = timeoutNanos;
   }
 
   @Override
   public boolean accept(byte[] next) {
-    int x = encoding.overheadInBytes(buffer.size() + 1) + bufferSizeInBytes + next.length;
+    buffer.add(next); // speculatively add to the buffer so we can size it
+    int x = sender.messageSizeInBytes(buffer);
     int y = maxBytes;
     int includingNextVsMaxBytes = (x < y) ? -1 : ((x == y) ? 0 : 1);
 
     // If we can fit queued spans and the next into one message...
     if (includingNextVsMaxBytes <= 0) {
-      buffer.add(next);
-      bufferSizeInBytes += next.length;
+      sizeInBytes = x;
 
       // If there's still room, accept more.
       if (includingNextVsMaxBytes < 0) return true;
+    } else {
+      buffer.remove(buffer.size() - 1);
     }
     bufferFull = true;
     return false; // Either we've reached exact message size or cannot consume next
@@ -67,13 +69,13 @@ final class BufferNextMessage implements ByteBoundedQueue.Consumer {
     if (buffer.isEmpty()) return Collections.emptyList();
     ArrayList<byte[]> result = new ArrayList<>(buffer);
     buffer.clear();
-    bufferSizeInBytes = 0;
+    sizeInBytes = 0;
     bufferFull = false;
     deadlineNanoTime = 0;
     return result;
   }
 
   int sizeInBytes() {
-    return encoding.overheadInBytes(buffer.size()) + bufferSizeInBytes;
+    return sizeInBytes;
   }
 }

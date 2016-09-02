@@ -28,9 +28,9 @@ import zipkin.collector.Collector;
  * <p><em>Implementation notes</em>
  *
  * <p>The parameter is a list of encoded spans as opposed to an encoded message. This allows
- * implementations flexibility on how to {@link MessageEncoder#encode(List) encode spans into a
- * message}. For example, a large span might need to be sent as a separate message to avoid kafka
- * limits. Also, logging transports like scribe will likely write each span as a separate log line.
+ * implementations flexibility on how to encode spans into a message. For example, a large span
+ * might need to be sent as a separate message to avoid kafka limits. Also, logging transports like
+ * scribe will likely write each span as a separate log line.
  *
  * <p>This accepts a list of {@link Encoder#encode(Object) encoded spans}, as opposed a list of
  * spans like {@link zipkin.Span}. This allows senders to be re-usable as model shapes change. This
@@ -40,18 +40,26 @@ import zipkin.collector.Collector;
  * <p>If performance is critical, {@link Encoding#THRIFT thrift encoding} is most efficient,
  * sometimes 3x faster than json.
  */
-public interface Sender<M> extends Component {
+public interface Sender extends Component {
 
-  MessageEncoder<M> encoder();
+  /** Returns the encoding this sender requires spans to have. */
+  Encoding encoding();
 
   /**
-   * Maximum bytes sendable per message including {@link MessageEncoder#overheadInBytes(int)
-   * overhead}.
+   * Maximum bytes sendable per message including overhead. This can be calculated using {@link
+   * #messageSizeInBytes(List)}
    */
   int messageMaxBytes();
 
-  /** Returns the encoding this sender requires spans to have. */
-  Encoding spanEncoding();
+  /**
+   * Before invoking {@link Sender#sendSpans(List, Callback)}, callers must consider message
+   * overhead, which might be more than encoding overhead. This is used to not exceed {@link
+   * Sender#messageMaxBytes()}.
+   *
+   * <p>Note this is not always {@link Encoding#listSizeInBytes(List)}, as some senders have
+   * inefficient list encoding. For example, Scribe base64's then tags each span with a category.
+   */
+  int messageSizeInBytes(List<byte[]> encodedSpans);
 
   /**
    * Sends a list of encoded spans to a transport such as http or Kafka.

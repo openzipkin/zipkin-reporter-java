@@ -18,23 +18,15 @@ import java.util.List;
 import okhttp3.MediaType;
 import okhttp3.RequestBody;
 import okio.BufferedSink;
-import zipkin.reporter.MessageEncoder;
+import zipkin.reporter.Encoding;
 
-enum RequestBodyMessageEncoder implements MessageEncoder<RequestBody> {
+enum RequestBodyMessageEncoder {
   THRIFT {
-    @Override public int overheadInBytes(int spanCount) {
-      return THRIFT_BYTES.overheadInBytes(spanCount);
-    }
-
     @Override public RequestBody encode(List<byte[]> values) {
       return new ThriftRequestBody(values);
     }
   },
   JSON {
-    @Override public int overheadInBytes(int spanCount) {
-      return JSON_BYTES.overheadInBytes(spanCount);
-    }
-
     @Override public RequestBody encode(List<byte[]> values) {
       return new JsonRequestBody(values);
     }
@@ -45,14 +37,10 @@ enum RequestBodyMessageEncoder implements MessageEncoder<RequestBody> {
     final List<byte[]> values;
     final long contentLength;
 
-    StreamingRequestBody(MessageEncoder<?> encoder, MediaType contentType, List<byte[]> values) {
+    StreamingRequestBody(Encoding encoding, MediaType contentType, List<byte[]> values) {
       this.contentType = contentType;
       this.values = values;
-      long contentLength = encoder.overheadInBytes(values.size());
-      for (byte[] value : values) {
-        contentLength += value.length;
-      }
-      this.contentLength = contentLength;
+      this.contentLength = encoding.listSizeInBytes(values);
     }
 
     @Override public MediaType contentType() {
@@ -68,7 +56,7 @@ enum RequestBodyMessageEncoder implements MessageEncoder<RequestBody> {
     static final MediaType CONTENT_TYPE = MediaType.parse("application/x-thrift");
 
     ThriftRequestBody(List<byte[]> values) {
-      super(MessageEncoder.THRIFT_BYTES, CONTENT_TYPE, values);
+      super(Encoding.THRIFT, CONTENT_TYPE, values);
     }
 
     @Override public void writeTo(BufferedSink sink) throws IOException {
@@ -86,7 +74,7 @@ enum RequestBodyMessageEncoder implements MessageEncoder<RequestBody> {
     static final MediaType CONTENT_TYPE = MediaType.parse("application/json");
 
     JsonRequestBody(List<byte[]> values) {
-      super(MessageEncoder.JSON_BYTES, CONTENT_TYPE, values);
+      super(Encoding.JSON, CONTENT_TYPE, values);
     }
 
     @Override public void writeTo(BufferedSink sink) throws IOException {
@@ -99,4 +87,6 @@ enum RequestBodyMessageEncoder implements MessageEncoder<RequestBody> {
       sink.writeByte(']');
     }
   }
+
+  abstract RequestBody encode(List<byte[]> encodedSpans);
 }
