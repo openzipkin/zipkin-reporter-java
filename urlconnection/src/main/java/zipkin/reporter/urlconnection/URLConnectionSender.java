@@ -38,11 +38,12 @@ import static zipkin.reporter.MessageEncoder.THRIFT_BYTES;
 public abstract class URLConnectionSender implements Sender<byte[]> {
   /** Creates a sender that posts {@link Encoding#THRIFT} messages. */
   public static URLConnectionSender create(String endpoint) {
-    return builder().spanEncoding(Encoding.THRIFT).endpoint(endpoint).build();
+    return builder().endpoint(endpoint).build();
   }
 
   public static Builder builder() {
     return new AutoValue_URLConnectionSender.Builder()
+        .spanEncoding(Encoding.THRIFT)
         .connectTimeout(10 * 1000)
         .readTimeout(60 * 1000)
         .compressionEnabled(true)

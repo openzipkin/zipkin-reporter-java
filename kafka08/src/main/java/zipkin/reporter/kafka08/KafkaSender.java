@@ -42,7 +42,7 @@ public abstract class KafkaSender extends LazyCloseable<KafkaProducer<byte[], by
     implements Sender<byte[]> {
 
   public static KafkaSender create(String bootstrapServers) {
-    return builder().spanEncoding(Encoding.THRIFT).bootstrapServers(bootstrapServers).build();
+    return builder().bootstrapServers(bootstrapServers).build();
   }
 
   public static Builder builder() {
@@ -54,6 +54,7 @@ public abstract class KafkaSender extends LazyCloseable<KafkaProducer<byte[], by
         ByteArraySerializer.class.getName());
     properties.put(ProducerConfig.ACKS_CONFIG, "0");
     return new AutoValue_KafkaSender.Builder()
+        .spanEncoding(Encoding.THRIFT)
         .properties(properties)
         .topic("zipkin")
         .overrides(Collections.EMPTY_MAP)

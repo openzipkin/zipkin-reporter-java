@@ -13,9 +13,12 @@
  */
 package zipkin.reporter.benchmarks;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import okio.Okio;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -30,8 +33,8 @@ import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
+import zipkin.Codec;
 import zipkin.Span;
-import zipkin.TestObjects;
 import zipkin.reporter.Encoder;
 import zipkin.reporter.MessageEncoder;
 
@@ -43,7 +46,7 @@ import zipkin.reporter.MessageEncoder;
 @State(Scope.Thread)
 @Threads(1)
 public class EncodingBenchmarks {
-  static final Span clientSpan = TestObjects.TRACE.get(2);
+  static final Span clientSpan = spanFromResource("/finagle-client.json");
   static final List<byte[]> clientSpansJson = encode100Spans(Encoder.JSON);
   static final List<byte[]> clientSpansThrift = encode100Spans(Encoder.THRIFT);
 
@@ -82,5 +85,14 @@ public class EncodingBenchmarks {
         .build();
 
     new Runner(opt).run();
+  }
+
+  static Span spanFromResource(String jsonResource) {
+    InputStream stream = EncodingBenchmarks.class.getResourceAsStream(jsonResource);
+    try {
+      return Codec.JSON.readSpan(Okio.buffer(Okio.source(stream)).readByteArray());
+    } catch (IOException e) {
+      throw new AssertionError(e);
+    }
   }
 }
