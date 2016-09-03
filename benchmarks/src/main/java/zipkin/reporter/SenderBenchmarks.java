@@ -64,7 +64,7 @@ public abstract class SenderBenchmarks {
     }
   }
 
-  Sender<?> sender;
+  Sender sender;
   // TODO: is there a way to add another field to JMH output? Ex span size
   List<byte[]> spans;
 
@@ -87,7 +87,7 @@ public abstract class SenderBenchmarks {
     callback.await();
   }
 
-  abstract Sender<?> createSender() throws Throwable;
+  abstract Sender createSender() throws Exception;
 
   @Benchmark @Group("no_contention") @GroupThreads(1)
   public void no_contention_blocking_send(SendCounters counters) {

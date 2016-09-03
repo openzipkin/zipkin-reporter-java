@@ -21,12 +21,12 @@ import zipkin.Codec;
 import zipkin.Span;
 
 @AutoValue
-public abstract class FakeSender implements Sender<byte[]> {
+public abstract class FakeSender implements Sender {
   static FakeSender create() {
     return new AutoValue_FakeSender(
-        MessageEncoder.THRIFT_BYTES,
-        Integer.MAX_VALUE,
         Encoding.THRIFT,
+        Integer.MAX_VALUE,
+        BytesMessageEncoder.forEncoding(Encoding.THRIFT),
         Codec.THRIFT,
         spans -> {
         }
@@ -35,9 +35,9 @@ public abstract class FakeSender implements Sender<byte[]> {
 
   FakeSender onSpans(Consumer<List<Span>> onSpans) {
     return new AutoValue_FakeSender(
-        encoder(),
+        encoding(),
         messageMaxBytes(),
-        spanEncoding(),
+        encoder(),
         codec(),
         onSpans
     );
@@ -45,9 +45,9 @@ public abstract class FakeSender implements Sender<byte[]> {
 
   FakeSender json() {
     return new AutoValue_FakeSender(
-        MessageEncoder.JSON_BYTES,
-        messageMaxBytes(),
         Encoding.JSON,
+        messageMaxBytes(),
+        BytesMessageEncoder.forEncoding(Encoding.JSON),
         Codec.JSON,
         onSpans()
     );
@@ -55,17 +55,23 @@ public abstract class FakeSender implements Sender<byte[]> {
 
   FakeSender messageMaxBytes(int messageMaxBytes) {
     return new AutoValue_FakeSender(
-        encoder(),
+        encoding(),
         messageMaxBytes,
-        spanEncoding(),
+        encoder(),
         codec(),
         onSpans()
     );
   }
 
+  abstract BytesMessageEncoder encoder();
+
   abstract Codec codec();
 
   abstract Consumer<List<Span>> onSpans();
+
+  @Override public int messageSizeInBytes(List<byte[]> encodedSpans) {
+    return encoding().listSizeInBytes(encodedSpans);
+  }
 
   @Override public void sendSpans(List<byte[]> encodedSpans, Callback callback) {
     try {

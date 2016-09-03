@@ -16,39 +16,30 @@ package zipkin.reporter;
 import java.io.IOException;
 import java.util.List;
 
-final class NoopSender implements Sender<byte[]> {
+final class NoopSender implements Sender {
 
-  final Encoding spanEncoding;
-  final MessageEncoder<byte[]> messageEncoder;
+  final Encoding encoding;
+  final BytesMessageEncoder messageEncoder;
 
-  NoopSender(Encoding spanEncoding) {
-    this.spanEncoding = spanEncoding;
-    switch (spanEncoding) {
-      case JSON:
-        messageEncoder = MessageEncoder.JSON_BYTES;
-        break;
-      case THRIFT:
-        messageEncoder = MessageEncoder.THRIFT_BYTES;
-        break;
-      default:
-        throw new UnsupportedOperationException(spanEncoding.name());
-    }
+  NoopSender(Encoding encoding) {
+    this.encoding = encoding;
+    this.messageEncoder = BytesMessageEncoder.forEncoding(encoding);
   }
 
   @Override public int messageMaxBytes() {
     return Integer.MAX_VALUE;
   }
 
-  @Override public Encoding spanEncoding() {
-    return spanEncoding;
+  @Override public Encoding encoding() {
+    return encoding;
   }
 
-  @Override public MessageEncoder<byte[]> encoder() {
-    return messageEncoder;
+  @Override public int messageSizeInBytes(List<byte[]> encodedSpans) {
+    return encoding().listSizeInBytes(encodedSpans);
   }
 
   @Override public void sendSpans(List<byte[]> encodedSpans, Callback callback) {
-    encoder().encode(encodedSpans);
+    messageEncoder.encode(encodedSpans);
     callback.onComplete();
   }
 

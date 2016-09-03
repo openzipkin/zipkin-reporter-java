@@ -13,6 +13,7 @@
  */
 package zipkin.reporter;
 
+import java.util.Collections;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -32,7 +33,7 @@ public class AsyncReporterTest {
 
   Span span = TestObjects.TRACE.get(2);
   int sizeInBytesOfSingleSpanMessage =
-      MessageEncoder.THRIFT_BYTES.overheadInBytes(1) + Encoder.THRIFT.encode(span).length;
+      Encoding.THRIFT.listSizeInBytes(Collections.singletonList(Encoder.THRIFT.encode(span)));
 
   AsyncReporter<Span> reporter;
   InMemoryReporterMetrics metrics = new InMemoryReporterMetrics();

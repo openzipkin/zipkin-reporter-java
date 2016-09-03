@@ -29,7 +29,6 @@ import zipkin.junit.ZipkinRule;
 import zipkin.reporter.Callback;
 import zipkin.reporter.Encoder;
 import zipkin.reporter.Encoding;
-import zipkin.reporter.MessageEncoder;
 import zipkin.reporter.internal.AwaitableCallback;
 
 import static java.util.Arrays.asList;
@@ -66,7 +65,7 @@ public class URLConnectionSenderTest {
 
   @Test
   public void sendsSpans_json() throws Exception {
-    sender = sender.toBuilder().spanEncoding(Encoding.JSON).build();
+    sender = sender.toBuilder().encoding(Encoding.JSON).build();
 
     AwaitableCallback callback = new AwaitableCallback();
     sender.sendSpans(asList(Encoder.JSON.encode(TestObjects.TRACE.get(0))), callback);
@@ -111,7 +110,7 @@ public class URLConnectionSenderTest {
     try {
       sender = sender.toBuilder()
           .endpoint(server.url("/api/v1/spans").toString())
-          .spanEncoding(Encoding.JSON)
+          .encoding(Encoding.JSON)
           .build();
 
       server.enqueue(new MockResponse());

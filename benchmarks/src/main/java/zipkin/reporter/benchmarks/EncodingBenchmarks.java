@@ -35,8 +35,8 @@ import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 import zipkin.Codec;
 import zipkin.Span;
+import zipkin.reporter.BytesMessageEncoder;
 import zipkin.reporter.Encoder;
-import zipkin.reporter.MessageEncoder;
 
 @Measurement(iterations = 5, time = 1)
 @Warmup(iterations = 10, time = 1)
@@ -62,12 +62,12 @@ public class EncodingBenchmarks {
 
   @Benchmark
   public byte[] encodeListOf100Spans_thrift() {
-    return MessageEncoder.THRIFT_BYTES.encode(clientSpansThrift);
+    return BytesMessageEncoder.THRIFT.encode(clientSpansThrift);
   }
 
   @Benchmark
   public byte[] encodeListOf100Spans_json() {
-    return MessageEncoder.JSON_BYTES.encode(clientSpansJson);
+    return BytesMessageEncoder.JSON.encode(clientSpansJson);
   }
 
   static List<byte[]> encode100Spans(Encoder<Span> encoder) {

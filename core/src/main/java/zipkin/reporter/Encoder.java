@@ -13,15 +13,31 @@
  */
 package zipkin.reporter;
 
-import zipkin.reporter.internal.JsonSpanEncoder;
-import zipkin.reporter.internal.ThriftSpanEncoder;
+import zipkin.Codec;
+import zipkin.Span;
 
 /**
- * @param <S> type of the span, usually {@link zipkin.Span}
+ * @param <S> type of the span, usually {@link Span}
  */
 public interface Encoder<S> {
-  Encoder<zipkin.Span> JSON = new JsonSpanEncoder();
-  Encoder<zipkin.Span> THRIFT = new ThriftSpanEncoder();
+  Encoder<Span> JSON = new Encoder<Span>() {
+    @Override public Encoding encoding() {
+      return Encoding.JSON;
+    }
+
+    @Override public byte[] encode(Span span) {
+      return Codec.JSON.writeSpan(span);
+    }
+  };
+  Encoder<Span> THRIFT = new Encoder<Span>() {
+    @Override public Encoding encoding() {
+      return Encoding.THRIFT;
+    }
+
+    @Override public byte[] encode(Span span) {
+      return Codec.THRIFT.writeSpan(span);
+    }
+  };
 
   Encoding encoding();
 

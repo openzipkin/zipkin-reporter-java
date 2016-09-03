@@ -46,7 +46,7 @@ Property | Description
 `messageMaxBytes` | Maximum bytes sendable per message including overhead. Default `Sender.messageMaxBytes`
 `messageTimeout` |  Maximum time to wait for messageMaxBytes to accumulate before sending. Default 1 second
 
-#### Don't block the flusher thread
+#### Dealing with span backlog
 When `messageTimeout` is non-zero, a single thread is responsible for
 bundling spans into a message for the sender. If you are using a blocking
 sender, a surge of reporting activity could lead to a queue backup. This

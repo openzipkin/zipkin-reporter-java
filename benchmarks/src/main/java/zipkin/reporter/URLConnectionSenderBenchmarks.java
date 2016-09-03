@@ -22,7 +22,7 @@ import zipkin.reporter.urlconnection.URLConnectionSender;
 
 public class URLConnectionSenderBenchmarks extends HttpSenderBenchmarks {
 
-  @Override Sender<?> newHttpSender(String endpoint) {
+  @Override Sender newHttpSender(String endpoint) {
     return URLConnectionSender.create(endpoint);
   }
 
