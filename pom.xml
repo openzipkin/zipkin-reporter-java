@@ -27,6 +27,7 @@
     <module>kafka08</module>
     <module>urlconnection</module>
     <module>okhttp3</module>
+    <module>libthrift</module>
     <module>benchmarks</module>
   </modules>
 
@@ -113,6 +114,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>zipkin-sender-kafka08</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>zipkin-sender-libthrift</artifactId>
         <version>${project.version}</version>
       </dependency>
     </dependencies>
