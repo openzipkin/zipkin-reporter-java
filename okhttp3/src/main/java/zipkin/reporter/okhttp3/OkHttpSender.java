@@ -42,6 +42,8 @@ import static zipkin.internal.Util.checkNotNull;
 
 /**
  * Reports spans to Zipkin, using its <a href="http://zipkin.io/zipkin-api/#/">POST</a> endpoint.
+ *
+ * <p>This sender is thread-safe.
  */
 @AutoValue
 public abstract class OkHttpSender implements Sender {
