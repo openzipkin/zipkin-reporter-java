@@ -43,9 +43,6 @@ import zipkin.reporter.kafka08.KafkaSender;
 import static kafka.consumer.Consumer.createJavaConsumerConnector;
 
 public class KafkaSenderBenchmarks extends SenderBenchmarks {
-
-  static final int messageMaxBytes = 1000000;
-
   TestingServer zookeeper;
   KafkaServerStartable kafkaServer;
   ConsumerConnector consumer;
@@ -58,6 +55,8 @@ public class KafkaSenderBenchmarks extends SenderBenchmarks {
     Properties props = new Properties();
     props.put("advertised.host.name", "127.0.0.1");
     props.put("port", Integer.toString(kafkaPort));
+    props.put("message.max.bytes", Integer.toString(messageMaxBytes));
+    props.put("replica.fetch.max.bytes", Integer.toString(messageMaxBytes));
     props.put("broker.id", "1");
     props.put("log.dirs", zookeeper.getTempDirectory().getAbsolutePath());
     props.put("zookeeper.connect", zookeeperConnect);
@@ -68,10 +67,7 @@ public class KafkaSenderBenchmarks extends SenderBenchmarks {
 
     consumer = blackholeMessagesInZipkinTopic(zookeeperConnect);
 
-    return KafkaSender.builder()
-        .bootstrapServers("127.0.0.1:" + kafkaPort)
-        .messageMaxBytes(messageMaxBytes)
-        .build();
+    return KafkaSender.create("127.0.0.1:" + kafkaPort);
   }
 
   @Override void afterSenderClose() throws IOException {
@@ -107,7 +103,7 @@ public class KafkaSenderBenchmarks extends SenderBenchmarks {
   ConsumerConnector blackholeMessagesInZipkinTopic(String zookeeperConnect) {
     Properties props = new Properties();
     props.put("zookeeper.connect", zookeeperConnect);
-    props.put("fetch.message.max.bytes", String.valueOf(messageMaxBytes));
+    props.put("fetch.message.max.bytes", Integer.toString(messageMaxBytes));
     props.put("group.id", "zipkin");
     props.put("auto.offset.reset", "smallest");
     ConsumerConnector result = createJavaConsumerConnector(new ConsumerConfig(props));

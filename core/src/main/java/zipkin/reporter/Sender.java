@@ -22,6 +22,9 @@ import zipkin.collector.Collector;
  * encoding them into a message and enqueueing them for transport over http or Kafka. The typical
  * end recipient is a zipkin {@link Collector}.
  *
+ * <p>Unless mentioned otherwise, senders are not thread-safe. They were designed to be used by
+ * {@link AsyncReporter}, which has a single reporting thread.
+ *
  * <p>Those looking to initialize eagerly should call {@link #check()}. This can be used to reduce
  * latency on the first send operation, or to fail fast.
  *

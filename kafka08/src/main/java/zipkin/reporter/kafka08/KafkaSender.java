@@ -33,6 +33,8 @@ import static zipkin.internal.Util.checkNotNull;
 /**
  * This sends (usually TBinaryProtocol big-endian) encoded spans to a Kafka topic.
  *
+ * <p>This sender is thread-safe.
+ *
  * <p>This sender remains a Kafka 0.8.x consumer, while Zipkin systems update to 0.9+.
  */
 @AutoValue
