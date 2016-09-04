@@ -1,7 +1,7 @@
 [![Gitter chat](http://img.shields.io/badge/gitter-join%20chat%20%E2%86%92-brightgreen.svg)](https://gitter.im/openzipkin/zipkin) [![Build Status](https://travis-ci.org/openzipkin/zipkin-reporter-java.svg?branch=master)](https://travis-ci.org/openzipkin/zipkin-reporter-java) [![Download](https://api.bintray.com/packages/openzipkin/maven/zipkin-reporter-java/images/download.svg) ](https://bintray.com/openzipkin/maven/zipkin-reporter-java/_latestVersion)
 
 # zipkin-reporter-java
-Shared library for reporting zipkin spans onto transports including http and kafka. Requires JRE 6 or later.
+Shared library for reporting zipkin spans onto transports including http, kafka and scribe. Requires JRE 6 or later.
 
 # Usage
 These components can be called when spans have been recorded and ready to send to zipkin.
