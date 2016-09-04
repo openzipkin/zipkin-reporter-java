@@ -120,16 +120,16 @@ public abstract class URLConnectionSender implements Sender {
 
   abstract String mediaType();
 
+  /** close is typically called from a different thread */
+  transient boolean closeCalled;
+
   @Override public int messageSizeInBytes(List<byte[]> encodedSpans) {
     return encoding().listSizeInBytes(encodedSpans);
   }
 
   /** Asynchronously sends the spans as a POST to {@link #endpoint()}. */
   @Override public void sendSpans(List<byte[]> encodedSpans, Callback callback) {
-    if (encodedSpans.isEmpty()) {
-      callback.onComplete();
-      return;
-    }
+    if (closeCalled) throw new IllegalStateException("close");
     try {
       byte[] message = encoder().encode(encodedSpans);
       send(message, mediaType());
@@ -151,7 +151,7 @@ public abstract class URLConnectionSender implements Sender {
   }
 
   @Override public void close() {
-    // Nothing to close
+    closeCalled = true;
   }
 
   void send(byte[] body, String mediaType) throws IOException {

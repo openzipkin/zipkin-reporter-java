@@ -72,6 +72,7 @@ public interface Sender extends Component {
    *
    * @param encodedSpans list of encoded spans.
    * @param callback signals either completion or failure
+   * @throws IllegalStateException if {@link #close() close} was called.
    */
   void sendSpans(List<byte[]> encodedSpans, Callback callback);
 }

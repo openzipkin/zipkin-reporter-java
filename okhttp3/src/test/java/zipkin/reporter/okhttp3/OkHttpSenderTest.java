@@ -16,6 +16,7 @@ package zipkin.reporter.okhttp3;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import okhttp3.mockwebserver.Dispatcher;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
@@ -107,6 +108,8 @@ public class OkHttpSenderTest {
 
   @Test public void mediaTypeBasedOnEncoding() throws Exception {
     zipkinRule.shutdown(); // shutdown the normal zipkin rule
+    sender.close();
+
     MockWebServer server = new MockWebServer();
     try {
       sender = sender.toBuilder()
@@ -121,6 +124,70 @@ public class OkHttpSenderTest {
       // block until the request arrived
       assertThat(server.takeRequest().getHeader("Content-Type"))
           .isEqualTo("application/json");
+    } finally {
+      server.shutdown();
+    }
+  }
+
+  @Test public void closeWhileRequestInFlight_cancelsRequest() throws Exception {
+    zipkinRule.shutdown(); // shutdown the normal zipkin rule
+    sender.close();
+
+    MockWebServer server = new MockWebServer();
+    server.setDispatcher(new Dispatcher() {
+      @Override public MockResponse dispatch(RecordedRequest request) throws InterruptedException {
+        Thread.sleep(2000); // lingers after the one-second grace
+        return new MockResponse();
+      }
+    });
+    try {
+      sender = OkHttpSender.create(server.url("/api/v1/spans").toString());
+
+      AwaitableCallback callback = new AwaitableCallback();
+
+      new Thread(() ->
+          sender.sendSpans(asList(Encoder.THRIFT.encode(clientSpan)), callback)
+      ).start();
+      Thread.sleep(100); // make sure the thread starts
+
+      sender.close(); // close while request is in flight
+
+      try {
+        callback.await();
+        failBecauseExceptionWasNotThrown(RuntimeException.class);
+      } catch (RuntimeException e) {
+        // throws because the request still in flight after a second was canceled
+        assertThat(e.getCause()).isInstanceOf(IOException.class);
+      }
+    } finally {
+      server.shutdown();
+    }
+  }
+
+  @Test public void closeWhileRequestInFlight_graceful() throws Exception {
+    zipkinRule.shutdown(); // shutdown the normal zipkin rule
+    sender.close();
+
+    MockWebServer server = new MockWebServer();
+    server.setDispatcher(new Dispatcher() {
+      @Override public MockResponse dispatch(RecordedRequest request) throws InterruptedException {
+        Thread.sleep(700); // finishes within the one-second grace
+        return new MockResponse();
+      }
+    });
+    try {
+      sender = OkHttpSender.create(server.url("/api/v1/spans").toString());
+
+      AwaitableCallback callback = new AwaitableCallback();
+
+      new Thread(() ->
+          sender.sendSpans(asList(Encoder.THRIFT.encode(clientSpan)), callback)
+      ).start();
+      Thread.sleep(100); // make sure the thread starts
+
+      sender.close(); // close while request is in flight
+
+      callback.await(); // shouldn't throw as request completed w/in a second
     } finally {
       server.shutdown();
     }
@@ -169,6 +236,14 @@ public class OkHttpSenderTest {
     zipkinRule.enqueueFailure(HttpFailure.disconnectDuringBody());
 
     assertThat(sender.check().ok).isFalse();
+  }
+
+  @Test
+  public void illegalToSendWhenClosed() throws Exception {
+    thrown.expect(IllegalStateException.class);
+    sender.close();
+
+    send(TestObjects.TRACE);
   }
 
   /** Blocks until the callback completes to allow read-your-writes consistency during tests. */

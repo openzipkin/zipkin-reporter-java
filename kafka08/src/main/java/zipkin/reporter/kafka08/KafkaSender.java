@@ -134,6 +134,9 @@ public abstract class KafkaSender extends LazyCloseable<KafkaProducer<byte[], by
 
   abstract Properties properties();
 
+  /** close is typically called from a different thread */
+  transient boolean closeCalled;
+
   @Override public int messageSizeInBytes(List<byte[]> encodedSpans) {
     return encoding().listSizeInBytes(encodedSpans);
   }
@@ -144,6 +147,7 @@ public abstract class KafkaSender extends LazyCloseable<KafkaProducer<byte[], by
    * <p>NOTE: this blocks until the metadata server is available.
    */
   @Override public void sendSpans(List encodedSpans, Callback callback) {
+    if (closeCalled) throw new IllegalStateException("closed");
     try {
       final byte[] message = encoder().encode(encodedSpans);
       get().send(new ProducerRecord<>(topic(), message), (metadata, exception) -> {
@@ -173,8 +177,9 @@ public abstract class KafkaSender extends LazyCloseable<KafkaProducer<byte[], by
     return new KafkaProducer<>(properties());
   }
 
-  @Override
-  public void close() {
+  @Override public void close() {
+    if (closeCalled) return;
+    closeCalled = true;
     KafkaProducer<byte[], byte[]> maybeNull = maybeNull();
     if (maybeNull != null) maybeNull.close();
   }

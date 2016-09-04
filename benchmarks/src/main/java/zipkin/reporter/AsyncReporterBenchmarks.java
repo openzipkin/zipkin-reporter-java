@@ -40,7 +40,7 @@ import zipkin.TestObjects;
 @Warmup(iterations = 10, time = 1)
 @Fork(3)
 @BenchmarkMode(Mode.Throughput)
-@OutputTimeUnit(TimeUnit.MILLISECONDS)
+@OutputTimeUnit(TimeUnit.SECONDS)
 @State(Scope.Group)
 public class AsyncReporterBenchmarks {
   static final Span clientSpan = TestObjects.TRACE.get(2);
