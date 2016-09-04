@@ -153,6 +153,14 @@ public class URLConnectionSenderTest {
     assertThat(sender.check().ok).isFalse();
   }
 
+  @Test
+  public void illegalToSendWhenClosed() throws Exception {
+    thrown.expect(IllegalStateException.class);
+    sender.close();
+
+    send(TestObjects.TRACE);
+  }
+
   void thenCallbackCatchesTheThrowable() {
     AtomicReference<Throwable> t = new AtomicReference<>();
     Callback callback = new Callback() {

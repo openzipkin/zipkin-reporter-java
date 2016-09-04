@@ -154,9 +154,7 @@ public abstract class AsyncReporter<S> implements Reporter<S>, Flushable, Compon
               result.flush(consumer);
             }
           } finally {
-            for (byte[] next : consumer.drain()) {
-              result.pending.offer(next);
-            }
+            for (byte[] next : consumer.drain()) result.pending.offer(next);
             result.close.countDown();
           }
         }, "AsyncReporter(" + sender + ")").start();
@@ -204,13 +202,14 @@ public abstract class AsyncReporter<S> implements Reporter<S>, Flushable, Compon
 
     @Override
     public final void flush() {
-      if (closed.get()) throw new IllegalStateException("closed");
       flush(new BufferNextMessage(sender, messageMaxBytes, 0));
     }
 
     void flush(BufferNextMessage bundler) {
+      if (closed.get()) throw new IllegalStateException("closed");
+
       pending.drainTo(bundler, bundler.remainingNanos());
-      if (closed.get() || !bundler.isReady()) return;
+      if (!bundler.isReady()) return; // try to fill up the bundle
 
       // Signal that we are about to send a message of a known size in bytes
       metrics.incrementMessages();
@@ -223,6 +222,8 @@ public abstract class AsyncReporter<S> implements Reporter<S>, Flushable, Compon
         sender.sendSpans(nextMessage, failureCallback);
       } catch (RuntimeException e) {
         failureCallback.onError(e);
+        // Raise in case the sender was closed out-of-band.
+        if (e instanceof IllegalStateException) throw e;
       }
     }
 
@@ -239,11 +240,12 @@ public abstract class AsyncReporter<S> implements Reporter<S>, Flushable, Compon
         }
       } catch (InterruptedException e) {
         logger.warning("Interrupted waiting for close");
+        Thread.currentThread().interrupt();
       }
       int count = pending.clear();
       if (count > 0) {
         metrics.incrementSpansDropped(count);
-        logger.warning("Dropped " + count + " spans due to close");
+        logger.warning("Dropped " + count + " spans due to AsyncReporter.close()");
       }
     }
 
@@ -255,15 +257,11 @@ public abstract class AsyncReporter<S> implements Reporter<S>, Flushable, Compon
         @Override public void onError(Throwable t) {
           metrics.incrementMessagesDropped();
           metrics.incrementSpansDropped(count);
-          warn("Dropped " + count + " spans", t);
+          logger.log(WARNING,
+              format("Dropped %s spans due to %s(%s)", count, t.getClass().getSimpleName(),
+                  t.getMessage() == null ? "" : t.getMessage()), t);
         }
       };
-    }
-
-    void warn(String message, Throwable e) {
-      message = format("%s due to %s(%s)", message, e.getClass().getSimpleName(),
-          e.getMessage() == null ? "" : e.getMessage());
-      logger.log(WARNING, message, e);
     }
 
     @Override public String toString() {

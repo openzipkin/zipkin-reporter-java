@@ -17,7 +17,6 @@ import com.google.auto.value.AutoValue;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import okhttp3.Call;
@@ -33,6 +32,7 @@ import okio.Buffer;
 import okio.BufferedSink;
 import okio.GzipSink;
 import okio.Okio;
+import zipkin.internal.LazyCloseable;
 import zipkin.reporter.Callback;
 import zipkin.reporter.Encoding;
 import zipkin.reporter.Sender;
@@ -46,7 +46,8 @@ import static zipkin.internal.Util.checkNotNull;
  * <p>This sender is thread-safe.
  */
 @AutoValue
-public abstract class OkHttpSender implements Sender {
+public abstract class OkHttpSender extends LazyCloseable<OkHttpClient> implements Sender {
+
   /** Creates a sender that posts {@link Encoding#THRIFT thrift} messages. */
   public static OkHttpSender create(String endpoint) {
     return builder().endpoint(endpoint).build();
@@ -94,18 +95,6 @@ public abstract class OkHttpSender implements Sender {
     abstract Encoding encoding();
 
     public final OkHttpSender build() {
-      // bound the executor so that we get consistent performance
-      ThreadPoolExecutor dispatchExecutor =
-          new ThreadPoolExecutor(0, maxRequests(), 60, TimeUnit.SECONDS,
-              new ArrayBlockingQueue<>(maxRequests()),
-              Util.threadFactory("OkHttpSender Dispatcher", false));
-      dispatchExecutor(dispatchExecutor);
-      Dispatcher dispatcher = new Dispatcher(dispatchExecutor);
-      dispatcher.setMaxRequests(maxRequests());
-      dispatcher.setMaxRequestsPerHost(maxRequests());
-      client(new OkHttpClient.Builder()
-          .dispatcher(dispatcher).build());
-
       if (encoding() == Encoding.JSON) {
         return encoder(RequestBodyMessageEncoder.JSON).autoBuild();
       } else if (encoding() == Encoding.THRIFT) {
@@ -113,10 +102,6 @@ public abstract class OkHttpSender implements Sender {
       }
       throw new UnsupportedOperationException("Unsupported encoding: " + encoding().name());
     }
-
-    abstract Builder dispatchExecutor(ExecutorService dispatchExecutor);
-
-    abstract Builder client(OkHttpClient client);
 
     abstract Builder encoder(RequestBodyMessageEncoder encoder);
 
@@ -130,10 +115,6 @@ public abstract class OkHttpSender implements Sender {
     return new AutoValue_OkHttpSender.Builder(this);
   }
 
-  abstract OkHttpClient client();
-
-  abstract ExecutorService dispatchExecutor();
-
   abstract HttpUrl endpoint();
 
   abstract int maxRequests();
@@ -146,15 +127,15 @@ public abstract class OkHttpSender implements Sender {
     return encoding().listSizeInBytes(encodedSpans);
   }
 
+  /** close is typically called from a different thread */
+  transient boolean closeCalled;
+
   /** Asynchronously sends the spans as a POST to {@link #endpoint()}. */
   @Override public void sendSpans(List<byte[]> encodedSpans, Callback callback) {
-    if (encodedSpans.isEmpty()) {
-      callback.onComplete();
-      return;
-    }
+    if (closeCalled) throw new IllegalStateException("closed");
     try {
       Request request = newRequest(encoder().encode(encodedSpans));
-      client().newCall(request).enqueue(new CallbackAdapter(callback));
+      get().newCall(request).enqueue(new CallbackAdapter(callback));
     } catch (Throwable e) {
       callback.onError(e);
       if (e instanceof Error) throw (Error) e;
@@ -166,7 +147,7 @@ public abstract class OkHttpSender implements Sender {
     try {
       Request request = new Request.Builder().url(endpoint())
           .post(RequestBody.create(MediaType.parse("application/json"), "[]")).build();
-      Response response = client().newCall(request).execute();
+      Response response = get().newCall(request).execute();
       if (!response.isSuccessful()) {
         throw new IllegalStateException("check response failed: " + response);
       }
@@ -176,9 +157,34 @@ public abstract class OkHttpSender implements Sender {
     }
   }
 
+  @Override protected OkHttpClient compute() {
+    // bound the executor so that we get consistent performance
+    ThreadPoolExecutor dispatchExecutor =
+        new ThreadPoolExecutor(0, maxRequests(), 60, TimeUnit.SECONDS,
+            new ArrayBlockingQueue<>(maxRequests()),
+            Util.threadFactory("OkHttpSender Dispatcher", false));
+    Dispatcher dispatcher = new Dispatcher(dispatchExecutor);
+    dispatcher.setMaxRequests(maxRequests());
+    dispatcher.setMaxRequestsPerHost(maxRequests());
+    return new OkHttpClient.Builder().dispatcher(dispatcher).build();
+  }
+
+  /** Waits up to a second for in-flight requests to finish before cancelling them */
   @Override public void close() {
-    client().dispatcher().cancelAll();
-    dispatchExecutor().shutdown();
+    if (closeCalled) return;
+    closeCalled = true;
+    OkHttpClient maybeNull = maybeNull();
+    if (maybeNull == null) return;
+
+    Dispatcher dispatcher = maybeNull.dispatcher();
+    dispatcher.executorService().shutdown();
+    try {
+      if (!dispatcher.executorService().awaitTermination(1, TimeUnit.SECONDS)) {
+        dispatcher.cancelAll();
+      }
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
   }
 
   Request newRequest(RequestBody body) throws IOException {

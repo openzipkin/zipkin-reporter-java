@@ -14,7 +14,6 @@
 package zipkin.reporter;
 
 import com.google.auto.value.AutoValue;
-import java.io.IOException;
 import java.util.List;
 import java.util.function.Consumer;
 import zipkin.Codec;
@@ -73,7 +72,11 @@ public abstract class FakeSender implements Sender {
     return encoding().listSizeInBytes(encodedSpans);
   }
 
+  /** close is typically called from a different thread */
+  transient boolean closeCalled;
+
   @Override public void sendSpans(List<byte[]> encodedSpans, Callback callback) {
+    if (closeCalled) throw new IllegalStateException("closed");
     try {
       onSpans().accept(codec().readSpans(encoder().encode(encodedSpans)));
       callback.onComplete();
@@ -86,7 +89,8 @@ public abstract class FakeSender implements Sender {
     return CheckResult.OK;
   }
 
-  @Override public void close() throws IOException {
+  @Override public void close() {
+    closeCalled = true;
   }
 
   @Override public String toString() {

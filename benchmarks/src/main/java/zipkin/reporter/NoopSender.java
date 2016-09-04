@@ -13,13 +13,15 @@
  */
 package zipkin.reporter;
 
-import java.io.IOException;
 import java.util.List;
 
 final class NoopSender implements Sender {
 
   final Encoding encoding;
   final BytesMessageEncoder messageEncoder;
+
+  /** close is typically called from a different thread */
+  transient boolean closeCalled;
 
   NoopSender(Encoding encoding) {
     this.encoding = encoding;
@@ -47,7 +49,8 @@ final class NoopSender implements Sender {
     return CheckResult.OK;
   }
 
-  @Override public void close() throws IOException {
+  @Override public void close() {
+    closeCalled = true;
   }
 
   @Override public String toString() {

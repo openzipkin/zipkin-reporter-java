@@ -45,13 +45,14 @@ final class BufferNextMessage implements ByteBoundedQueue.Consumer {
     if (includingNextVsMaxBytes <= 0) {
       sizeInBytes = x;
 
-      // If there's still room, accept more.
-      if (includingNextVsMaxBytes < 0) return true;
+      if (includingNextVsMaxBytes == 0) {
+        bufferFull = true;
+      }
+      return true;
     } else {
       buffer.remove(buffer.size() - 1);
+      return false; // we couldn't fit the next message into this buffer
     }
-    bufferFull = true;
-    return false; // Either we've reached exact message size or cannot consume next
   }
 
   long remainingNanos() {

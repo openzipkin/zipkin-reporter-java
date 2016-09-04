@@ -53,8 +53,9 @@ public abstract class SenderBenchmarks {
    */
   static final int TARGET_BACKLOG = 1_000_000;
 
-  // 256KiB, 512KiB, default for Kafka
-  @Param({"262144", "524288", "1000000"})
+  // 64KiB, 1MB (default for Kafka), 5MiB, 16MiB (default for Scribe)
+  @Param({"65536", "1000000", "5242880", "16777216"})
+
   public int messageMaxBytes;
 
   static final byte[] clientSpan = Encoder.THRIFT.encode(TestObjects.TRACE.get(2));
@@ -123,6 +124,7 @@ public abstract class SenderBenchmarks {
 
   @TearDown(Level.Trial)
   public void close() throws IOException {
+    reporter.close();
     sender.close();
     afterSenderClose();
   }

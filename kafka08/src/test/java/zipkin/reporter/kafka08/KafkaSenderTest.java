@@ -88,6 +88,14 @@ public class KafkaSenderTest {
         .isInstanceOf(org.apache.kafka.common.errors.TimeoutException.class);
   }
 
+  @Test
+  public void illegalToSendWhenClosed() throws Exception {
+    thrown.expect(IllegalStateException.class);
+    sender.close();
+
+    send(TestObjects.TRACE);
+  }
+
   /** Blocks until the callback completes to allow read-your-writes consistency during tests. */
   void send(List<Span> spans) {
     AwaitableCallback callback = new AwaitableCallback();

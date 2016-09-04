@@ -28,6 +28,7 @@ import zipkin.TestObjects;
 
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.failBecauseExceptionWasNotThrown;
 
 public class AsyncReporterTest {
 
@@ -237,23 +238,6 @@ public class AsyncReporterTest {
     assertThat(metrics.spansDropped()).isEqualTo(1);
   }
 
-  @Test
-  public void senderThread_pushesBackOnClose() throws InterruptedException {
-    AtomicInteger sendCount = new AtomicInteger();
-    reporter = AsyncReporter.builder(FakeSender.create())
-        .metrics(metrics)
-        .messageTimeout(10, TimeUnit.MILLISECONDS)
-        .build();
-
-    reporter.report(span);
-    Thread.sleep(5); // flush thread got the first span, but still waiting for more
-    reporter.close(); // close while there's a pending span
-    Thread.sleep(10); // wait for the poll to unblock
-
-    assertThat(sendCount.get()).isZero();
-    assertThat(metrics.spansDropped()).isEqualTo(1);
-  }
-
   @Test(expected = IllegalStateException.class)
   public void flush_throwsOnClose() {
     reporter = AsyncReporter.builder(FakeSender.create())
@@ -278,5 +262,81 @@ public class AsyncReporterTest {
     // Don't throw, as that could crash apps. Just increment drop metrics
     reporter.report(span);
     assertThat(metrics.spansDropped()).isEqualTo(1);
+  }
+
+  FakeSender sleepingSender = FakeSender.create().onSpans(spans -> {
+    try {
+      Thread.sleep(5);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
+  });
+
+  @Test
+  public void senderThread_dropsOnSenderClose_flushThread() throws InterruptedException {
+    reporter = AsyncReporter.builder(sleepingSender)
+        .metrics(metrics)
+        .messageMaxBytes(sizeInBytesOfSingleSpanMessage)
+        .build();
+
+    reporter.report(span);
+    Thread.sleep(1); // flush thread got the first span, but still waiting for more
+    reporter.report(span);
+    sleepingSender.close(); // close while there's a pending span
+    Thread.sleep(10); // wait for the poll to unblock
+
+    assertThat(metrics.spansDropped()).isEqualTo(1);
+  }
+
+  @Test
+  public void senderThread_dropsOnReporterClose_flushThread() throws InterruptedException {
+    reporter = AsyncReporter.builder(sleepingSender)
+        .metrics(metrics)
+        .messageMaxBytes(sizeInBytesOfSingleSpanMessage)
+        .build();
+
+    reporter.report(span);
+    Thread.sleep(1); // flush thread got the first span, but still waiting for more
+    reporter.report(span);
+    reporter.close(); // close while there's a pending span
+    Thread.sleep(10); // wait for the poll to unblock
+
+    assertThat(metrics.spansDropped()).isEqualTo(1);
+  }
+
+  @Test
+  public void flush_incrementsMetricsAndthrowsWhenClosed() {
+    reporter = AsyncReporter.builder(sleepingSender)
+        .metrics(metrics)
+        .messageTimeout(0, TimeUnit.MILLISECONDS)
+        .build();
+
+    reporter.report(span);
+
+    reporter.close();
+    try {
+      reporter.flush();
+      failBecauseExceptionWasNotThrown(IllegalStateException.class);
+    } catch (IllegalStateException e) {
+      assertThat(metrics.spansDropped()).isEqualTo(1);
+    }
+  }
+
+  @Test
+  public void flush_incrementsMetricsAndthrowsWhenSenderClosed() {
+    reporter = AsyncReporter.builder(sleepingSender)
+        .metrics(metrics)
+        .messageTimeout(0, TimeUnit.MILLISECONDS)
+        .build();
+
+    reporter.report(span);
+
+    sleepingSender.close();
+    try {
+      reporter.flush();
+      failBecauseExceptionWasNotThrown(IllegalStateException.class);
+    } catch (IllegalStateException e) {
+      assertThat(metrics.spansDropped()).isEqualTo(1);
+    }
   }
 }
