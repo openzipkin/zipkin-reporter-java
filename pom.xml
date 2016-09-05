@@ -180,6 +180,7 @@
       <plugin>
         <inherited>true</inherited>
         <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.5.1</version>
         <configuration>
           <!-- Retrolambda will rewrite lambdas as Java 6 bytecode -->
           <source>1.8</source>
