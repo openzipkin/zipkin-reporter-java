@@ -31,27 +31,17 @@ package zipkin.reporter;
  * <p>The following relationships can be used to consider health of the tracing system.
  * <pre>
  * <ul>
+ * <li>{@link #updateQueuedSpans Pending spans}. Alert when this increases over time as it could
+ * lead to dropped spans.
  * <li>Dropped spans = Alert when this increases as it could indicate a queue backup.
  * <li>Successful Messages = {@link #incrementMessages() Accepted messages} -
- * {@link #incrementMessagesDropped() Dropped messages}. Alert when this is more than amount of
+ * {@link #incrementMessagesDropped Dropped messages}. Alert when this is more than amount of
  * messages received from collectors.</li>
  * </li>
  * </ul>
  * </pre>
  */
 public interface ReporterMetrics {
-
-  /**
-   * Those who wish to partition metrics by transport can call this method to include the transport
-   * type in the backend metric key.
-   *
-   * <p>For example, an implementation may by default report {@link #incrementSpans(int) incremented
-   * spans} to the key "zipkin.reporter.span.accepted". When {@code metrics.forTransport("kafka"} is
-   * called, the counter would report to "zipkin.reporter.scribe.span.accepted"
-   *
-   * @param transportType ex "http", "scribe", "kafka"
-   */
-  ReporterMetrics forTransport(String transportType);
 
   /**
    * Increments count of message attempts, which contain 1 or more spans. Ex POST requests or Kafka
@@ -62,7 +52,7 @@ public interface ReporterMetrics {
   /**
    * Increments count of messages that could not be sent. Ex host unavailable, or peer disconnect.
    */
-  void incrementMessagesDropped();
+  void incrementMessagesDropped(Throwable cause);
 
   /**
    * Increments the count of spans reported. When {@link AsyncReporter} is used, reported spans will
@@ -71,17 +61,16 @@ public interface ReporterMetrics {
   void incrementSpans(int quantity);
 
   /**
-   * Increments the number of {@link Encoder#sizeInBytes(Object) encoded spans bytes} reported.
-   *
-   * @see MessageEncoder
+   * Increments the number of encoded span bytes reported.
    */
   void incrementSpanBytes(int quantity);
 
   /**
    * Increments the number of bytes containing encoded spans in a message.
    *
-   * <p>This is a function of span bytes per message and {@link MessageEncoder#overheadInBytes(int)
-   * overhead}
+   * <p>This is a function of span bytes per message and overhead
+   *
+   * @see Sender#messageSizeInBytes
    */
   void incrementMessageBytes(int quantity);
 
@@ -91,16 +80,18 @@ public interface ReporterMetrics {
    */
   void incrementSpansDropped(int quantity);
 
-  ReporterMetrics NOOP_METRICS = new ReporterMetrics() {
+  /** Updates the count of spans pending, following a flush activity. */
+  void updateQueuedSpans(int update);
 
-    @Override public ReporterMetrics forTransport(String transportType) {
-      return this;
-    }
+  /** Updates the count of encoded span bytes pending, following a flush activity. */
+  void updateQueuedBytes(int update);
+
+  ReporterMetrics NOOP_METRICS = new ReporterMetrics() {
 
     @Override public void incrementMessages() {
     }
 
-    @Override public void incrementMessagesDropped() {
+    @Override public void incrementMessagesDropped(Throwable cause) {
     }
 
     @Override public void incrementSpans(int quantity) {
@@ -113,6 +104,12 @@ public interface ReporterMetrics {
     }
 
     @Override public void incrementSpansDropped(int quantity) {
+    }
+
+    @Override public void updateQueuedSpans(int update) {
+    }
+
+    @Override public void updateQueuedBytes(int update) {
     }
 
     @Override public String toString() {

@@ -13,98 +13,118 @@
  */
 package zipkin.reporter;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static zipkin.internal.Util.checkNotNull;
-
 public final class InMemoryReporterMetrics implements ReporterMetrics {
-
-  private final ConcurrentHashMap<String, AtomicLong> metrics;
-  private final String messages;
-  private final String messageBytes;
-  private final String messagesDropped;
-  private final String spans;
-  private final String spanBytes;
-  private final String spansDropped;
-
-  public InMemoryReporterMetrics() {
-    this(new ConcurrentHashMap<String, AtomicLong>(), null);
+  enum MetricKey {
+    messages,
+    messageBytes,
+    spans,
+    spanBytes,
+    spansDropped,
+    spansPending,
+    spanBytesPending;
   }
 
-  InMemoryReporterMetrics(ConcurrentHashMap<String, AtomicLong> metrics, String transport) {
-    this.metrics = metrics;
-    this.messages = scope("messages", transport);
-    this.messageBytes = scope("messageBytes", transport);
-    this.messagesDropped = scope("messagesDropped", transport);
-    this.spans = scope("spans", transport);
-    this.spanBytes = scope("spanBytes", transport);
-    this.spansDropped = scope("spansDropped", transport);
-  }
-
-  @Override public InMemoryReporterMetrics forTransport(String transportType) {
-    return new InMemoryReporterMetrics(metrics, checkNotNull(transportType, "transportType"));
-  }
+  private final ConcurrentHashMap<MetricKey, AtomicLong> metrics =
+      new ConcurrentHashMap<MetricKey, AtomicLong>();
+  private final ConcurrentHashMap<Throwable, AtomicLong> messagesDropped =
+      new ConcurrentHashMap<Throwable, AtomicLong>();
 
   @Override public void incrementMessages() {
-    increment(messages, 1);
+    increment(MetricKey.messages, 1);
   }
 
   public long messages() {
-    return get(messages);
+    return get(MetricKey.messages);
   }
 
-  @Override public void incrementMessagesDropped() {
-    increment(messagesDropped, 1);
+  @Override public void incrementMessagesDropped(Throwable cause) {
+    increment(messagesDropped, cause, 1);
+  }
+
+  public Map<Throwable, Long> messagesDroppedByCause() {
+    Map<Throwable, Long> result = new LinkedHashMap<Throwable, Long>(messagesDropped.size());
+    for (Map.Entry<Throwable, AtomicLong> kv : messagesDropped.entrySet()) {
+      result.put(kv.getKey(), kv.getValue().longValue());
+    }
+    return result;
   }
 
   public long messagesDropped() {
-    return get(messagesDropped);
+    long result = 0L;
+    for (AtomicLong count : messagesDropped.values()) {
+      result += count.longValue();
+    }
+    return result;
   }
 
   @Override public void incrementMessageBytes(int quantity) {
-    increment(messageBytes, quantity);
+    increment(MetricKey.messageBytes, quantity);
   }
 
   public long messageBytes() {
-    return get(messageBytes);
+    return get(MetricKey.messageBytes);
   }
 
   @Override public void incrementSpans(int quantity) {
-    increment(spans, quantity);
+    increment(MetricKey.spans, quantity);
   }
 
   public long spans() {
-    return get(spans);
+    return get(MetricKey.spans);
   }
 
   @Override public void incrementSpanBytes(int quantity) {
-    increment(spanBytes, quantity);
+    increment(MetricKey.spanBytes, quantity);
   }
 
   public long spanBytes() {
-    return get(spanBytes);
+    return get(MetricKey.spanBytes);
   }
 
   @Override
   public void incrementSpansDropped(int quantity) {
-    increment(spansDropped, quantity);
+    increment(MetricKey.spansDropped, quantity);
   }
 
   public long spansDropped() {
-    return get(spansDropped);
+    return get(MetricKey.spansDropped);
+  }
+
+  @Override public void updateQueuedSpans(int update) {
+    update(MetricKey.spansPending, update);
+  }
+
+  public long queuedSpans() {
+    return get(MetricKey.spansPending);
+  }
+
+  @Override public void updateQueuedBytes(int update) {
+    update(MetricKey.spanBytesPending, update);
+  }
+
+  public long queuedBytes() {
+    return get(MetricKey.spanBytesPending);
   }
 
   public void clear() {
     metrics.clear();
   }
 
-  private long get(String key) {
+  private long get(MetricKey key) {
     AtomicLong atomic = metrics.get(key);
     return atomic == null ? 0 : atomic.get();
   }
 
-  private void increment(String key, int quantity) {
+  private void increment(MetricKey key, int quantity) {
+    increment(metrics, key, quantity);
+  }
+
+  static <K> void increment(ConcurrentHashMap<K, AtomicLong> metrics, K key, int quantity) {
     if (quantity == 0) return;
     while (true) {
       AtomicLong metric = metrics.get(key);
@@ -121,7 +141,12 @@ public final class InMemoryReporterMetrics implements ReporterMetrics {
     }
   }
 
-  static String scope(String key, String transport) {
-    return key + (transport == null ? "" : "." + transport);
+  private void update(MetricKey key, int update) {
+    AtomicLong metric = metrics.get(key);
+    if (metric == null) {
+      metric = metrics.putIfAbsent(key, new AtomicLong(update));
+      if (metric == null) return; // won race creating the entry
+    }
+    metric.set(update);
   }
 }

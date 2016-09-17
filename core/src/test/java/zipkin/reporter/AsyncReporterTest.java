@@ -22,11 +22,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.After;
 import org.junit.Test;
 import zipkin.Annotation;
-import zipkin.Codec;
 import zipkin.Span;
 import zipkin.TestObjects;
 
-import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.failBecauseExceptionWasNotThrown;
 
@@ -139,16 +137,25 @@ public class AsyncReporterTest {
   public void flush_incrementsMetrics() {
     reporter = AsyncReporter.builder(FakeSender.create())
         .metrics(metrics)
+        .messageMaxBytes(sizeInBytesOfSingleSpanMessage)
         .messageTimeout(0, TimeUnit.MILLISECONDS)
         .build();
 
+    // Queue up 2 spans
     reporter.report(span);
     reporter.report(span);
 
     reporter.flush();
+    assertThat(metrics.queuedSpans()).isEqualTo(1); // still one span in the backlog
+    assertThat(metrics.queuedBytes()).isEqualTo(Encoder.THRIFT.encode(span).length);
     assertThat(metrics.messages()).isEqualTo(1);
-    assertThat(metrics.messageBytes()).isEqualTo(
-        Codec.THRIFT.writeSpans(asList(span, span)).length);
+    assertThat(metrics.messageBytes()).isEqualTo(sizeInBytesOfSingleSpanMessage);
+
+    reporter.flush();
+    assertThat(metrics.queuedSpans()).isZero();
+    assertThat(metrics.queuedBytes()).isZero();
+    assertThat(metrics.messages()).isEqualTo(2);
+    assertThat(metrics.messageBytes()).isEqualTo(sizeInBytesOfSingleSpanMessage * 2);
   }
 
   @Test
@@ -286,6 +293,9 @@ public class AsyncReporterTest {
     Thread.sleep(10); // wait for the poll to unblock
 
     assertThat(metrics.spansDropped()).isEqualTo(1);
+    assertThat(metrics.messagesDropped()).isEqualTo(1);
+    assertThat(metrics.messagesDroppedByCause().keySet().iterator().next())
+        .isInstanceOf(IllegalStateException.class);
   }
 
   @Test
@@ -305,7 +315,7 @@ public class AsyncReporterTest {
   }
 
   @Test
-  public void flush_incrementsMetricsAndthrowsWhenClosed() {
+  public void flush_incrementsMetricsAndThrowsWhenClosed() {
     reporter = AsyncReporter.builder(sleepingSender)
         .metrics(metrics)
         .messageTimeout(0, TimeUnit.MILLISECONDS)
@@ -323,7 +333,7 @@ public class AsyncReporterTest {
   }
 
   @Test
-  public void flush_incrementsMetricsAndthrowsWhenSenderClosed() {
+  public void flush_incrementsMetricsAndThrowsWhenSenderClosed() {
     reporter = AsyncReporter.builder(sleepingSender)
         .metrics(metrics)
         .messageTimeout(0, TimeUnit.MILLISECONDS)
@@ -337,6 +347,7 @@ public class AsyncReporterTest {
       failBecauseExceptionWasNotThrown(IllegalStateException.class);
     } catch (IllegalStateException e) {
       assertThat(metrics.spansDropped()).isEqualTo(1);
+      assertThat(metrics.messagesDropped()).isEqualTo(1);
     }
   }
 }

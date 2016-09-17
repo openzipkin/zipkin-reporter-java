@@ -42,7 +42,7 @@ Here are the most important properties to understand when tuning.
 
 Property | Description
 --- | ---
-`queuedMaxBytes` |  Maximum backlog of span bytes reported vs sent. Default 1% of heap
+`queuedMaxBytes` |  Maximum backlog of span bytes reported vs sent. Corresponds to `ReporterMetrics.updateQueuedBytes`. Default 1% of heap
 `messageMaxBytes` | Maximum bytes sendable per message including overhead. Default `Sender.messageMaxBytes`
 `messageTimeout` |  Maximum time to wait for messageMaxBytes to accumulate before sending. Default 1 second
 
