@@ -79,8 +79,7 @@ public abstract class AsyncReporter<S> implements Reporter<S>, Flushable, Compon
     }
 
     /**
-     * Aggregates and reports reporter metrics to a monitoring system. Should be {@link
-     * ReporterMetrics#forTransport(String) scoped to this transport}.  Defaults to no-op.
+     * Aggregates and reports reporter metrics to a monitoring system. Defaults to no-op.
      */
     public Builder metrics(ReporterMetrics metrics) {
       this.metrics = checkNotNull(metrics, "metrics");
@@ -209,6 +208,11 @@ public abstract class AsyncReporter<S> implements Reporter<S>, Flushable, Compon
       if (closed.get()) throw new IllegalStateException("closed");
 
       pending.drainTo(bundler, bundler.remainingNanos());
+
+      // record after flushing reduces the amount of gauge events vs on doing this on report
+      metrics.updateQueuedSpans(pending.count);
+      metrics.updateQueuedBytes(pending.sizeInBytes);
+
       if (!bundler.isReady()) return; // try to fill up the bundle
 
       // Signal that we are about to send a message of a known size in bytes
@@ -255,7 +259,7 @@ public abstract class AsyncReporter<S> implements Reporter<S>, Flushable, Compon
         }
 
         @Override public void onError(Throwable t) {
-          metrics.incrementMessagesDropped();
+          metrics.incrementMessagesDropped(t);
           metrics.incrementSpansDropped(count);
           logger.log(WARNING,
               format("Dropped %s spans due to %s(%s)", count, t.getClass().getSimpleName(),
