@@ -306,7 +306,7 @@ public class AsyncReporterTest {
         .build();
 
     reporter.report(span);
-    Thread.sleep(1); // flush thread got the first span, but still waiting for more
+    Thread.sleep(2); // flush thread got the first span, but still waiting for more
     reporter.report(span);
     reporter.close(); // close while there's a pending span
     Thread.sleep(10); // wait for the poll to unblock
