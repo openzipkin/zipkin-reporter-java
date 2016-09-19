@@ -19,7 +19,7 @@
 
   <groupId>io.zipkin.reporter</groupId>
   <artifactId>zipkin-reporter-parent</artifactId>
-  <version>0.5.0</version>
+  <version>0.5.1-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <modules>
@@ -67,7 +67,7 @@
     <url>https://github.com/openzipkin/zipkin-reporter-java</url>
     <connection>scm:git:https://github.com/openzipkin/zipkin-reporter-java.git</connection>
     <developerConnection>scm:git:https://github.com/openzipkin/zipkin-reporter-java.git</developerConnection>
-    <tag>0.5.0</tag>
+    <tag>HEAD</tag>
   </scm>
 
   <developers>
