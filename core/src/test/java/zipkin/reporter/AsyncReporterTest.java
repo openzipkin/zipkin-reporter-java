@@ -300,11 +300,13 @@ public class AsyncReporterTest {
 
   @Test
   public void senderThread_dropsOnReporterClose_flushThread() throws InterruptedException {
-    CountDownLatch latch = new CountDownLatch(1);
+    CountDownLatch received = new CountDownLatch(1);
+    CountDownLatch sent = new CountDownLatch(1);
     reporter = AsyncReporter.builder(FakeSender.create()
         .onSpans(spans -> {
+          received.countDown();
           try {
-            latch.await(); // block the flush thread
+            sent.await(); // block the flush thread
           } catch (InterruptedException e) {
             e.printStackTrace();
           }
@@ -315,8 +317,9 @@ public class AsyncReporterTest {
 
     reporter.report(span);
     reporter.report(span); // pending as the flush thread is blocked
+    received.await(); // wait for the first span to send
     reporter.close(); // close while there's a pending span
-    latch.countDown(); // release the flush thread
+    sent.countDown(); // release the flush thread
 
     assertThat(metrics.spansDropped()).isEqualTo(1);
   }
