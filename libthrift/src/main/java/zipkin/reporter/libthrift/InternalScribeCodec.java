@@ -13,14 +13,70 @@
  */
 package zipkin.reporter.libthrift;
 
+import java.util.List;
+import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.protocol.TField;
+import org.apache.thrift.protocol.TList;
+import org.apache.thrift.protocol.TMessage;
+import org.apache.thrift.protocol.TMessageType;
+import org.apache.thrift.protocol.TProtocolUtil;
 import org.apache.thrift.protocol.TType;
 
-final class SpanToLogEntry {
+import static org.apache.thrift.TApplicationException.BAD_SEQUENCE_ID;
+import static org.apache.thrift.TApplicationException.MISSING_RESULT;
+
+/** Internal class exposed so that zipkin-finagle can share it. */
+public final class InternalScribeCodec {
+
   static final TField CATEGORY_FIELD_DESC = new TField("category", TType.STRING, (short) 1);
   static final TField MESSAGE_FIELD_DESC = new TField("message", TType.STRING, (short) 2);
+  static final TField MESSAGES_FIELD_DESC = new TField("messages", TType.LIST, (short) 1);
+
+  public static int messageSizeInBytes(byte[] category, List<byte[]> encodedSpans) {
+    int sizeInBytes = 12 + 3; // messageBegin = overhead + size of "Log"
+    sizeInBytes += 5; // FieldBegin
+    sizeInBytes += 5; // ListBegin
+    for (byte[] encodedSpan : encodedSpans) {
+      sizeInBytes += sizeOfLogEntry(category, encodedSpan);
+    }
+    sizeInBytes += 1; // FieldStop
+    return sizeInBytes;
+  }
+
+  public static void writeLogRequest(byte[] category, List<byte[]> encodedSpans, int seqid,
+      TBinaryProtocol oprot) throws TException {
+    oprot.writeMessageBegin(new TMessage("Log", TMessageType.CALL, seqid));
+    oprot.writeFieldBegin(MESSAGES_FIELD_DESC);
+    oprot.writeListBegin(new TList(TType.STRUCT, encodedSpans.size()));
+    for (byte[] encodedSpan : encodedSpans) write(category, encodedSpan, oprot);
+    oprot.writeFieldStop();
+  }
+
+  /** Returns false if the scribe response was try later. */
+  public static boolean readLogResponse(int seqid, TBinaryProtocol iprot) throws TException {
+    TMessage msg = iprot.readMessageBegin();
+    if (msg.type == TMessageType.EXCEPTION) {
+      throw TApplicationException.read(iprot);
+    } else if (msg.seqid != seqid) {
+      throw new TApplicationException(BAD_SEQUENCE_ID, "Log failed: out of sequence response");
+    }
+    return parseResponse(iprot);
+  }
+
+  static boolean parseResponse(TBinaryProtocol iprot) throws TException {
+    iprot.readStructBegin();
+    TField schemeField;
+    while ((schemeField = iprot.readFieldBegin()).type != TType.STOP) {
+      if (schemeField.id == 0 /* SUCCESS */ && schemeField.type == TType.I32) {
+        return iprot.readI32() == 0;
+      } else {
+        TProtocolUtil.skip(iprot, schemeField.type);
+      }
+    }
+    throw new TApplicationException(MISSING_RESULT, "Log failed: unknown result");
+  }
 
   static int sizeOfLogEntry(byte[] category, byte[] span) {
     int sizeInBytes = 5 + 4 + category.length;
@@ -41,7 +97,7 @@ final class SpanToLogEntry {
     oprot.writeFieldStop();
   }
 
-  private static final byte[] MAP = new byte[] {
+  static final byte[] MAP = new byte[] {
       'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S',
       'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l',
       'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '0', '1', '2', '3', '4',
@@ -80,7 +136,7 @@ final class SpanToLogEntry {
     return out;
   }
 
-  private static int base64SizeInBytes(byte[] in) {
+  static int base64SizeInBytes(byte[] in) {
     return (in.length + 2) * 4 / 3;
   }
 }
