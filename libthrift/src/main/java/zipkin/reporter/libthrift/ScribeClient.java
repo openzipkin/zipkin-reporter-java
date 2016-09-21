@@ -16,24 +16,13 @@ package zipkin.reporter.libthrift;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TBinaryProtocol;
-import org.apache.thrift.protocol.TField;
-import org.apache.thrift.protocol.TList;
-import org.apache.thrift.protocol.TMessage;
-import org.apache.thrift.protocol.TMessageType;
-import org.apache.thrift.protocol.TProtocolUtil;
-import org.apache.thrift.protocol.TType;
 import org.apache.thrift.transport.TFramedTransport;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransportException;
-
-import static org.apache.thrift.TApplicationException.BAD_SEQUENCE_ID;
-import static org.apache.thrift.TApplicationException.MISSING_RESULT;
 
 final class ScribeClient implements Closeable {
   static final Logger logger = Logger.getLogger(ScribeClient.class.getName());
@@ -47,69 +36,24 @@ final class ScribeClient implements Closeable {
     prot = new TBinaryProtocol(new TFramedTransport(socket));
   }
 
+  static int messageSizeInBytes(List<byte[]> encodedSpans) {
+    return InternalScribeCodec.messageSizeInBytes(category, encodedSpans);
+  }
+
   private int seqid_;
 
-  ResultCode log(List<byte[]> encodedSpans) throws TException {
+  boolean log(List<byte[]> encodedSpans) throws TException {
     try {
       if (!socket.isOpen()) socket.open();
-      return doLog(encodedSpans);
+      InternalScribeCodec.writeLogRequest(category, encodedSpans, ++seqid_, prot);
+      prot.getTransport().flush();
+      return InternalScribeCodec.readLogResponse(seqid_, prot);
     } catch (TTransportException e) {
       logger.log(Level.FINE, "Transport exception. recreating socket", e);
       socket.close();
       seqid_ = 0;
       throw e;
     }
-  }
-
-  private ResultCode doLog(List<byte[]> encodedSpans) throws TException {
-    sendMessage(encodedSpans);
-    prot.getTransport().flush();
-
-    TMessage msg = prot.readMessageBegin();
-    if (msg.type == TMessageType.EXCEPTION) {
-      throw TApplicationException.read(prot);
-    } else if (msg.seqid != seqid_) {
-      throw new TApplicationException(BAD_SEQUENCE_ID, "Log failed: out of sequence response");
-    }
-
-    ResultCode result = parseResponse();
-    if (result != null) return result;
-    throw new TApplicationException(MISSING_RESULT, "Log failed: unknown result");
-  }
-
-  static final TField MESSAGES_FIELD_DESC = new TField("messages", TType.LIST, (short) 1);
-
-  static int messageSizeInBytes(List<byte[]> encodedSpans) {
-    int sizeInBytes = 12 + 3; // messageBegin = overhead + size of "Log"
-    sizeInBytes += 5; // FieldBegin
-    sizeInBytes += 5; // ListBegin
-    for (byte[] encodedSpan : encodedSpans) {
-      sizeInBytes += SpanToLogEntry.sizeOfLogEntry(category, encodedSpan);
-    }
-    sizeInBytes += 1; // FieldStop
-    return sizeInBytes;
-  }
-
-  private void sendMessage(List<byte[]> encodedSpans) throws TException {
-    prot.writeMessageBegin(new TMessage("Log", TMessageType.CALL, ++seqid_));
-    prot.writeFieldBegin(MESSAGES_FIELD_DESC);
-    prot.writeListBegin(new TList(TType.STRUCT, encodedSpans.size()));
-    for (byte[] encodedSpan : encodedSpans) SpanToLogEntry.write(category, encodedSpan, prot);
-    prot.writeFieldStop();
-  }
-
-  private ResultCode parseResponse() throws TException {
-    ResultCode result = null;
-    prot.readStructBegin();
-    TField schemeField;
-    while ((schemeField = prot.readFieldBegin()).type != TType.STOP) {
-      if (schemeField.id == 0 /* SUCCESS */ && schemeField.type == TType.I32) {
-        result = ResultCode.findByValue(prot.readI32());
-      } else {
-        TProtocolUtil.skip(prot, schemeField.type);
-      }
-    }
-    return result;
   }
 
   @Override public void close() throws IOException {

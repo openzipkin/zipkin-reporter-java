@@ -93,10 +93,10 @@ public abstract class LibthriftSender extends LazyCloseable<ScribeClient> implem
   @Override public void sendSpans(List<byte[]> encodedSpans, Callback callback) {
     if (closeCalled) throw new IllegalStateException("closed");
     try {
-      if (get().log(encodedSpans) == ResultCode.OK) {
+      if (get().log(encodedSpans)) {
         callback.onComplete();
       } else {
-        callback.onError(new IllegalStateException(ResultCode.TRY_LATER.name()));
+        callback.onError(new IllegalStateException("try later"));
       }
     } catch (Throwable e) {
       callback.onError(e);
@@ -107,10 +107,10 @@ public abstract class LibthriftSender extends LazyCloseable<ScribeClient> implem
   /** Sends an empty log message to the configured host. */
   @Override public CheckResult check() {
     try {
-      if (get().log(Collections.emptyList()) == ResultCode.OK) {
+      if (get().log(Collections.emptyList())) {
         return CheckResult.OK;
       }
-      throw new IllegalStateException(ResultCode.TRY_LATER.name());
+      throw new IllegalStateException("try later");
     } catch (Exception e) {
       return CheckResult.failed(e);
     }
