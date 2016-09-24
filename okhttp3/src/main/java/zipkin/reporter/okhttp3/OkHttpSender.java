@@ -27,6 +27,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import okhttp3.ResponseBody;
 import okhttp3.internal.Util;
 import okio.Buffer;
 import okio.BufferedSink;
@@ -147,9 +148,10 @@ public abstract class OkHttpSender extends LazyCloseable<OkHttpClient> implement
     try {
       Request request = new Request.Builder().url(endpoint())
           .post(RequestBody.create(MediaType.parse("application/json"), "[]")).build();
-      Response response = get().newCall(request).execute();
-      if (!response.isSuccessful()) {
-        throw new IllegalStateException("check response failed: " + response);
+      try (Response response = get().newCall(request).execute()) {
+        if (!response.isSuccessful()) {
+          throw new IllegalStateException("check response failed: " + response);
+        }
       }
       return CheckResult.OK;
     } catch (Exception e) {
@@ -234,10 +236,12 @@ public abstract class OkHttpSender extends LazyCloseable<OkHttpClient> implement
     }
 
     @Override public void onResponse(Call call, Response response) throws IOException {
-      if (response.isSuccessful()) {
-        delegate.onComplete();
-      } else {
-        delegate.onError(new IllegalStateException("response failed: " + response));
+      try (ResponseBody responseBody = response.body()) {
+        if (response.isSuccessful()) {
+          delegate.onComplete();
+        } else {
+          delegate.onError(new IllegalStateException("response failed: " + response));
+        }
       }
     }
 
