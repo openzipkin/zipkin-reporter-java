@@ -26,6 +26,7 @@ import static zipkin.internal.Util.UTF_8;
  * zipkin2.Span).
  */
 public interface Reporter<S> {
+  Reporter<Span> NOOP = s -> {};
   Reporter<Span> CONSOLE = s -> System.out.println(new String(Encoder.JSON.encode(s), UTF_8));
 
   /**
