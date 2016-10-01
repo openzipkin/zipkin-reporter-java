@@ -24,6 +24,7 @@
 
   <modules>
     <module>core</module>
+    <module>local</module>
     <module>kafka08</module>
     <module>urlconnection</module>
     <module>okhttp3</module>
@@ -41,7 +42,7 @@
 
     <main.basedir>${project.basedir}</main.basedir>
 
-    <zipkin.version>1.12.0</zipkin.version>
+    <zipkin.version>1.12.1</zipkin.version>
     <license-maven-plugin.version>2.11</license-maven-plugin.version>
   </properties>
 
@@ -99,6 +100,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>zipkin-reporter</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>zipkin-sender-local</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
