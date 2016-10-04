@@ -98,9 +98,14 @@ public class OkHttpSenderTest {
         requests.add(server.takeRequest());
       }
 
-      // we expect the first compressed request to be smaller than the uncompressed one.
-      assertThat(requests.get(0).getBodySize())
+      RecordedRequest compressedRequest = requests.get(0);
+
+      // We expect the first compressed request to be smaller than the uncompressed one.
+      assertThat(compressedRequest.getBodySize())
           .isLessThan(requests.get(1).getBodySize());
+      // No need for chunked encoding as we know the length up front.
+      assertThat(compressedRequest.getHeader("Content-Length"))
+          .isEqualTo(String.valueOf(compressedRequest.getBodySize()));
     } finally {
       server.shutdown();
     }
