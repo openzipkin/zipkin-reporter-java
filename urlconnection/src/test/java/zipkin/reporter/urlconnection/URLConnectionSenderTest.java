@@ -14,14 +14,18 @@
 package zipkin.reporter.urlconnection;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import zipkin.Span;
 import zipkin.TestObjects;
 import zipkin.junit.HttpFailure;
@@ -36,6 +40,7 @@ import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 
+@RunWith(Parameterized.class)
 public class URLConnectionSenderTest {
 
   @Rule
@@ -43,7 +48,23 @@ public class URLConnectionSenderTest {
   @Rule
   public ExpectedException thrown = ExpectedException.none();
 
-  URLConnectionSender sender = URLConnectionSender.create(zipkinRule.httpUrl() + "/api/v1/spans");
+  @Parameterized.Parameters(name = "{index}: {0}")
+  public static Iterable<? extends Encoding> data() {
+    return Arrays.asList(Encoding.THRIFT, Encoding.JSON);
+  }
+
+  @Parameterized.Parameter
+  public Encoding encoding;
+
+  private URLConnectionSender sender;
+
+  @Before
+  public void setUp() throws Exception {
+    sender = URLConnectionSender.builder()
+            .endpoint(zipkinRule.httpUrl() + "/api/v1/spans")
+            .encoding(encoding)
+            .build();
+  }
 
   @Test
   public void badUrlIsAnIllegalArgument() throws Exception {
