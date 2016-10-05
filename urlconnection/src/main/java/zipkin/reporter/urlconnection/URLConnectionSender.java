@@ -81,7 +81,7 @@ public abstract class URLConnectionSender implements Sender {
     public abstract Builder messageMaxBytes(int messageMaxBytes);
 
     /** Controls the "Content-Type" header when sending spans. */
-    abstract Builder encoding(Encoding encoding);
+    public abstract Builder encoding(Encoding encoding);
 
     abstract Encoding encoding();
 

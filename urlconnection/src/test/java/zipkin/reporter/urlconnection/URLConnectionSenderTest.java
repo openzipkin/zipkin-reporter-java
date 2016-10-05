@@ -26,6 +26,7 @@ import zipkin.Span;
 import zipkin.TestObjects;
 import zipkin.junit.HttpFailure;
 import zipkin.junit.ZipkinRule;
+import zipkin.reporter.BytesMessageEncoder;
 import zipkin.reporter.Callback;
 import zipkin.reporter.Encoder;
 import zipkin.reporter.Encoding;
@@ -161,6 +162,33 @@ public class URLConnectionSenderTest {
     send(TestObjects.TRACE);
   }
 
+  @Test
+  public void jsonEncoding() throws Exception {
+    sender = URLConnectionSender.builder()
+            .compressionEnabled(true)
+            .endpoint(zipkinRule.httpUrl() + "/api/v1/spans")
+            .encoding(Encoding.JSON)
+            .build();
+
+    assertThat(sender.encoder()).isEqualTo(BytesMessageEncoder.JSON);
+    assertThat(sender.mediaType()).isEqualTo("application/json");
+
+    assertThat(sender.check().ok).isTrue();
+    assertThat(zipkinRule.httpRequestCount()).isEqualTo(1);
+    assertThat(zipkinRule.collectorMetrics().spans()).isEqualTo(0);
+    assertThat(zipkinRule.collectorMetrics().messages()).isEqualTo(1);
+
+    send(TestObjects.TRACE);
+    assertThat(zipkinRule.httpRequestCount()).isEqualTo(2);
+    assertThat(zipkinRule.collectorMetrics().messages()).isEqualTo(2);
+    assertThat(zipkinRule.collectorMetrics().spans()).isEqualTo(3);
+
+    send(TestObjects.TRACE);
+    assertThat(zipkinRule.collectorMetrics().messages()).isEqualTo(3);
+    assertThat(zipkinRule.collectorMetrics().spans()).isEqualTo(6);
+    assertThat(zipkinRule.httpRequestCount()).isEqualTo(3);
+  }
+
   void thenCallbackCatchesTheThrowable() {
     AtomicReference<Throwable> t = new AtomicReference<>();
     Callback callback = new Callback() {
@@ -184,7 +212,19 @@ public class URLConnectionSenderTest {
   /** Blocks until the callback completes to allow read-your-writes consistency during tests. */
   void send(List<Span> spans) {
     AwaitableCallback callback = new AwaitableCallback();
-    sender.sendSpans(spans.stream().map(Encoder.THRIFT::encode).collect(toList()), callback);
+    sender.sendSpans(spans.stream()
+            .map(span -> {
+              switch (sender.encoding()) {
+                case JSON:
+                  return Encoder.JSON.encode(span);
+                case THRIFT:
+                  return Encoder.THRIFT.encode(span);
+              }
+              throw new UnsupportedOperationException("Invalid encoding " + sender.encoding());
+            })
+            .collect(toList()),
+            callback);
     callback.await();
   }
+
 }
