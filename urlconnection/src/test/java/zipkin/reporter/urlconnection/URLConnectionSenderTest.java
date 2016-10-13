@@ -14,14 +14,18 @@
 package zipkin.reporter.urlconnection;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import zipkin.Span;
 import zipkin.TestObjects;
 import zipkin.junit.HttpFailure;
@@ -35,6 +39,7 @@ import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 
+@RunWith(Parameterized.class)
 public class URLConnectionSenderTest {
 
   @Rule
@@ -42,7 +47,26 @@ public class URLConnectionSenderTest {
   @Rule
   public ExpectedException thrown = ExpectedException.none();
 
-  URLConnectionSender sender = URLConnectionSender.create(zipkinRule.httpUrl() + "/api/v1/spans");
+  @Parameterized.Parameters(name = "{index}: {0}")
+  public static Iterable<? extends Encoding> data() {
+    return Arrays.asList(Encoding.THRIFT, Encoding.JSON);
+  }
+
+  @Parameterized.Parameter
+  public Encoding encoding;
+
+  private Encoder<Span> encoder;
+
+  private URLConnectionSender sender;
+
+  @Before
+  public void setUp() throws Exception {
+    sender = URLConnectionSender.builder()
+            .endpoint(zipkinRule.httpUrl() + "/api/v1/spans")
+            .encoding(encoding)
+            .build();
+    encoder = encoderFor(encoding);
+  }
 
   @Test
   public void badUrlIsAnIllegalArgument() throws Exception {
@@ -161,6 +185,20 @@ public class URLConnectionSenderTest {
     send(TestObjects.TRACE);
   }
 
+  @Test
+  public void check_encoding() throws Exception {
+    sender = URLConnectionSender.builder()
+            .compressionEnabled(true)
+            .endpoint(zipkinRule.httpUrl() + "/api/v1/spans")
+            .encoding(encoding)
+            .build();
+
+    send(TestObjects.TRACE);
+    assertThat(zipkinRule.httpRequestCount()).isEqualTo(1);
+    assertThat(zipkinRule.collectorMetrics().messages()).isEqualTo(1);
+    assertThat(zipkinRule.collectorMetrics().spans()).isEqualTo(3);
+  }
+
   void thenCallbackCatchesTheThrowable() {
     AtomicReference<Throwable> t = new AtomicReference<>();
     Callback callback = new Callback() {
@@ -181,10 +219,24 @@ public class URLConnectionSenderTest {
     assertThat(t.get()).isNotNull();
   }
 
+  static Encoder<Span> encoderFor(Encoding encoding) {
+    switch (encoding) {
+      case JSON:
+        return Encoder.JSON;
+      case THRIFT:
+        return Encoder.THRIFT;
+    }
+    throw new UnsupportedOperationException("Invalid encoding " + encoding);
+  }
+
   /** Blocks until the callback completes to allow read-your-writes consistency during tests. */
   void send(List<Span> spans) {
     AwaitableCallback callback = new AwaitableCallback();
-    sender.sendSpans(spans.stream().map(Encoder.THRIFT::encode).collect(toList()), callback);
+    sender.sendSpans(spans.stream()
+            .map(encoder::encode)
+            .collect(toList()),
+            callback);
     callback.await();
   }
+
 }
