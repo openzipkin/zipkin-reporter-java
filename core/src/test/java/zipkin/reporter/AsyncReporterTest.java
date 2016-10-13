@@ -24,6 +24,7 @@ import org.junit.Test;
 import zipkin.Annotation;
 import zipkin.Span;
 import zipkin.TestObjects;
+import zipkin.reporter.AsyncReporter.BoundedAsyncReporter;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.failBecauseExceptionWasNotThrown;
@@ -221,28 +222,18 @@ public class AsyncReporterTest {
   }
 
   @Test
-  public void close_stopsSender() throws InterruptedException {
-    AtomicInteger sendCount = new AtomicInteger();
-    reporter = AsyncReporter.builder(FakeSender.create()
-        .onSpans(spans -> {
-          sendCount.incrementAndGet();
-          try {
-            Thread.sleep(10); // this blocks the loop
-          } catch (InterruptedException e) {
-          }
-        }))
+  public void close_close_stopsSender() throws InterruptedException {
+    reporter = AsyncReporter.builder(FakeSender.create())
         .metrics(metrics)
         .messageTimeout(2, TimeUnit.MILLISECONDS)
         .build();
 
-    reporter.report(span);
-    Thread.sleep(5);
-    reporter.report(span); // report while sender is blocked
-    reporter.close(); // close before sender can send the next message
-    Thread.sleep(5);
+    reporter.close();
 
-    assertThat(sendCount.get()).isEqualTo(1);
-    assertThat(metrics.spansDropped()).isEqualTo(1);
+    // the close latch counts down when the thread is stopped
+    BoundedAsyncReporter<Span> impl = (BoundedAsyncReporter<Span>) reporter;
+    assertThat(impl.close.await(3, TimeUnit.MILLISECONDS))
+        .isTrue();
   }
 
   @Test(expected = IllegalStateException.class)
