@@ -207,12 +207,16 @@ public abstract class OkHttpSender extends LazyCloseable<OkHttpClient> implement
   }
 
   static final class BufferRequestBody extends RequestBody {
-    private final MediaType contentType;
-    private final Buffer body;
+    final MediaType contentType;
+    final Buffer body;
 
-    public BufferRequestBody(MediaType contentType, Buffer body) {
+    BufferRequestBody(MediaType contentType, Buffer body) {
       this.contentType = contentType;
       this.body = body;
+    }
+
+    @Override public long contentLength() throws IOException {
+      return body.size();
     }
 
     @Override public MediaType contentType() {
@@ -225,9 +229,9 @@ public abstract class OkHttpSender extends LazyCloseable<OkHttpClient> implement
   }
 
   static final class CallbackAdapter implements okhttp3.Callback {
-    private final Callback delegate;
+    final Callback delegate;
 
-    public CallbackAdapter(Callback delegate) {
+    CallbackAdapter(Callback delegate) {
       this.delegate = delegate;
     }
 
