@@ -147,7 +147,7 @@ public abstract class AsyncReporter<S> implements Reporter<S>, Flushable, Compon
       if (messageTimeoutNanos > 0) { // Start a thread that flushes the queue in a loop.
         final BufferNextMessage consumer =
             new BufferNextMessage(sender, messageMaxBytes, messageTimeoutNanos);
-        new Thread(() -> {
+        final Thread flushThread = new Thread(() -> {
           try {
             while (!result.closed.get()) {
               result.flush(consumer);
@@ -156,7 +156,9 @@ public abstract class AsyncReporter<S> implements Reporter<S>, Flushable, Compon
             for (byte[] next : consumer.drain()) result.pending.offer(next);
             result.close.countDown();
           }
-        }, "AsyncReporter(" + sender + ")").start();
+        }, "AsyncReporter(" + sender + ")");
+        flushThread.setDaemon(true);
+        flushThread.start();
       }
       return result;
     }
