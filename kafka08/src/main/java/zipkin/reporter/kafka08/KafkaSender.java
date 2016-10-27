@@ -14,6 +14,7 @@
 package zipkin.reporter.kafka08;
 
 import com.google.auto.value.AutoValue;
+import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -177,11 +178,10 @@ public abstract class KafkaSender extends LazyCloseable<KafkaProducer<byte[], by
     return new KafkaProducer<>(properties());
   }
 
-  @Override public void close() {
+  @Override public void close() throws IOException {
     if (closeCalled) return;
     closeCalled = true;
-    KafkaProducer<byte[], byte[]> maybeNull = maybeNull();
-    if (maybeNull != null) maybeNull.close();
+    super.close();
   }
 
   KafkaSender() {

@@ -119,8 +119,7 @@ public abstract class LibthriftSender extends LazyCloseable<ScribeClient> implem
   @Override public void close() throws IOException {
     if (closeCalled) return;
     closeCalled = true;
-    ScribeClient maybeNull = maybeNull();
-    if (maybeNull != null) maybeNull.close();
+    super.close();
   }
 
   LibthriftSender() {
