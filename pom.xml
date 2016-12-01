@@ -30,6 +30,7 @@
     <module>okhttp3</module>
     <module>libthrift</module>
     <module>benchmarks</module>
+    <module>awssqs</module>
   </modules>
 
   <properties>
@@ -127,6 +128,11 @@
         <artifactId>zipkin-sender-libthrift</artifactId>
         <version>${project.version}</version>
       </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>zipkin-sender-awssqs</artifactId>
+        <version>${project.version}</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 
@@ -221,6 +227,9 @@
           <compilerId>javac-with-errorprone</compilerId>
           <forceJavacCompilerUse>true</forceJavacCompilerUse>
           <showWarnings>true</showWarnings>
+          <annotationProcessors>
+            <annotationProcessor>com.google.auto.value.processor.AutoValueProcessor</annotationProcessor>
+          </annotationProcessors>
         </configuration>
         <dependencies>
           <dependency>
