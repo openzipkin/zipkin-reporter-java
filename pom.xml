@@ -161,6 +161,7 @@
       <artifactId>zipkin</artifactId>
       <version>${zipkin.version}</version>
       <type>test-jar</type>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>ch.qos.logback</groupId>
