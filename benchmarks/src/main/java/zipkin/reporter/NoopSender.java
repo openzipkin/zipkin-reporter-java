@@ -21,7 +21,7 @@ final class NoopSender implements Sender {
   final BytesMessageEncoder messageEncoder;
 
   /** close is typically called from a different thread */
-  transient boolean closeCalled;
+  volatile boolean closeCalled;
 
   NoopSender(Encoding encoding) {
     this.encoding = encoding;
