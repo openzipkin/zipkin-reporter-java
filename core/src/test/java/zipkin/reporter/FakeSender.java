@@ -73,7 +73,7 @@ public abstract class FakeSender implements Sender {
   }
 
   /** close is typically called from a different thread */
-  transient boolean closeCalled;
+  volatile boolean closeCalled;
 
   @Override public void sendSpans(List<byte[]> encodedSpans, Callback callback) {
     if (closeCalled) throw new IllegalStateException("closed");

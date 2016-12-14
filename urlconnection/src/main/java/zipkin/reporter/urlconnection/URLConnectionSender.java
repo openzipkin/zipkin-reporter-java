@@ -121,7 +121,7 @@ public abstract class URLConnectionSender implements Sender {
   abstract String mediaType();
 
   /** close is typically called from a different thread */
-  transient boolean closeCalled;
+  volatile boolean closeCalled;
 
   @Override public int messageSizeInBytes(List<byte[]> encodedSpans) {
     return encoding().listSizeInBytes(encodedSpans);

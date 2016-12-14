@@ -129,7 +129,7 @@ public abstract class OkHttpSender extends LazyCloseable<OkHttpClient> implement
   }
 
   /** close is typically called from a different thread */
-  transient boolean closeCalled;
+  volatile boolean closeCalled;
 
   /** Asynchronously sends the spans as a POST to {@link #endpoint()}. */
   @Override public void sendSpans(List<byte[]> encodedSpans, Callback callback) {

@@ -136,7 +136,7 @@ public abstract class KafkaSender extends LazyCloseable<KafkaProducer<byte[], by
   abstract Properties properties();
 
   /** close is typically called from a different thread */
-  transient boolean closeCalled;
+  volatile boolean closeCalled;
 
   @Override public int messageSizeInBytes(List<byte[]> encodedSpans) {
     return encoding().listSizeInBytes(encodedSpans);

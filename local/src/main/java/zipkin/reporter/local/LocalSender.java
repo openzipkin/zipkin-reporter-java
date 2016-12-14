@@ -72,7 +72,7 @@ public abstract class LocalSender implements Sender {
   }
 
   /** close is typically called from a different thread */
-  private transient boolean closeCalled;
+  private volatile boolean closeCalled;
 
   @Override public void sendSpans(List<byte[]> encodedSpans, Callback callback) {
     if (closeCalled) throw new IllegalStateException("closed");
