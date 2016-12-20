@@ -23,10 +23,11 @@ import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.transport.TFramedTransport;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransportException;
+import zipkin.internal.Util;
 
 final class ScribeClient implements Closeable {
   static final Logger logger = Logger.getLogger(ScribeClient.class.getName());
-  static final byte[] category = "zipkin".getBytes();
+  static final byte[] category = "zipkin".getBytes(Util.UTF_8);
 
   final TSocket socket;
   final TBinaryProtocol prot;
