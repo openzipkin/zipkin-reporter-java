@@ -29,7 +29,7 @@
 
   <properties>
     <main.basedir>${project.basedir}/..</main.basedir>
-    <jmh.version>1.13</jmh.version>
+    <jmh.version>1.17.3</jmh.version>
     <main.java.version>1.7</main.java.version>
     <main.signature.artifact>java17</main.signature.artifact>
   </properties>
