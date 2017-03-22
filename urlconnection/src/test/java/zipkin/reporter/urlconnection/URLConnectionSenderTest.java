@@ -150,6 +150,31 @@ public class URLConnectionSenderTest {
   }
 
   @Test
+  public void customizedUserAgent() throws Exception {
+    zipkinRule.shutdown(); // shutdown the normal zipkin rule
+    MockWebServer server = new MockWebServer();
+    try {
+      final String userAgent = "zipkin-urlconnection-sender/0.0.0";
+      sender = sender.toBuilder()
+                     .endpoint(server.url("/api/v1/spans").toString())
+                     .encoding(Encoding.JSON)
+                     .userAgent(userAgent)
+                     .build();
+
+      server.enqueue(new MockResponse());
+
+      send(TestObjects.TRACE);
+
+      // block until the request arrived
+      assertThat(server.takeRequest().getHeader("User-Agent"))
+              .isEqualTo(userAgent);
+    } finally {
+      server.shutdown();
+    }
+  }
+
+
+  @Test
   public void noExceptionWhenServerErrors() throws Exception {
     zipkinRule.enqueueFailure(HttpFailure.sendErrorResponse(500, "Server Error!"));
 

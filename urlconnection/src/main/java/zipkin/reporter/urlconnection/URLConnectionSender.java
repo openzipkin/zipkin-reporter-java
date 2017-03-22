@@ -47,6 +47,7 @@ public abstract class URLConnectionSender implements Sender {
         .connectTimeout(10 * 1000)
         .readTimeout(60 * 1000)
         .compressionEnabled(true)
+        .userAgent("zipkin-urlconnection-sender/x.x.x")
         .messageMaxBytes(5 * 1024 * 1024);
   }
 
@@ -98,10 +99,13 @@ public abstract class URLConnectionSender implements Sender {
 
     abstract Builder mediaType(String mediaType);
 
+    abstract Builder userAgent(String userAgent);
+
     abstract URLConnectionSender autoBuild();
 
     Builder() {
     }
+
   }
 
   public Builder toBuilder() {
@@ -119,6 +123,8 @@ public abstract class URLConnectionSender implements Sender {
   abstract boolean compressionEnabled();
 
   abstract String mediaType();
+
+  abstract String userAgent();
 
   /** close is typically called from a different thread */
   volatile boolean closeCalled;
@@ -160,6 +166,7 @@ public abstract class URLConnectionSender implements Sender {
     connection.setConnectTimeout(connectTimeout());
     connection.setReadTimeout(readTimeout());
     connection.setRequestMethod("POST");
+    connection.addRequestProperty("User-Agent", userAgent());
     connection.addRequestProperty("Content-Type", mediaType);
     if (compressionEnabled()) {
       connection.addRequestProperty("Content-Encoding", "gzip");
