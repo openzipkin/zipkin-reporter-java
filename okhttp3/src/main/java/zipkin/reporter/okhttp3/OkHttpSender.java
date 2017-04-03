@@ -1,5 +1,5 @@
 /**
- * Copyright 2016 The OpenZipkin Authors
+ * Copyright 2016-2017 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -17,6 +17,7 @@ import com.google.auto.value.AutoValue;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import okhttp3.Call;
@@ -163,7 +164,11 @@ public abstract class OkHttpSender extends LazyCloseable<OkHttpClient> implement
     // bound the executor so that we get consistent performance
     ThreadPoolExecutor dispatchExecutor =
         new ThreadPoolExecutor(0, maxRequests(), 60, TimeUnit.SECONDS,
-            new ArrayBlockingQueue<>(maxRequests()),
+            // Using a synchronous queue means messages will send immediately until we hit max
+            // in-flight requests. Once max requests are hit, send will block the caller, which is
+            // the AsyncReporter flush thread. This is ok, as the AsyncReporter has a buffer of
+            // unsent spans for this purpose.
+            new SynchronousQueue<>(),
             Util.threadFactory("OkHttpSender Dispatcher", false));
     Dispatcher dispatcher = new Dispatcher(dispatchExecutor);
     dispatcher.setMaxRequests(maxRequests());

@@ -1,5 +1,5 @@
 /**
- * Copyright 2016 The OpenZipkin Authors
+ * Copyright 2016-2017 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -16,6 +16,8 @@ package zipkin.reporter.okhttp3;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicInteger;
 import okhttp3.mockwebserver.Dispatcher;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
@@ -164,6 +166,46 @@ public class OkHttpSenderTest {
         // throws because the request still in flight after a second was canceled
         assertThat(e.getCause()).isInstanceOf(IOException.class);
       }
+    } finally {
+      server.shutdown();
+    }
+  }
+
+  /**
+   * Each message by default is up to 5MiB, make sure these go out of process as soon as they can.
+   */
+  @Test public void messagesSendImmediately() throws Exception {
+    zipkinRule.shutdown(); // shutdown the normal zipkin rule
+    sender.close();
+
+    CountDownLatch latch = new CountDownLatch(1);
+    MockWebServer server = new MockWebServer();
+    server.setDispatcher(new Dispatcher() {
+      AtomicInteger count = new AtomicInteger();
+
+      @Override public MockResponse dispatch(RecordedRequest request) throws InterruptedException {
+        if (count.incrementAndGet() == 1) {
+          latch.await();
+        } else {
+          latch.countDown();
+        }
+        return new MockResponse();
+      }
+    });
+    try (OkHttpSender sender = OkHttpSender.create(server.url("/api/v1/spans").toString())) {
+
+      AwaitableCallback callback1 = new AwaitableCallback();
+      AwaitableCallback callback2 = new AwaitableCallback();
+
+      Thread t = new Thread(() -> {
+        sender.sendSpans(asList(Encoder.THRIFT.encode(clientSpan)), callback1);
+        sender.sendSpans(asList(Encoder.THRIFT.encode(clientSpan)), callback2);
+      });
+      t.start();
+      t.join();
+
+      callback1.await();
+      callback2.await();
     } finally {
       server.shutdown();
     }
