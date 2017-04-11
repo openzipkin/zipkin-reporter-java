@@ -175,11 +175,11 @@
   <build>
     <pluginManagement>
       <plugins>
-        <!-- mvn -N io.takari:maven:wrapper -Dmaven=3.3.9 -->
+        <!-- mvn -N io.takari:maven:wrapper -Dmaven=3.5.0 -->
         <plugin>
           <groupId>io.takari</groupId>
           <artifactId>maven</artifactId>
-          <version>0.3.3</version>
+          <version>0.3.4</version>
         </plugin>
         <plugin>
                 <groupId>org.eclipse.m2e</groupId>
