@@ -113,9 +113,7 @@ public abstract class OkHttpSender extends LazyCloseable<OkHttpClient> implement
     }
   }
 
-  public Builder toBuilder() {
-    return new AutoValue_OkHttpSender.Builder(this);
-  }
+  public abstract Builder toBuilder();
 
   abstract HttpUrl endpoint();
 
