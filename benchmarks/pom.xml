@@ -29,7 +29,7 @@
 
   <properties>
     <main.basedir>${project.basedir}/..</main.basedir>
-    <jmh.version>1.17.3</jmh.version>
+    <jmh.version>1.18</jmh.version>
     <main.java.version>1.7</main.java.version>
     <main.signature.artifact>java17</main.signature.artifact>
   </properties>
@@ -77,7 +77,7 @@
     <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
-      <version>1.1.7</version>
+      <version>1.2.2</version>
     </dependency>
 
     <dependency>
@@ -111,13 +111,13 @@
     <dependency>
       <groupId>org.apache.curator</groupId>
       <artifactId>curator-test</artifactId>
-      <version>2.11.0</version>
+      <version>2.12.0</version>
     </dependency>
 
     <dependency>
       <groupId>com.facebook.swift</groupId>
       <artifactId>swift-service</artifactId>
-      <version>0.21.1</version>
+      <version>0.23.1</version>
     </dependency>
   </dependencies>
 
