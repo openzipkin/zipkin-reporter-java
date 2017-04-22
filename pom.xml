@@ -26,6 +26,7 @@
     <module>core</module>
     <module>local</module>
     <module>kafka08</module>
+    <module>kafka10</module>
     <module>urlconnection</module>
     <module>okhttp3</module>
     <module>libthrift</module>
