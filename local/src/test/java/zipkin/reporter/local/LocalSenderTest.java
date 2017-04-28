@@ -1,5 +1,5 @@
 /**
- * Copyright 2016 The OpenZipkin Authors
+ * Copyright 2016-2017 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -53,6 +53,17 @@ public class LocalSenderTest {
     sender.close();
 
     send(TestObjects.TRACE);
+  }
+
+  /**
+   * The output of toString() on {@link zipkin.reporter.Sender} implementations appears in thread
+   * names created by {@link zipkin.reporter.AsyncReporter}. Since thread names are likely to be
+   * exposed in logs and other monitoring tools, care should be taken to ensure the toString()
+   * output is a reasonable length and does not contain sensitive information.
+   */
+  @Test
+  public void toStringContainsOnlySenderType() throws Exception {
+    assertThat(sender.toString()).isEqualTo("LocalSender");
   }
 
   /** Blocks until the callback completes to allow read-your-writes consistency during tests. */

@@ -97,6 +97,10 @@ public abstract class LocalSender implements Sender {
     // not closing the storage component as we didn't create it
   }
 
+  @Override public final String toString() {
+    return "LocalSender";
+  }
+
   LocalSender() {
   }
 

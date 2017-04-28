@@ -293,6 +293,17 @@ public class OkHttpSenderTest {
     send(TestObjects.TRACE);
   }
 
+  /**
+   * The output of toString() on {@link zipkin.reporter.Sender} implementations appears in thread
+   * names created by {@link zipkin.reporter.AsyncReporter}. Since thread names are likely to be
+   * exposed in logs and other monitoring tools, care should be taken to ensure the toString()
+   * output is a reasonable length and does not contain sensitive information.
+   */
+  @Test
+  public void toStringContainsOnlySenderType() throws Exception {
+    assertThat(sender.toString()).isEqualTo("OkHttpSender");
+  }
+
   /** Blocks until the callback completes to allow read-your-writes consistency during tests. */
   void send(List<Span> spans) {
     AwaitableCallback callback = new AwaitableCallback();

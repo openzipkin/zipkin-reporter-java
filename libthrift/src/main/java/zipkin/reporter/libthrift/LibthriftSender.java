@@ -120,6 +120,10 @@ public abstract class LibthriftSender extends LazyCloseable<ScribeClient> implem
     super.close();
   }
 
+  @Override public final String toString() {
+    return "LibthriftSender";
+  }
+
   LibthriftSender() {
   }
 }
