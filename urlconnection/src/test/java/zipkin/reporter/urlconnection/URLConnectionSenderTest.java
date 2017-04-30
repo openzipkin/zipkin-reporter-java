@@ -59,10 +59,12 @@ public class URLConnectionSenderTest {
 
   private URLConnectionSender sender;
 
+  private String endpoint = zipkinRule.httpUrl() + "/api/v1/spans";
+
   @Before
   public void setUp() throws Exception {
     sender = URLConnectionSender.builder()
-            .endpoint(zipkinRule.httpUrl() + "/api/v1/spans")
+            .endpoint(endpoint)
             .encoding(encoding)
             .build();
     encoder = encoderFor(encoding);
@@ -206,8 +208,8 @@ public class URLConnectionSenderTest {
    * output is a reasonable length and does not contain sensitive information.
    */
   @Test
-  public void toStringContainsOnlySenderType() throws Exception {
-    assertThat(sender.toString()).isEqualTo("URLConnectionSender");
+  public void toStringContainsOnlySenderTypeAndEndpoint() throws Exception {
+    assertThat(sender.toString()).isEqualTo("URLConnectionSender(" + endpoint + ")");
   }
 
   void thenCallbackCatchesTheThrowable() {

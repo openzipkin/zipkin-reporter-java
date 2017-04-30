@@ -108,8 +108,8 @@ public class KafkaSenderTest {
    * output is a reasonable length and does not contain sensitive information.
    */
   @Test
-  public void toStringContainsOnlySenderType() throws Exception {
-    assertThat(sender.toString()).isEqualTo("KafkaSender");
+  public void toStringContainsOnlySenderTypeAndBootstrapBrokers() throws Exception {
+    assertThat(sender.toString()).isEqualTo("KafkaSender(" + broker.getBrokerList().get() + ")");
   }
 
   /** Blocks until the callback completes to allow read-your-writes consistency during tests. */

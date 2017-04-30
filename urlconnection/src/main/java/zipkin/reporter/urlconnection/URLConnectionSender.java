@@ -184,7 +184,7 @@ public abstract class URLConnectionSender implements Sender {
   }
 
   @Override public final String toString() {
-    return "URLConnectionSender";
+    return "URLConnectionSender(" + endpoint() + ")";
   }
 
   URLConnectionSender() {

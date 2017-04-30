@@ -98,7 +98,7 @@ public abstract class LocalSender implements Sender {
   }
 
   @Override public final String toString() {
-    return "LocalSender";
+    return "LocalSender(" + storage().getClass().getSimpleName() + ")";
   }
 
   LocalSender() {

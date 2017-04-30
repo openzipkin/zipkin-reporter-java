@@ -106,8 +106,9 @@ public class LibthriftSenderTest {
    * output is a reasonable length and does not contain sensitive information.
    */
   @Test
-  public void toStringContainsOnlySenderType() throws Exception {
-    assertThat(sender.toString()).isEqualTo("LibthriftSender");
+  public void toStringContainsOnlySenderTypeHostAndPort() throws Exception {
+    assertThat(sender.toString())
+        .isEqualTo("LibthriftSender(" + sender.host() + ":" + sender.port() + ")");
   }
 
   /** Blocks until the callback completes to allow read-your-writes consistency during tests. */

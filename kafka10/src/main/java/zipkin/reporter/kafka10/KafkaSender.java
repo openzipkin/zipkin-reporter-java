@@ -183,7 +183,7 @@ public abstract class KafkaSender extends LazyCloseable<KafkaProducer<byte[], by
   }
 
   @Override public final String toString() {
-    return "KafkaSender";
+    return "KafkaSender(" + properties().getProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG) + ")";
   }
 
   KafkaSender() {

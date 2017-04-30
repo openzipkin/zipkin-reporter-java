@@ -207,7 +207,7 @@ public abstract class OkHttpSender extends LazyCloseable<OkHttpClient> implement
   }
 
   @Override public final String toString() {
-    return "OkHttpSender";
+    return "OkHttpSender(" + endpoint() + ")";
   }
 
   OkHttpSender() {

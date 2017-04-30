@@ -62,8 +62,9 @@ public class LocalSenderTest {
    * output is a reasonable length and does not contain sensitive information.
    */
   @Test
-  public void toStringContainsOnlySenderType() throws Exception {
-    assertThat(sender.toString()).isEqualTo("LocalSender");
+  public void toStringContainsOnlySenderTypeAndStorageType() throws Exception {
+    assertThat(sender.toString())
+        .isEqualTo("LocalSender(" + storage.getClass().getSimpleName() + ")");
   }
 
   /** Blocks until the callback completes to allow read-your-writes consistency during tests. */

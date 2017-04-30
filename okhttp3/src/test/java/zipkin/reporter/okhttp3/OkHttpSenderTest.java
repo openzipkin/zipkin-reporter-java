@@ -46,7 +46,8 @@ public class OkHttpSenderTest {
   @Rule
   public ExpectedException thrown = ExpectedException.none();
 
-  OkHttpSender sender = OkHttpSender.create(zipkinRule.httpUrl() + "/api/v1/spans");
+  String endpoint = zipkinRule.httpUrl() + "/api/v1/spans";
+  OkHttpSender sender = OkHttpSender.create(endpoint);
 
   @Test
   public void badUrlIsAnIllegalArgument() throws Exception {
@@ -300,8 +301,8 @@ public class OkHttpSenderTest {
    * output is a reasonable length and does not contain sensitive information.
    */
   @Test
-  public void toStringContainsOnlySenderType() throws Exception {
-    assertThat(sender.toString()).isEqualTo("OkHttpSender");
+  public void toStringContainsOnlySenderTypeAndEndpoint() throws Exception {
+    assertThat(sender.toString()).isEqualTo("OkHttpSender(" + endpoint + ")");
   }
 
   /** Blocks until the callback completes to allow read-your-writes consistency during tests. */

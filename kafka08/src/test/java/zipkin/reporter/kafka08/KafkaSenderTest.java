@@ -40,7 +40,8 @@ public class KafkaSenderTest {
   @Rule public KafkaJunitRule kafka = new KafkaJunitRule();
   @Rule public ExpectedException thrown = ExpectedException.none();
 
-  KafkaSender sender = KafkaSender.create("localhost:" + kafka.kafkaBrokerPort());
+  String bootstrapServers = "localhost:" + kafka.kafkaBrokerPort();
+  KafkaSender sender = KafkaSender.create(bootstrapServers);
 
   @After
   public void close() throws IOException {
@@ -103,8 +104,8 @@ public class KafkaSenderTest {
    * output is a reasonable length and does not contain sensitive information.
    */
   @Test
-  public void toStringContainsOnlySenderType() throws Exception {
-    assertThat(sender.toString()).isEqualTo("KafkaSender");
+  public void toStringContainsOnlySenderTypeAndBootstrapBrokers() throws Exception {
+    assertThat(sender.toString()).isEqualTo("KafkaSender(" + bootstrapServers + ")");
   }
 
   /** Blocks until the callback completes to allow read-your-writes consistency during tests. */

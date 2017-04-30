@@ -121,7 +121,7 @@ public abstract class LibthriftSender extends LazyCloseable<ScribeClient> implem
   }
 
   @Override public final String toString() {
-    return "LibthriftSender";
+    return "LibthriftSender(" + host() + ":" + port() + ")";
   }
 
   LibthriftSender() {
