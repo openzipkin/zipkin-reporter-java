@@ -46,7 +46,8 @@ public class OkHttpSenderTest {
   @Rule
   public ExpectedException thrown = ExpectedException.none();
 
-  OkHttpSender sender = OkHttpSender.create(zipkinRule.httpUrl() + "/api/v1/spans");
+  String endpoint = zipkinRule.httpUrl() + "/api/v1/spans";
+  OkHttpSender sender = OkHttpSender.create(endpoint);
 
   @Test
   public void badUrlIsAnIllegalArgument() throws Exception {
@@ -291,6 +292,17 @@ public class OkHttpSenderTest {
     sender.close();
 
     send(TestObjects.TRACE);
+  }
+
+  /**
+   * The output of toString() on {@link zipkin.reporter.Sender} implementations appears in thread
+   * names created by {@link zipkin.reporter.AsyncReporter}. Since thread names are likely to be
+   * exposed in logs and other monitoring tools, care should be taken to ensure the toString()
+   * output is a reasonable length and does not contain sensitive information.
+   */
+  @Test
+  public void toStringContainsOnlySenderTypeAndEndpoint() throws Exception {
+    assertThat(sender.toString()).isEqualTo("OkHttpSender(" + endpoint + ")");
   }
 
   /** Blocks until the callback completes to allow read-your-writes consistency during tests. */

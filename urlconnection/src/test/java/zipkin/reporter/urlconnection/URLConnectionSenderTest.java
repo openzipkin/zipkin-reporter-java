@@ -1,5 +1,5 @@
 /**
- * Copyright 2016 The OpenZipkin Authors
+ * Copyright 2016-2017 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -59,10 +59,12 @@ public class URLConnectionSenderTest {
 
   private URLConnectionSender sender;
 
+  private String endpoint = zipkinRule.httpUrl() + "/api/v1/spans";
+
   @Before
   public void setUp() throws Exception {
     sender = URLConnectionSender.builder()
-            .endpoint(zipkinRule.httpUrl() + "/api/v1/spans")
+            .endpoint(endpoint)
             .encoding(encoding)
             .build();
     encoder = encoderFor(encoding);
@@ -197,6 +199,17 @@ public class URLConnectionSenderTest {
     assertThat(zipkinRule.httpRequestCount()).isEqualTo(1);
     assertThat(zipkinRule.collectorMetrics().messages()).isEqualTo(1);
     assertThat(zipkinRule.collectorMetrics().spans()).isEqualTo(3);
+  }
+
+  /**
+   * The output of toString() on {@link zipkin.reporter.Sender} implementations appears in thread
+   * names created by {@link zipkin.reporter.AsyncReporter}. Since thread names are likely to be
+   * exposed in logs and other monitoring tools, care should be taken to ensure the toString()
+   * output is a reasonable length and does not contain sensitive information.
+   */
+  @Test
+  public void toStringContainsOnlySenderTypeAndEndpoint() throws Exception {
+    assertThat(sender.toString()).isEqualTo("URLConnectionSender(" + endpoint + ")");
   }
 
   void thenCallbackCatchesTheThrowable() {
