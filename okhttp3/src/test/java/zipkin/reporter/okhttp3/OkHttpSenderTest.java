@@ -305,6 +305,13 @@ public class OkHttpSenderTest {
     assertThat(sender.toString()).isEqualTo("OkHttpSender(" + endpoint + ")");
   }
 
+  @Test public void bugGuardCache() throws Exception {
+    sender = sender.toBuilder().encoding(Encoding.JSON).build();
+    assertThat(sender.compute().cache())
+        .withFailMessage("senders should not open a disk cache")
+        .isNull();
+  }
+
   /** Blocks until the callback completes to allow read-your-writes consistency during tests. */
   void send(List<Span> spans) {
     AwaitableCallback callback = new AwaitableCallback();
