@@ -20,7 +20,7 @@
   <parent>
     <groupId>io.zipkin.reporter</groupId>
     <artifactId>zipkin-reporter-parent</artifactId>
-    <version>0.7.2-SNAPSHOT</version>
+    <version>0.8.0</version>
   </parent>
 
   <artifactId>zipkin-sender-urlconnection</artifactId>
