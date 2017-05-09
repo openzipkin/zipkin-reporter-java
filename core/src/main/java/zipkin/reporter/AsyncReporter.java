@@ -1,5 +1,5 @@
 /**
- * Copyright 2016 The OpenZipkin Authors
+ * Copyright 2016-2017 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -42,6 +42,11 @@ public abstract class AsyncReporter<S> implements Reporter<S>, Flushable, Compon
    * After a certain threshold, spans are drained and {@link Sender#sendSpans(List, Callback) sent}
    * to Zipkin collectors.
    */
+  public static AsyncReporter<zipkin.Span> create(Sender sender) {
+    return new Builder(sender).build();
+  }
+
+  /** Like {@link #create(Sender)}, except you can configure settings such as the timeout. */
   public static Builder builder(Sender sender) {
     return new Builder(sender);
   }
