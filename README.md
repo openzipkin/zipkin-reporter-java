@@ -25,8 +25,7 @@ AsyncReporter is how you actually get spans to zipkin. By default, it waits up t
 before flushes any pending spans out of process via a Sender.
 
 ```java
-reporter = AsyncReporter.builder(URLConnectionSender.create("http://localhost:9411/api/v1/spans"))
-                        .build();
+reporter = AsyncReporter.create(URLConnectionSender.create("http://localhost:9411/api/v1/spans"));
 
 // Schedules the span to be sent, and won't block the calling thread on I/O
 reporter.report(span);
