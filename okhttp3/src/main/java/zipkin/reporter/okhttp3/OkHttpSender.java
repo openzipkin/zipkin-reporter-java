@@ -16,7 +16,6 @@ package zipkin.reporter.okhttp3;
 import com.google.auto.value.AutoValue;
 import java.io.IOException;
 import java.util.List;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;

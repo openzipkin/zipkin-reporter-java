@@ -69,6 +69,7 @@ public abstract class AsyncReporter<S> implements Reporter<S>, Flushable, Compon
     ReporterMetrics metrics = ReporterMetrics.NOOP_METRICS;
     int messageMaxBytes;
     long messageTimeoutNanos = TimeUnit.SECONDS.toNanos(1);
+    long closeTimeoutNanos = TimeUnit.SECONDS.toNanos(1);
     int queuedMaxSpans = 10000;
     int queuedMaxBytes = onePercentOfMemory();
 
@@ -111,8 +112,15 @@ public abstract class AsyncReporter<S> implements Reporter<S>, Flushable, Compon
      * <p>Note: this timeout starts when the first unsent span is reported.
      */
     public Builder messageTimeout(long timeout, TimeUnit unit) {
-      checkArgument(timeout >= 0, "timeout < 0: %s", timeout);
-      this.messageTimeoutNanos = unit.toNanos(checkNotNull(timeout, "timeout"));
+      checkArgument(timeout >= 0, "messageTimeout < 0: %s", timeout);
+      this.messageTimeoutNanos = unit.toNanos(checkNotNull(timeout, "messageTimeout"));
+      return this;
+    }
+
+    /** How long to block for in-flight spans to send out-of-process on close. Default 1 second */
+    public Builder closeTimeout(long timeout, TimeUnit unit) {
+      checkArgument(timeout >= 0, "closeTimeout < 0: %s", timeout);
+      this.closeTimeoutNanos = unit.toNanos(checkNotNull(timeout, "closeTimeout"));
       return this;
     }
 
@@ -177,6 +185,7 @@ public abstract class AsyncReporter<S> implements Reporter<S>, Flushable, Compon
     final Sender sender;
     final int messageMaxBytes;
     final long messageTimeoutNanos;
+    final long closeTimeoutNanos;
     final CountDownLatch close;
     final ReporterMetrics metrics;
 
@@ -185,6 +194,7 @@ public abstract class AsyncReporter<S> implements Reporter<S>, Flushable, Compon
       this.sender = builder.sender;
       this.messageMaxBytes = builder.messageMaxBytes;
       this.messageTimeoutNanos = builder.messageTimeoutNanos;
+      this.closeTimeoutNanos = builder.closeTimeoutNanos;
       this.close = new CountDownLatch(builder.messageTimeoutNanos > 0 ? 1 : 0);
       this.metrics = builder.metrics;
       this.encoder = encoder;
@@ -220,7 +230,9 @@ public abstract class AsyncReporter<S> implements Reporter<S>, Flushable, Compon
       metrics.updateQueuedSpans(pending.count);
       metrics.updateQueuedBytes(pending.sizeInBytes);
 
-      if (!bundler.isReady()) return; // try to fill up the bundle
+      // loop around if we are running, and the bundle isn't full
+      // if we are closed, try to send what's pending
+      if (!bundler.isReady() && !closed.get()) return;
 
       // Signal that we are about to send a message of a known size in bytes
       metrics.incrementMessages();
@@ -244,13 +256,14 @@ public abstract class AsyncReporter<S> implements Reporter<S>, Flushable, Compon
 
     @Override
     public void close() {
-      closed.set(true);
+      if (!closed.compareAndSet(false, true)) return; // already closed
       try {
-        if (!close.await(messageTimeoutNanos, TimeUnit.NANOSECONDS)) {
-          logger.warning("Timed out waiting for close");
+        // wait for in-flight spans to send
+        if (!close.await(closeTimeoutNanos, TimeUnit.NANOSECONDS)) {
+          logger.warning("Timed out waiting for in-flight spans to send");
         }
       } catch (InterruptedException e) {
-        logger.warning("Interrupted waiting for close");
+        logger.warning("Interrupted waiting for in-flight spans to send");
         Thread.currentThread().interrupt();
       }
       int count = pending.clear();
