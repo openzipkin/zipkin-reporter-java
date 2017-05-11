@@ -1,5 +1,5 @@
 /**
- * Copyright 2016 The OpenZipkin Authors
+ * Copyright 2016-2017 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -313,6 +313,49 @@ public class AsyncReporterTest {
     sent.countDown(); // release the flush thread
 
     assertThat(metrics.spansDropped()).isEqualTo(1);
+  }
+
+  @Test
+  public void blocksToClearPendingSpans() throws InterruptedException {
+    reporter = AsyncReporter.builder(FakeSender.create())
+        .metrics(metrics)
+        .messageTimeout(30, TimeUnit.SECONDS)
+        .build();
+
+    Thread.sleep(500); // wait for the thread to start
+
+    reporter.report(span);
+    reporter.close(); // close while there's a pending span
+
+    assertThat(metrics.spans()).isEqualTo(1);
+    assertThat(metrics.spansDropped()).isEqualTo(0);
+  }
+
+  @Test
+  public void quitsBlockingWhenOverTimeout() throws InterruptedException {
+    reporter = AsyncReporter.builder(FakeSender.create()
+        .onSpans(spans -> {
+          // note: we don't yet have a hook to cancel a sender, so this will remain in-flight
+          // eventhough we are unblocking close. A later close on sender usually will kill in-flight
+          try {
+            Thread.sleep(1000); // block the flush thread longer than closeTimeout
+          } catch (InterruptedException e) {
+            e.printStackTrace();
+          }
+        }))
+        .metrics(metrics)
+        .closeTimeout(1, TimeUnit.NANOSECONDS)
+        .messageTimeout(30, TimeUnit.SECONDS)
+        .build();
+
+    Thread.sleep(500); // wait for the thread to start
+
+    reporter.report(span);
+
+    long start = System.nanoTime();
+    reporter.close(); // close while there's a pending span
+    assertThat(System.nanoTime() - start)
+        .isLessThan(TimeUnit.MILLISECONDS.toNanos(10)); // give wiggle room
   }
 
   @Test
