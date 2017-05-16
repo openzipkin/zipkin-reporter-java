@@ -33,7 +33,6 @@ import okio.Buffer;
 import okio.BufferedSink;
 import okio.GzipSink;
 import okio.Okio;
-import zipkin.internal.LazyCloseable;
 import zipkin.reporter.Callback;
 import zipkin.reporter.Encoding;
 import zipkin.reporter.Sender;
@@ -47,7 +46,7 @@ import static zipkin.internal.Util.checkNotNull;
  * <p>This sender is thread-safe.
  */
 @AutoValue
-public abstract class OkHttpSender extends LazyCloseable<OkHttpClient> implements Sender {
+public abstract class OkHttpSender implements Sender {
 
   /** Creates a sender that posts {@link Encoding#THRIFT thrift} messages. */
   public static OkHttpSender create(String endpoint) {
@@ -91,11 +90,26 @@ public abstract class OkHttpSender extends LazyCloseable<OkHttpClient> implement
     /** Controls the "Content-Type" header when sending spans. */
     public abstract Builder encoding(Encoding encoding);
 
+    public abstract OkHttpClient.Builder clientBuilder();
+
     abstract int maxRequests();
 
     abstract Encoding encoding();
 
     public final OkHttpSender build() {
+      // bound the executor so that we get consistent performance
+      ThreadPoolExecutor dispatchExecutor =
+          new ThreadPoolExecutor(0, maxRequests(), 60, TimeUnit.SECONDS,
+              // Using a synchronous queue means messages will send immediately until we hit max
+              // in-flight requests. Once max requests are hit, send will block the caller, which is
+              // the AsyncReporter flush thread. This is ok, as the AsyncReporter has a buffer of
+              // unsent spans for this purpose.
+              new SynchronousQueue<>(),
+              Util.threadFactory("OkHttpSender Dispatcher", false));
+      Dispatcher dispatcher = new Dispatcher(dispatchExecutor);
+      dispatcher.setMaxRequests(maxRequests());
+      dispatcher.setMaxRequestsPerHost(maxRequests());
+      clientBuilder().dispatcher(dispatcher).build();
       if (encoding() == Encoding.JSON) {
         return encoder(RequestBodyMessageEncoder.JSON).autoBuild();
       } else if (encoding() == Encoding.THRIFT) {
@@ -112,9 +126,22 @@ public abstract class OkHttpSender extends LazyCloseable<OkHttpClient> implement
     }
   }
 
-  public abstract Builder toBuilder();
+  /**
+   * Creates a builder out of this object. Note: if the {@link Builder#clientBuilder()} was
+   * customized, you'll need to re-apply those customizations.
+   */
+  public final Builder toBuilder() {
+    return new AutoValue_OkHttpSender.Builder()
+        .endpoint(endpoint())
+        .maxRequests(client().dispatcher().getMaxRequests())
+        .compressionEnabled(compressionEnabled())
+        .encoding(encoding())
+        .messageMaxBytes(messageMaxBytes());
+  }
 
   abstract HttpUrl endpoint();
+
+  abstract OkHttpClient client();
 
   abstract int maxRequests();
 
@@ -134,7 +161,7 @@ public abstract class OkHttpSender extends LazyCloseable<OkHttpClient> implement
     if (closeCalled) throw new IllegalStateException("closed");
     try {
       Request request = newRequest(encoder().encode(encodedSpans));
-      get().newCall(request).enqueue(new CallbackAdapter(callback));
+      client().newCall(request).enqueue(new CallbackAdapter(callback));
     } catch (Throwable e) {
       callback.onError(e);
       if (e instanceof Error) throw (Error) e;
@@ -146,7 +173,7 @@ public abstract class OkHttpSender extends LazyCloseable<OkHttpClient> implement
     try {
       Request request = new Request.Builder().url(endpoint())
           .post(RequestBody.create(MediaType.parse("application/json"), "[]")).build();
-      try (Response response = get().newCall(request).execute()) {
+      try (Response response = client().newCall(request).execute()) {
         if (!response.isSuccessful()) {
           throw new IllegalStateException("check response failed: " + response);
         }
@@ -157,30 +184,12 @@ public abstract class OkHttpSender extends LazyCloseable<OkHttpClient> implement
     }
   }
 
-  @Override protected OkHttpClient compute() {
-    // bound the executor so that we get consistent performance
-    ThreadPoolExecutor dispatchExecutor =
-        new ThreadPoolExecutor(0, maxRequests(), 60, TimeUnit.SECONDS,
-            // Using a synchronous queue means messages will send immediately until we hit max
-            // in-flight requests. Once max requests are hit, send will block the caller, which is
-            // the AsyncReporter flush thread. This is ok, as the AsyncReporter has a buffer of
-            // unsent spans for this purpose.
-            new SynchronousQueue<>(),
-            Util.threadFactory("OkHttpSender Dispatcher", false));
-    Dispatcher dispatcher = new Dispatcher(dispatchExecutor);
-    dispatcher.setMaxRequests(maxRequests());
-    dispatcher.setMaxRequestsPerHost(maxRequests());
-    return new OkHttpClient.Builder().dispatcher(dispatcher).build();
-  }
-
   /** Waits up to a second for in-flight requests to finish before cancelling them */
   @Override public void close() {
     if (closeCalled) return;
     closeCalled = true;
-    OkHttpClient maybeNull = maybeNull();
-    if (maybeNull == null) return;
 
-    Dispatcher dispatcher = maybeNull.dispatcher();
+    Dispatcher dispatcher = client().dispatcher();
     dispatcher.executorService().shutdown();
     try {
       if (!dispatcher.executorService().awaitTermination(1, TimeUnit.SECONDS)) {
