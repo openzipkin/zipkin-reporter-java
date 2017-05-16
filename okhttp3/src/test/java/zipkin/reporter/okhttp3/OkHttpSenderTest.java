@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import okhttp3.mockwebserver.Dispatcher;
 import okhttp3.mockwebserver.MockResponse;
@@ -55,6 +56,22 @@ public class OkHttpSenderTest {
     thrown.expectMessage("invalid post url: ");
 
     OkHttpSender.create("htp://localhost:9411/api/v1/spans");
+  }
+
+  @Test
+  public void canCustomizeClient() throws Exception {
+    sender.close();
+    OkHttpSender.Builder builder = sender.toBuilder();
+    AtomicBoolean called = new AtomicBoolean();
+    builder.clientBuilder().addInterceptor(chain -> {
+      called.set(true);
+      return chain.proceed(chain.request());
+    });
+    sender = builder.build();
+
+    send(TestObjects.TRACE);
+
+    assertThat(called.get()).isTrue();
   }
 
   @Test
@@ -307,7 +324,7 @@ public class OkHttpSenderTest {
 
   @Test public void bugGuardCache() throws Exception {
     sender = sender.toBuilder().encoding(Encoding.JSON).build();
-    assertThat(sender.compute().cache())
+    assertThat(sender.client().cache())
         .withFailMessage("senders should not open a disk cache")
         .isNull();
   }
