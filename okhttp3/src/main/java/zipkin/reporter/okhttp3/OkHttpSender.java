@@ -58,6 +58,7 @@ public abstract class OkHttpSender implements Sender {
         .encoding(Encoding.THRIFT)
         .compressionEnabled(true)
         .maxRequests(64)
+        .userAgent("zipkin-okhttp3-sender/x.x.x")
         .messageMaxBytes(5 * 1024 * 1024);
   }
 
@@ -120,6 +121,8 @@ public abstract class OkHttpSender implements Sender {
 
     abstract Builder encoder(RequestBodyMessageEncoder encoder);
 
+    abstract Builder userAgent(String userAgent);
+
     abstract OkHttpSender autoBuild();
 
     Builder() {
@@ -147,6 +150,8 @@ public abstract class OkHttpSender implements Sender {
 
   abstract boolean compressionEnabled();
 
+  abstract String userAgent();
+
   abstract RequestBodyMessageEncoder encoder();
 
   @Override public int messageSizeInBytes(List<byte[]> encodedSpans) {
@@ -171,7 +176,7 @@ public abstract class OkHttpSender implements Sender {
   /** Sends an empty json message to the configured endpoint. */
   @Override public CheckResult check() {
     try {
-      Request request = new Request.Builder().url(endpoint())
+      Request request = new Request.Builder().url(endpoint()).header("User-Agent", userAgent())
           .post(RequestBody.create(MediaType.parse("application/json"), "[]")).build();
       try (Response response = client().newCall(request).execute()) {
         if (!response.isSuccessful()) {
@@ -201,7 +206,7 @@ public abstract class OkHttpSender implements Sender {
   }
 
   Request newRequest(RequestBody body) throws IOException {
-    Request.Builder request = new Request.Builder().url(endpoint());
+    Request.Builder request = new Request.Builder().url(endpoint()).header("User-Agent", userAgent());
     if (compressionEnabled()) {
       request.addHeader("Content-Encoding", "gzip");
       Buffer gzipped = new Buffer();
