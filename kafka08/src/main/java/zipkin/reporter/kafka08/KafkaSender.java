@@ -145,6 +145,7 @@ public abstract class KafkaSender extends LazyCloseable<KafkaProducer<byte[], by
    *
    * <p>NOTE: this blocks until the metadata server is available.
    */
+  @SuppressWarnings("FutureReturnValueIgnored") // callbacks are used instead
   @Override public void sendSpans(List encodedSpans, Callback callback) {
     if (closeCalled) throw new IllegalStateException("closed");
     try {
