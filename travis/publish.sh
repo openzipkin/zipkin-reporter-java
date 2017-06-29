@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright 2016 The OpenZipkin Authors
+# Copyright 2016-2017 The OpenZipkin Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
 # in compliance with the License. You may obtain a copy of the License at
@@ -73,7 +73,7 @@ check_release_tag() {
 }
 
 is_release_commit() {
-  project_version=$(./mvnw help:evaluate -N -Dexpression=project.version|grep -v '\[')
+  project_version=$(./mvnw help:evaluate -N -Dexpression=project.version|sed -n '/^[0-9]/p')
   if [[ "$project_version" =~ ^[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+$ ]]; then
     echo "Build started by release commit $project_version. Will synchronize to maven central."
     return 0
