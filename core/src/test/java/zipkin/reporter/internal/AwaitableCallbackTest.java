@@ -1,5 +1,5 @@
 /**
- * Copyright 2016 The OpenZipkin Authors
+ * Copyright 2016-2017 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -40,6 +40,8 @@ public class AwaitableCallbackTest {
     thread.interrupt();
 
     assertThat(thread.isInterrupted()).isTrue();
+    // The callback thread receiving an interrupt has nothing to do with the caller of the captor
+    assertThat(Thread.currentThread().isInterrupted()).isFalse();
     assertThat(returned.get()).isFalse();
   }
 
@@ -70,7 +72,7 @@ public class AwaitableCallbackTest {
   }
 
   @Test
-  public void onError_setsInterrupted() {
+  public void onError_doesntSetInterrupted() {
     AwaitableCallback captor = new AwaitableCallback();
     captor.onError(new InterruptedException());
 
@@ -79,7 +81,7 @@ public class AwaitableCallbackTest {
       failBecauseExceptionWasNotThrown(RuntimeException.class);
     } catch (RuntimeException e) {
       assertThat(e).hasCauseInstanceOf(InterruptedException.class);
-      assertThat(Thread.currentThread().isInterrupted());
+      assertThat(Thread.currentThread().isInterrupted()).isFalse();
     }
   }
 
