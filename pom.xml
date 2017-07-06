@@ -43,7 +43,7 @@
 
     <main.basedir>${project.basedir}</main.basedir>
 
-    <zipkin.version>1.26.2</zipkin.version>
+    <zipkin.version>1.28.0</zipkin.version>
     <license-maven-plugin.version>2.11</license-maven-plugin.version>
   </properties>
 
@@ -346,6 +346,11 @@
           <autoVersionSubmodules>true</autoVersionSubmodules>
           <tagNameFormat>@{project.version}</tagNameFormat>
         </configuration>
+      </plugin>
+
+      <plugin>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>2.20</version>
       </plugin>
 
       <plugin>
