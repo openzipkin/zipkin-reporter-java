@@ -24,7 +24,7 @@ import zipkin.Component;
 import zipkin.Span;
 
 import static java.lang.String.format;
-import static java.util.logging.Level.WARNING;
+import static java.util.logging.Level.FINE;
 import static zipkin.internal.Util.checkArgument;
 import static zipkin.internal.Util.checkNotNull;
 
@@ -281,9 +281,11 @@ public abstract class AsyncReporter<S> implements Reporter<S>, Flushable, Compon
         @Override public void onError(Throwable t) {
           metrics.incrementMessagesDropped(t);
           metrics.incrementSpansDropped(count);
-          logger.log(WARNING,
-              format("Dropped %s spans due to %s(%s)", count, t.getClass().getSimpleName(),
-                  t.getMessage() == null ? "" : t.getMessage()), t);
+          if (logger.isLoggable(FINE)) {
+            logger.log(FINE,
+                format("Dropped %s spans due to %s(%s)", count, t.getClass().getSimpleName(),
+                    t.getMessage() == null ? "" : t.getMessage()), t);
+          }
         }
       };
     }
