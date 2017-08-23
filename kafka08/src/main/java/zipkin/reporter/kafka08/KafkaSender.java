@@ -29,8 +29,6 @@ import zipkin.reporter.Callback;
 import zipkin.reporter.Encoding;
 import zipkin.reporter.Sender;
 
-import static zipkin.internal.Util.checkNotNull;
-
 /**
  * This sends (usually TBinaryProtocol big-endian) encoded spans to a Kafka topic.
  *
@@ -79,8 +77,8 @@ public abstract class KafkaSender extends LazyCloseable<KafkaProducer<byte[], by
      * @see ProducerConfig#BOOTSTRAP_SERVERS_CONFIG
      */
     public final Builder bootstrapServers(String bootstrapServers) {
-      properties().put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,
-          checkNotNull(bootstrapServers, "bootstrapServers"));
+      if (bootstrapServers == null) throw new NullPointerException("bootstrapServers == null");
+      properties().put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
       return this;
     }
 
@@ -105,7 +103,8 @@ public abstract class KafkaSender extends LazyCloseable<KafkaProducer<byte[], by
      * @see ProducerConfig
      */
     public final Builder overrides(Map<String, String> overrides) {
-      properties().putAll(checkNotNull(overrides, "overrides"));
+      if (overrides == null) throw new NullPointerException("overrides == null");
+      properties().putAll(overrides);
       return this;
     }
 

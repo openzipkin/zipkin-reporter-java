@@ -25,8 +25,6 @@ import zipkin.Span;
 
 import static java.lang.String.format;
 import static java.util.logging.Level.FINE;
-import static zipkin.internal.Util.checkArgument;
-import static zipkin.internal.Util.checkNotNull;
 
 /**
  * As spans are reported, they are encoded and added to a pending queue. The task of sending spans
@@ -80,7 +78,8 @@ public abstract class AsyncReporter<S> implements Reporter<S>, Flushable, Compon
     }
 
     Builder(Sender sender) {
-      this.sender = checkNotNull(sender, "sender");
+      if (sender == null) throw new NullPointerException("sender == null");
+      this.sender = sender;
       this.messageMaxBytes = sender.messageMaxBytes();
     }
 
@@ -88,7 +87,8 @@ public abstract class AsyncReporter<S> implements Reporter<S>, Flushable, Compon
      * Aggregates and reports reporter metrics to a monitoring system. Defaults to no-op.
      */
     public Builder metrics(ReporterMetrics metrics) {
-      this.metrics = checkNotNull(metrics, "metrics");
+      if (metrics == null) throw new NullPointerException("metrics == null");
+      this.metrics = metrics;
       return this;
     }
 
@@ -97,7 +97,9 @@ public abstract class AsyncReporter<S> implements Reporter<S>, Flushable, Compon
      * Sender#messageMaxBytes()}.
      */
     public Builder messageMaxBytes(int messageMaxBytes) {
-      checkArgument(messageMaxBytes >= 0, "messageMaxBytes < 0: %s", messageMaxBytes);
+      if (messageMaxBytes < 0) {
+        throw new IllegalArgumentException("messageMaxBytes < 0: " + messageMaxBytes);
+      }
       this.messageMaxBytes = Math.min(messageMaxBytes, sender.messageMaxBytes());
       return this;
     }
@@ -112,15 +114,17 @@ public abstract class AsyncReporter<S> implements Reporter<S>, Flushable, Compon
      * <p>Note: this timeout starts when the first unsent span is reported.
      */
     public Builder messageTimeout(long timeout, TimeUnit unit) {
-      checkArgument(timeout >= 0, "messageTimeout < 0: %s", timeout);
-      this.messageTimeoutNanos = unit.toNanos(checkNotNull(timeout, "messageTimeout"));
+      if (timeout < 0) throw new IllegalArgumentException("messageTimeout < 0: " + timeout);
+      if (unit == null) throw new NullPointerException("unit == null");
+      this.messageTimeoutNanos = unit.toNanos(timeout);
       return this;
     }
 
     /** How long to block for in-flight spans to send out-of-process on close. Default 1 second */
     public Builder closeTimeout(long timeout, TimeUnit unit) {
-      checkArgument(timeout >= 0, "closeTimeout < 0: %s", timeout);
-      this.closeTimeoutNanos = unit.toNanos(checkNotNull(timeout, "closeTimeout"));
+      if (timeout < 0) throw new IllegalArgumentException("closeTimeout < 0: " + timeout);
+      if (unit == null) throw new NullPointerException("unit == null");
+      this.closeTimeoutNanos = unit.toNanos(timeout);
       return this;
     }
 
@@ -150,10 +154,12 @@ public abstract class AsyncReporter<S> implements Reporter<S>, Flushable, Compon
 
     /** Builds an async reporter that encodes arbitrary spans as they are reported. */
     public <S> AsyncReporter<S> build(Encoder<S> encoder) {
-      checkNotNull(encoder, "encoder");
-      checkArgument(encoder.encoding() == sender.encoding(),
-          "Encoder.encoding() %s != Sender.encoding() %s",
-          encoder.encoding(), sender.encoding());
+      if (encoder == null) throw new NullPointerException("encoder == null");
+
+      if (encoder.encoding() != sender.encoding()) {
+        throw new IllegalArgumentException(String.format(
+            "Encoder doesn't match Sender: %s %s", encoder.encoding(), sender.encoding()));
+      }
 
       final BoundedAsyncReporter<S> result = new BoundedAsyncReporter<>(this, encoder);
 
@@ -203,7 +209,8 @@ public abstract class AsyncReporter<S> implements Reporter<S>, Flushable, Compon
     /** Returns true if the was encoded and accepted onto the queue. */
     @Override
     public void report(S span) {
-      checkNotNull(span, "span");
+      if (span == null) throw new NullPointerException("span == null");
+
       metrics.incrementSpans(1);
       byte[] next = encoder.encode(span);
       int messageSizeOfNextSpan = sender.messageSizeInBytes(Collections.singletonList(next));

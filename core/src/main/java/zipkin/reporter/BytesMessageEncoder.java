@@ -1,5 +1,5 @@
 /**
- * Copyright 2016 The OpenZipkin Authors
+ * Copyright 2016-2017 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -14,8 +14,6 @@
 package zipkin.reporter;
 
 import java.util.List;
-
-import static zipkin.internal.Util.checkNotNull;
 
 /**
  * Senders like Kafka use byte[] message encoding. This provides helpers to concatenate spans into a
@@ -83,7 +81,8 @@ public enum BytesMessageEncoder {
   public abstract byte[] encode(List<byte[]> encodedSpans);
 
   public static BytesMessageEncoder forEncoding(Encoding encoding) {
-    switch (checkNotNull(encoding, "encoding")) {
+    if (encoding == null) throw new NullPointerException("encoding == null");
+    switch (encoding) {
       case JSON:
         return JSON;
       case THRIFT:
