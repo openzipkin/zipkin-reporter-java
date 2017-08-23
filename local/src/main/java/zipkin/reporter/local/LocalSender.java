@@ -19,7 +19,6 @@ import java.util.ArrayList;
 import java.util.List;
 import zipkin.Codec;
 import zipkin.Span;
-import zipkin.internal.Nullable;
 import zipkin.reporter.Callback;
 import zipkin.reporter.Encoding;
 import zipkin.reporter.Sender;
@@ -111,7 +110,7 @@ public abstract class LocalSender implements Sender {
       this.delegate = delegate;
     }
 
-    @Override public void onSuccess(@Nullable Void aVoid) {
+    @Override public void onSuccess(Void aVoid) {
       delegate.onComplete();
     }
 
