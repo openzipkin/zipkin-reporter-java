@@ -1,5 +1,5 @@
 /**
- * Copyright 2016 The OpenZipkin Authors
+ * Copyright 2016-2017 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -13,9 +13,8 @@
  */
 package zipkin.reporter;
 
+import java.nio.charset.Charset;
 import zipkin.Span;
-
-import static zipkin.internal.Util.UTF_8;
 
 /**
  * Spans are created in instrumentation, transported out-of-band, and eventually persisted.
@@ -27,7 +26,8 @@ import static zipkin.internal.Util.UTF_8;
  */
 public interface Reporter<S> {
   Reporter<Span> NOOP = s -> {};
-  Reporter<Span> CONSOLE = s -> System.out.println(new String(Encoder.JSON.encode(s), UTF_8));
+  Reporter<Span> CONSOLE =
+      s -> System.out.println(new String(Encoder.JSON.encode(s), Charset.forName("UTF-8")));
 
   /**
    * Schedules the span to be sent onto the transport.

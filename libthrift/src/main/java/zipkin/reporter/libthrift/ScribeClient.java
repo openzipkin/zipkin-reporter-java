@@ -1,5 +1,5 @@
 /**
- * Copyright 2016 The OpenZipkin Authors
+ * Copyright 2016-2017 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -23,11 +23,10 @@ import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.transport.TFramedTransport;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransportException;
-import zipkin.internal.Util;
 
 final class ScribeClient implements Closeable {
   static final Logger logger = Logger.getLogger(ScribeClient.class.getName());
-  static final byte[] category = "zipkin".getBytes(Util.UTF_8);
+  static final byte[] category = new byte[] {'z', 'i', 'p', 'k', 'i', 'n'};
 
   final TSocket socket;
   final TBinaryProtocol prot;

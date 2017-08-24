@@ -27,8 +27,6 @@ import zipkin.reporter.Callback;
 import zipkin.reporter.Encoding;
 import zipkin.reporter.Sender;
 
-import static zipkin.internal.Util.checkNotNull;
-
 /**
  * Reports spans to Zipkin, using its <a href="http://zipkin.io/zipkin-api/#/">POST</a> endpoint.
  *
@@ -58,7 +56,8 @@ public abstract class URLConnectionSender implements Sender {
      */
     // customizable so that users can re-map /api/v1/spans ex for browser-originated traces
     public final Builder endpoint(String endpoint) {
-      checkNotNull(endpoint, "endpoint ex: http://zipkinhost:9411/api/v1/spans");
+      if (endpoint == null) throw new NullPointerException("endpoint == null");
+
       try {
         return endpoint(new URL(endpoint));
       } catch (MalformedURLException e) {

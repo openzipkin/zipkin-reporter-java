@@ -142,7 +142,7 @@
     <dependency>
       <groupId>com.google.auto.value</groupId>
       <artifactId>auto-value</artifactId>
-      <version>1.4.1</version>
+      <version>1.5</version>
       <scope>provided</scope>
     </dependency>
 
@@ -181,6 +181,40 @@
           <groupId>io.takari</groupId>
           <artifactId>maven</artifactId>
           <version>0.4.1</version>
+        </plugin>
+        <!-- unhook direct dependence on internal classes -->
+        <plugin>
+          <artifactId>maven-shade-plugin</artifactId>
+          <version>3.1.0</version>
+          <executions>
+            <execution>
+              <phase>package</phase>
+              <goals>
+                <goal>shade</goal>
+              </goals>
+              <configuration>
+                <minimizeJar>true</minimizeJar>
+                <createDependencyReducedPom>false</createDependencyReducedPom>
+                <artifactSet>
+                  <includes>
+                    <include>io.zipkin.java:zipkin</include>
+                  </includes>
+                </artifactSet>
+                <filters>
+                  <filter>
+                    <!-- Shade references to classes packages -->
+                    <artifact>io.zipkin.java:zipkin</artifact>
+                    <includes>
+                      <include>zipkin/internal/Lazy*.class</include>
+                    </includes>
+                    <excludes>
+                      <exclude>*</exclude>
+                    </excludes>
+                  </filter>
+                </filters>
+              </configuration>
+            </execution>
+          </executions>
         </plugin>
         <plugin>
           <groupId>org.eclipse.m2e</groupId>
@@ -266,6 +300,7 @@
             <configuration>
               <target>${main.java.version}</target>
               <fork>true</fork>
+              <quiet>true</quiet>
             </configuration>
           </execution>
         </executions>
