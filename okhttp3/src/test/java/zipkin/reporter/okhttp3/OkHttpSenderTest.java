@@ -15,6 +15,7 @@ package zipkin.reporter.okhttp3;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -27,7 +28,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import zipkin.Span;
-import zipkin.TestObjects;
+import zipkin.internal.ApplyTimestampAndDuration;
 import zipkin.junit.HttpFailure;
 import zipkin.junit.ZipkinRule;
 import zipkin.reporter.Encoder;
@@ -38,14 +39,16 @@ import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.failBecauseExceptionWasNotThrown;
+import static zipkin.TestObjects.LOTS_OF_SPANS;
 
 public class OkHttpSenderTest {
-  static final Span clientSpan = TestObjects.TRACE.get(2);
+  List<Span> traces = Arrays.asList(
+      ApplyTimestampAndDuration.apply(LOTS_OF_SPANS[0]),
+      ApplyTimestampAndDuration.apply(LOTS_OF_SPANS[1])
+  );
 
-  @Rule
-  public ZipkinRule zipkinRule = new ZipkinRule();
-  @Rule
-  public ExpectedException thrown = ExpectedException.none();
+  @Rule public ZipkinRule zipkinRule = new ZipkinRule();
+  @Rule public ExpectedException thrown = ExpectedException.none();
 
   String endpoint = zipkinRule.httpUrl() + "/api/v1/spans";
   OkHttpSender sender = OkHttpSender.create(endpoint);
@@ -69,20 +72,21 @@ public class OkHttpSenderTest {
     });
     sender = builder.build();
 
-    send(TestObjects.TRACE);
+    send(traces);
 
     assertThat(called.get()).isTrue();
   }
 
   @Test
   public void sendsSpans() throws Exception {
-    send(TestObjects.TRACE);
+    send(traces);
 
     // Ensure only one request was sent
     assertThat(zipkinRule.httpRequestCount()).isEqualTo(1);
 
     // Now, let's read back the spans we sent!
-    assertThat(zipkinRule.getTraces()).containsExactly(TestObjects.TRACE);
+    assertThat(zipkinRule.getTraces()).flatExtracting(t -> t)
+        .containsOnlyElementsOf(traces);
   }
 
   @Test
@@ -90,14 +94,14 @@ public class OkHttpSenderTest {
     sender = sender.toBuilder().encoding(Encoding.JSON).build();
 
     AwaitableCallback callback = new AwaitableCallback();
-    sender.sendSpans(asList(Encoder.JSON.encode(clientSpan)), callback);
+    sender.sendSpans(asList(Encoder.JSON.encode(traces.get(0))), callback);
     callback.await();
 
     // Ensure only one request was sent
     assertThat(zipkinRule.httpRequestCount()).isEqualTo(1);
 
     // Now, let's read back the spans we sent!
-    assertThat(zipkinRule.getTraces()).containsExactly(asList(clientSpan));
+    assertThat(zipkinRule.getTraces()).containsExactly(asList(traces.get(0)));
   }
 
   @Test public void compression() throws Exception {
@@ -112,7 +116,7 @@ public class OkHttpSenderTest {
 
         server.enqueue(new MockResponse());
 
-        send(TestObjects.TRACE);
+        send(traces);
 
         // block until the request arrived
         requests.add(server.takeRequest());
@@ -144,7 +148,7 @@ public class OkHttpSenderTest {
 
       server.enqueue(new MockResponse());
 
-      send(TestObjects.TRACE); // objects are in json, but we tell it the wrong thing
+      send(traces); // objects are in json, but we tell it the wrong thing
 
       // block until the request arrived
       assertThat(server.takeRequest().getHeader("Content-Type"))
@@ -171,7 +175,7 @@ public class OkHttpSenderTest {
       AwaitableCallback callback = new AwaitableCallback();
 
       new Thread(() ->
-          sender.sendSpans(asList(Encoder.THRIFT.encode(clientSpan)), callback)
+          sender.sendSpans(asList(Encoder.THRIFT.encode(traces.get(0))), callback)
       ).start();
       Thread.sleep(100); // make sure the thread starts
 
@@ -216,8 +220,8 @@ public class OkHttpSenderTest {
       AwaitableCallback callback2 = new AwaitableCallback();
 
       Thread t = new Thread(() -> {
-        sender.sendSpans(asList(Encoder.THRIFT.encode(clientSpan)), callback1);
-        sender.sendSpans(asList(Encoder.THRIFT.encode(clientSpan)), callback2);
+        sender.sendSpans(asList(Encoder.THRIFT.encode(traces.get(0))), callback1);
+        sender.sendSpans(asList(Encoder.THRIFT.encode(traces.get(0))), callback2);
       });
       t.start();
       t.join();
@@ -246,7 +250,7 @@ public class OkHttpSenderTest {
       AwaitableCallback callback = new AwaitableCallback();
 
       new Thread(() ->
-          sender.sendSpans(asList(Encoder.THRIFT.encode(clientSpan)), callback)
+          sender.sendSpans(asList(Encoder.THRIFT.encode(traces.get(0))), callback)
       ).start();
       Thread.sleep(100); // make sure the thread starts
 
@@ -263,7 +267,7 @@ public class OkHttpSenderTest {
     zipkinRule.enqueueFailure(HttpFailure.sendErrorResponse(500, "Server Error!"));
 
     AwaitableCallback callback = new AwaitableCallback();
-    sender.sendSpans(asList(Encoder.THRIFT.encode(clientSpan)), callback);
+    sender.sendSpans(asList(Encoder.THRIFT.encode(traces.get(0))), callback);
 
     // shouldn't throw until we call await!
     try {
@@ -278,7 +282,7 @@ public class OkHttpSenderTest {
     zipkinRule.enqueueFailure(HttpFailure.disconnectDuringBody());
 
     AwaitableCallback callback = new AwaitableCallback();
-    sender.sendSpans(asList(Encoder.THRIFT.encode(clientSpan)), callback);
+    sender.sendSpans(asList(Encoder.THRIFT.encode(traces.get(0))), callback);
 
     // shouldn't throw until we call await!
     try {
@@ -308,7 +312,7 @@ public class OkHttpSenderTest {
     thrown.expect(IllegalStateException.class);
     sender.close();
 
-    send(TestObjects.TRACE);
+    send(traces);
   }
 
   /**

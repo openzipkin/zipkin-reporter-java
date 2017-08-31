@@ -27,7 +27,7 @@ import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import zipkin.Span;
-import zipkin.TestObjects;
+import zipkin.internal.ApplyTimestampAndDuration;
 import zipkin.junit.HttpFailure;
 import zipkin.junit.ZipkinRule;
 import zipkin.reporter.Callback;
@@ -38,9 +38,14 @@ import zipkin.reporter.internal.AwaitableCallback;
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static zipkin.TestObjects.LOTS_OF_SPANS;
 
 @RunWith(Parameterized.class)
 public class URLConnectionSenderTest {
+  List<Span> traces = Arrays.asList(
+      ApplyTimestampAndDuration.apply(LOTS_OF_SPANS[0]),
+      ApplyTimestampAndDuration.apply(LOTS_OF_SPANS[1])
+  );
 
   @Rule
   public ZipkinRule zipkinRule = new ZipkinRule();
@@ -80,13 +85,14 @@ public class URLConnectionSenderTest {
 
   @Test
   public void sendsSpans() throws Exception {
-    send(TestObjects.TRACE);
+    send(traces);
 
     // Ensure only one request was sent
     assertThat(zipkinRule.httpRequestCount()).isEqualTo(1);
 
     // Now, let's read back the spans we sent!
-    assertThat(zipkinRule.getTraces()).containsExactly(TestObjects.TRACE);
+    assertThat(zipkinRule.getTraces()).flatExtracting(t -> t)
+        .containsOnlyElementsOf(traces);
   }
 
   @Test
@@ -94,14 +100,14 @@ public class URLConnectionSenderTest {
     sender = sender.toBuilder().encoding(Encoding.JSON).build();
 
     AwaitableCallback callback = new AwaitableCallback();
-    sender.sendSpans(asList(Encoder.JSON.encode(TestObjects.TRACE.get(0))), callback);
+    sender.sendSpans(asList(Encoder.JSON.encode(traces.get(0))), callback);
     callback.await();
 
     // Ensure only one request was sent
     assertThat(zipkinRule.httpRequestCount()).isEqualTo(1);
 
     // Now, let's read back the spans we sent!
-    assertThat(zipkinRule.getTraces()).containsExactly(asList(TestObjects.TRACE.get(0)));
+    assertThat(zipkinRule.getTraces()).containsExactly(asList(traces.get(0)));
   }
 
   @Test public void compression() throws Exception {
@@ -116,7 +122,7 @@ public class URLConnectionSenderTest {
 
         server.enqueue(new MockResponse());
 
-        send(TestObjects.TRACE);
+        send(traces);
 
         // block until the request arrived
         requests.add(server.takeRequest());
@@ -141,7 +147,7 @@ public class URLConnectionSenderTest {
 
       server.enqueue(new MockResponse());
 
-      send(TestObjects.TRACE); // objects are in json, but we tell it the wrong thing
+      send(traces); // objects are in json, but we tell it the wrong thing
 
       // block until the request arrived
       assertThat(server.takeRequest().getHeader("Content-Type"))
@@ -184,7 +190,7 @@ public class URLConnectionSenderTest {
     thrown.expect(IllegalStateException.class);
     sender.close();
 
-    send(TestObjects.TRACE);
+    send(traces);
   }
 
   @Test
@@ -195,10 +201,10 @@ public class URLConnectionSenderTest {
             .encoding(encoding)
             .build();
 
-    send(TestObjects.TRACE);
+    send(traces);
     assertThat(zipkinRule.httpRequestCount()).isEqualTo(1);
     assertThat(zipkinRule.collectorMetrics().messages()).isEqualTo(1);
-    assertThat(zipkinRule.collectorMetrics().spans()).isEqualTo(3);
+    assertThat(zipkinRule.collectorMetrics().spans()).isEqualTo(2);
   }
 
   /**
