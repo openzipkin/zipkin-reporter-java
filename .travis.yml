@@ -21,7 +21,8 @@ before_install:
 
 install:
   # Override default travis to use the maven wrapper
-  - ./mvnw -q install -DskipTests=true -Dmaven.javadoc.skip=true -B -V
+  # skip license on travis due to zipkin #1512
+  - ./mvnw -q install -DskipTests=true -Dmaven.javadoc.skip=true -B -V -Dlicense.skip=true
 
 script:
   - ./travis/publish.sh
