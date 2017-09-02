@@ -109,7 +109,8 @@ if ! is_pull_request && build_started_by_tag; then
   check_release_tag
 fi
 
-MYSQL_USER=root ./mvnw install -nsu
+# skip license on travis due to zipkin #1512
+MYSQL_USER=root ./mvnw install -nsu -Dlicense.skip=true
 
 # If we are on a pull request, our only job is to run tests, which happened above via ./mvnw install
 if is_pull_request; then
@@ -127,6 +128,7 @@ elif is_travis_branch_master; then
 # If we are on a release tag, the following will update any version references and push a version tag for deployment.
 elif build_started_by_tag; then
   safe_checkout_master
-  ./mvnw --batch-mode -s ./.settings.xml -Prelease -nsu -DreleaseVersion="$(release_version)" -Darguments="-DskipTests" release:prepare
+  # skip license on travis due to zipkin #1512
+  ./mvnw --batch-mode -s ./.settings.xml -Prelease -nsu -DreleaseVersion="$(release_version)" -Darguments="-DskipTests -Dlicense.skip=true" release:prepare
 fi
 
