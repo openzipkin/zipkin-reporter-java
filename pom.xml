@@ -43,7 +43,7 @@
 
     <main.basedir>${project.basedir}</main.basedir>
 
-    <zipkin.version>1.31.1</zipkin.version>
+    <zipkin.version>1.31.3</zipkin.version>
     <license-maven-plugin.version>2.11</license-maven-plugin.version>
   </properties>
 
@@ -206,8 +206,6 @@
                     <artifact>io.zipkin.java:zipkin</artifact>
                     <includes>
                       <include>zipkin/internal/Lazy*.class</include>
-                      <!-- needed until zipkin 1.31.3 -->
-                      <include>zipkin/internal/Util.class</include>
                     </includes>
                     <excludes>
                       <exclude>*</exclude>
