@@ -206,6 +206,8 @@
                     <artifact>io.zipkin.java:zipkin</artifact>
                     <includes>
                       <include>zipkin/internal/Lazy*.class</include>
+                      <!-- needed until zipkin 1.31.3 -->
+                      <include>zipkin/internal/Util.class</include>
                     </includes>
                     <excludes>
                       <exclude>*</exclude>
