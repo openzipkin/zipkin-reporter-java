@@ -30,7 +30,7 @@ import org.junit.rules.ExpectedException;
 import zipkin.Span;
 import zipkin.internal.ApplyTimestampAndDuration;
 import zipkin.internal.V2SpanConverter;
-import zipkin.internal.v2.codec.BytesEncoder;
+import zipkin.internal.v2.codec.SpanBytesEncoder;
 import zipkin.junit.HttpFailure;
 import zipkin.junit.ZipkinRule;
 import zipkin.reporter.Encoder;
@@ -114,7 +114,7 @@ public class OkHttpSenderTest {
 
     AwaitableCallback callback = new AwaitableCallback();
     sender.sendSpans(
-        asList(BytesEncoder.JSON.encode(V2SpanConverter.fromSpan(traces.get(0)).get(0))),
+        asList(SpanBytesEncoder.JSON_V2.encode(V2SpanConverter.fromSpan(traces.get(0)).get(0))),
         callback
     );
     callback.await();
