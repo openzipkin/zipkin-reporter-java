@@ -44,6 +44,10 @@ public abstract class KafkaSender extends LazyCloseable<KafkaProducer<byte[], by
     return builder().bootstrapServers(bootstrapServers).build();
   }
 
+  public static KafkaSender json(String bootstrapServers) {
+    return builder().bootstrapServers(bootstrapServers).encoding(Encoding.JSON).build();
+  }
+
   public static Builder builder() {
     // Settings below correspond to "Producer Configs"
     // http://kafka.apache.org/0102/documentation.html#producerconfigs

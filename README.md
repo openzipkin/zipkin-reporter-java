@@ -25,7 +25,7 @@ AsyncReporter is how you actually get spans to zipkin. By default, it waits up t
 before flushes any pending spans out of process via a Sender.
 
 ```java
-reporter = AsyncReporter.create(URLConnectionSender.create("http://localhost:9411/api/v1/spans"));
+reporter = AsyncReporter.v2(URLConnectionSender.json("http://localhost:9411/api/v2/spans"));
 
 // Schedules the span to be sent, and won't block the calling thread on I/O
 reporter.report(span);
@@ -63,7 +63,7 @@ Sender is used by AsyncReporter, but you can also create your own if you need to
 class CustomReporter implements Flushable {
 
   --snip--
-  URLConnectionSender sender = URLConnectionSender.create("http://localhost:9411/api/v1/spans");
+  URLConnectionSender sender = URLConnectionSender.json("http://localhost:9411/api/v2/spans");
 
   Callback callback = new IncrementSpanMetricsCallback(metrics);
 
@@ -73,7 +73,7 @@ class CustomReporter implements Flushable {
   }
 
   public void report(Span span) {
-    pending.add(Encoder.THRIFT.encode(span));
+    pending.add(SpanEncoder.JSON_V2.encode(span));
   }
 
   @Override
@@ -87,15 +87,14 @@ class CustomReporter implements Flushable {
   }
 ```
 
-### Json Encoding
-By default, components use thrift encoding, as it is the most compatible
-and efficient. However, json is readable and helpful during debugging.
+### Legacy Encoding
+V2 builders use json v2 encoding, which is easy to understand and twice
+as efficient as the v1 json encoding. However, it relies on recent (1.31+)
+versions of zipkin server.
 
-Here's an example of how to switch to json encoding:
+You can switch to v1 encoding like so:
 
 ```java
-sender = URLConnectionSender.builder()
-                            .encoding(Encoding.JSON)
-                            .endpoint("http://localhost:9411/api/v1/spans")
-                            .build();
+reporter = AsyncReporter.builder(URLConnectionSender.json("http://localhost:9411/api/v1/spans"))
+                        .build(SpanEncoder.JSON_V1);
 ```
