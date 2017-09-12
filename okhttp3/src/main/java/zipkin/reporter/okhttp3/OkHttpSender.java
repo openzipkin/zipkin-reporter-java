@@ -50,6 +50,11 @@ public abstract class OkHttpSender implements Sender {
     return builder().endpoint(endpoint).build();
   }
 
+  /** Creates a sender that posts {@link Encoding#JSON} messages. */
+  public static OkHttpSender json(String endpoint) {
+    return builder().encoding(Encoding.JSON).endpoint(endpoint).build();
+  }
+
   public static Builder builder() {
     return new AutoValue_OkHttpSender.Builder()
         .encoding(Encoding.THRIFT)
@@ -62,10 +67,10 @@ public abstract class OkHttpSender implements Sender {
   public static abstract class Builder {
 
     /**
-     * No default. The POST URL for zipkin's <a href="http://zipkin.io/zipkin-api/#/">v1 api</a>,
-     * usually "http://zipkinhost:9411/api/v1/spans"
+     * No default. The POST URL for zipkin's <a href="http://zipkin.io/zipkin-api/#/">v2 api</a>,
+     * usually "http://zipkinhost:9411/api/v2/spans"
      */
-    // customizable so that users can re-map /api/v1/spans ex for browser-originated traces
+    // customizable so that users can re-map /api/v2/spans ex for browser-originated traces
     public final Builder endpoint(String endpoint) {
       if (endpoint == null) throw new NullPointerException("endpoint == null");
       HttpUrl parsed = HttpUrl.parse(endpoint);

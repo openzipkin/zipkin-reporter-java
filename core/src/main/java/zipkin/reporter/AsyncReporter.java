@@ -44,6 +44,14 @@ public abstract class AsyncReporter<S> implements Reporter<S>, Flushable, Compon
     return new Builder(sender).build();
   }
 
+  /**
+   * Builds a reporter for <a href="http://zipkin.io/zipkin-api/#/">Zipkin V2</a> spans. If http,
+   * the endpoint of the sender is usually "http://zipkinhost:9411/api/v2/spans".
+   */
+  public static AsyncReporter<zipkin2.Span> v2(Sender sender) {
+    return new Builder(sender).build(SpanEncoder.JSON_V2);
+  }
+
   /** Like {@link #create(Sender)}, except you can configure settings such as the timeout. */
   public static Builder builder(Sender sender) {
     return new Builder(sender);
@@ -147,6 +155,16 @@ public abstract class AsyncReporter<S> implements Reporter<S>, Flushable, Compon
           return build(Encoder.JSON);
         case THRIFT:
           return build(Encoder.THRIFT);
+        default:
+          throw new UnsupportedOperationException(sender.encoding().name());
+      }
+    }
+
+    /** Builds an async reporter that encodes zipkin v2 spans as they are reported. */
+    public AsyncReporter<zipkin2.Span> buildV2() {
+      switch (sender.encoding()) {
+        case JSON:
+          return build(SpanEncoder.JSON_V2);
         default:
           throw new UnsupportedOperationException(sender.encoding().name());
       }
