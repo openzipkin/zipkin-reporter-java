@@ -14,22 +14,21 @@
     the License.
 
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>io.zipkin.reporter</groupId>
+  <groupId>io.zipkin.reporter2</groupId>
   <artifactId>zipkin-reporter-parent</artifactId>
-  <version>1.1.2-SNAPSHOT</version>
+  <version>2.0.0-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <modules>
     <module>core</module>
-    <module>local</module>
-    <module>kafka08</module>
-    <module>kafka10</module>
+    <module>kafka11</module>
     <module>urlconnection</module>
     <module>okhttp3</module>
-    <module>libthrift</module>
     <module>benchmarks</module>
   </modules>
 
@@ -68,7 +67,8 @@
   <scm>
     <url>https://github.com/openzipkin/zipkin-reporter-java</url>
     <connection>scm:git:https://github.com/openzipkin/zipkin-reporter-java.git</connection>
-    <developerConnection>scm:git:https://github.com/openzipkin/zipkin-reporter-java.git</developerConnection>
+    <developerConnection>scm:git:https://github.com/openzipkin/zipkin-reporter-java.git
+    </developerConnection>
     <tag>1.0.3</tag>
   </scm>
 
@@ -106,7 +106,8 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>zipkin-sender-local</artifactId>
+        <artifactId>zipkin-reporter</artifactId>
+        <type>test-jar</type>
         <version>${project.version}</version>
       </dependency>
       <dependency>
@@ -121,27 +122,38 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>zipkin-sender-kafka08</artifactId>
+        <artifactId>zipkin-sender-kafka11</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
-        <groupId>${project.groupId}</groupId>
-        <artifactId>zipkin-sender-libthrift</artifactId>
-        <version>${project.version}</version>
+        <groupId>com.squareup.okhttp3</groupId>
+        <artifactId>okhttp</artifactId>
+        <version>3.9.0</version>
+      </dependency>
+      <dependency>
+        <groupId>com.squareup.okhttp3</groupId>
+        <artifactId>mockwebserver</artifactId>
+        <version>3.9.0</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
 
   <dependencies>
     <dependency>
-      <groupId>io.zipkin.java</groupId>
-      <artifactId>zipkin</artifactId>
-      <version>${zipkin.version}</version>
-    </dependency>
-    <dependency>
       <groupId>io.zipkin.zipkin2</groupId>
       <artifactId>zipkin</artifactId>
       <version>${zipkin.version}</version>
+    </dependency>
+    <!--
+   For javax.annotation.ParametersAreNonnullByDefault and javax.annotation.Nullable
+   This is added as a root-level dependency to prevent javadoc from failing.
+   -->
+    <dependency>
+      <groupId>org.apache.servicemix.bundles</groupId>
+      <artifactId>org.apache.servicemix.bundles.jsr305</artifactId>
+      <version>3.0.2_1</version>
+      <!-- eventhough annotations are runtime retention, we do not look them up reflectively -->
+      <scope>provided</scope>
     </dependency>
     <!-- don't worry. auto-* are source retention, not runtime -->
     <dependency>
@@ -161,13 +173,6 @@
       <groupId>org.assertj</groupId>
       <artifactId>assertj-core</artifactId>
       <version>3.8.0</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.zipkin.java</groupId>
-      <artifactId>zipkin</artifactId>
-      <version>${zipkin.version}</version>
-      <type>test-jar</type>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -202,15 +207,15 @@
                 <createDependencyReducedPom>false</createDependencyReducedPom>
                 <artifactSet>
                   <includes>
-                    <include>io.zipkin.java:zipkin</include>
+                    <include>io.zipkin.zipkin2:zipkin</include>
                   </includes>
                 </artifactSet>
                 <filters>
                   <filter>
                     <!-- Shade references to classes packages -->
-                    <artifact>io.zipkin.java:zipkin</artifact>
+                    <artifact>io.zipkin.zipkin2:zipkin</artifact>
                     <includes>
-                      <include>zipkin/internal/Lazy*.class</include>
+                      <include>zipkin/internal/Platform*.class</include>
                     </includes>
                     <excludes>
                       <exclude>*</exclude>
@@ -456,7 +461,8 @@
             <version>2.10.4</version>
             <configuration>
               <failOnError>false</failOnError>
-              <excludePackageNames>zipkin.reporter.internal,zipkin.reporter.internal.*</excludePackageNames>
+              <excludePackageNames>zipkin2.reporter.internal,zipkin2.reporter.internal.*
+              </excludePackageNames>
               <!-- hush pedantic warnings: we don't put param and return on everything! -->
               <additionalparam>-Xdoclint:none</additionalparam>
             </configuration>
