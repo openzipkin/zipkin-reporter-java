@@ -1,14 +1,14 @@
 [![Gitter chat](http://img.shields.io/badge/gitter-join%20chat%20%E2%86%92-brightgreen.svg)](https://gitter.im/openzipkin/zipkin) [![Build Status](https://travis-ci.org/openzipkin/zipkin-reporter-java.svg?branch=master)](https://travis-ci.org/openzipkin/zipkin-reporter-java) [![Download](https://api.bintray.com/packages/openzipkin/maven/zipkin-reporter-java/images/download.svg) ](https://bintray.com/openzipkin/maven/zipkin-reporter-java/_latestVersion)
 
 # zipkin-reporter-java
-Shared library for reporting zipkin spans onto transports including http, kafka and scribe. Requires JRE 6 or later.
+Shared library for reporting zipkin spans onto transports including http and kafka. Requires JRE 6 or later.
 
 # Usage
 These components can be called when spans have been recorded and ready to send to zipkin.
 
 ## Encoder
 The span encoder is a specialized form of Zipkin's Codec, which only deals with encoding one span.
-It is also extensible in case the type of span reported is not `zipkin.Span`
+It is also extensible in case the type of span reported is not `zipkin2.Span`
 
 ## Reporter
 After recording an operation into a span, it needs to be reported out of process. There are two
@@ -25,7 +25,7 @@ AsyncReporter is how you actually get spans to zipkin. By default, it waits up t
 before flushes any pending spans out of process via a Sender.
 
 ```java
-reporter = AsyncReporter.v2(URLConnectionSender.json("http://localhost:9411/api/v2/spans"));
+reporter = AsyncReporter.create(URLConnectionSender.create("http://localhost:9411/api/v2/spans"));
 
 // Schedules the span to be sent, and won't block the calling thread on I/O
 reporter.report(span);
@@ -69,21 +69,21 @@ class CustomReporter implements Flushable {
 
   // Is the connection healthy?
   public boolean ok() {
-    return sender.check().ok;
+    return sender.check().ok();
   }
 
   public void report(Span span) {
-    pending.add(SpanEncoder.JSON_V2.encode(span));
+    pending.add(SpanBytesEncoder.JSON_V2.encode(span));
   }
 
   @Override
-  public void flush() {
+  public void flush() throws IOException {
     if (pending.isEmpty()) return;
     List<byte[]> drained = new ArrayList<byte[]>(pending.size());
     pending.drainTo(drained);
     if (drained.isEmpty()) return;
 
-    sender.sendSpans(drained, callback);
+    sender.sendSpans(drained, callback).execute();
   }
 ```
 
@@ -95,6 +95,6 @@ versions of zipkin server.
 You can switch to v1 encoding like so:
 
 ```java
-reporter = AsyncReporter.builder(URLConnectionSender.json("http://localhost:9411/api/v1/spans"))
-                        .build(SpanEncoder.JSON_V1);
+reporter = AsyncReporter.builder(URLConnectionSender.create("http://localhost:9411/api/v1/spans"))
+                        .build(SpanBytesEncoder.JSON_V1);
 ```
