@@ -170,12 +170,8 @@ public abstract class KafkaSender extends Sender {
 
   @Override public void close() throws IOException {
     if (closeCalled) return;
-    final Closeable closeable = get();
-    if(closeable != null) {
-      closeable.close();
-    }
+    get().close();
     closeCalled = true;
-    super.close();
   }
 
   @Override public final String toString() {
