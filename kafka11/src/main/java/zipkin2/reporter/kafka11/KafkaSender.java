@@ -15,6 +15,7 @@ package zipkin2.reporter.kafka11;
 
 import com.google.auto.value.AutoValue;
 import com.google.auto.value.extension.memoized.Memoized;
+import java.io.Closeable;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
@@ -169,8 +170,8 @@ public abstract class KafkaSender extends Sender {
 
   @Override public void close() throws IOException {
     if (closeCalled) return;
+    get().close();
     closeCalled = true;
-    super.close();
   }
 
   @Override public final String toString() {

@@ -16,8 +16,10 @@ package zipkin2.reporter.kafka11;
 import com.github.charithe.kafka.EphemeralKafkaBroker;
 import com.github.charithe.kafka.KafkaJunitRule;
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Stream;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -38,6 +40,8 @@ import zipkin2.reporter.Sender;
 import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static zipkin2.reporter.TestObjects.CLIENT_SPAN;
+
+import javax.management.ObjectName;
 
 public class KafkaSenderTest {
   EphemeralKafkaBroker broker = EphemeralKafkaBroker.create();
@@ -96,6 +100,22 @@ public class KafkaSenderTest {
 
     send(CLIENT_SPAN, CLIENT_SPAN).execute();
   }
+
+  @Test
+  public void shouldCloseKafkaProducerOnClose() throws Exception {
+    send(CLIENT_SPAN, CLIENT_SPAN).execute();
+
+    final ObjectName kafkaProducerMXBeanName = new ObjectName("kafka.producer:*");
+    final Set<ObjectName> withProducers = ManagementFactory.getPlatformMBeanServer().queryNames(
+        kafkaProducerMXBeanName, null);
+    assertThat(withProducers).isNotEmpty();
+
+    sender.close();
+
+    final Set<ObjectName> withNoProducers = ManagementFactory.getPlatformMBeanServer().queryNames(
+        kafkaProducerMXBeanName, null);
+    assertThat(withNoProducers).isEmpty();
+   }
 
   /**
    * The output of toString() on {@link Sender} implementations appears in thread names created by
