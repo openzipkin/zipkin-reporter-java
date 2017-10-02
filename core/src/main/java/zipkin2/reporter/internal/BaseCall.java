@@ -33,7 +33,7 @@ public abstract class BaseCall<V> extends Call<V> {
       this.executed = true;
     }
 
-    if (this.canceled) {
+    if (isCanceled()) {
       throw new IOException("Canceled");
     } else {
       return this.doExecute();
@@ -51,7 +51,7 @@ public abstract class BaseCall<V> extends Call<V> {
       this.executed = true;
     }
 
-    if (this.canceled) {
+    if (isCanceled()) {
       callback.onError(new IOException("Canceled"));
     } else {
       this.doEnqueue(callback);
@@ -62,9 +62,17 @@ public abstract class BaseCall<V> extends Call<V> {
 
   @Override public final void cancel() {
     this.canceled = true;
+    doCancel();
+  }
+
+  protected void doCancel() {
   }
 
   @Override public final boolean isCanceled() {
-    return this.canceled;
+    return this.canceled || doIsCanceled();
+  }
+
+  protected boolean doIsCanceled() {
+    return false;
   }
 }

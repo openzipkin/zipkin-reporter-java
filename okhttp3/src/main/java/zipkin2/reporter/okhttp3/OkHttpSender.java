@@ -180,7 +180,7 @@ public abstract class OkHttpSender extends Sender {
   }
 
   /** Waits up to a second for in-flight requests to finish before cancelling them */
-  @Override public void close() {
+  @Override public synchronized void close() {
     if (closeCalled) return;
     closeCalled = true;
 

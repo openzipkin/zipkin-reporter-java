@@ -15,7 +15,6 @@ package zipkin2.reporter.kafka11;
 
 import com.google.auto.value.AutoValue;
 import com.google.auto.value.extension.memoized.Memoized;
-import java.io.Closeable;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
@@ -136,8 +135,8 @@ public abstract class KafkaSender extends Sender {
 
   abstract Properties properties();
 
-  /** close is typically called from a different thread */
-  volatile boolean closeCalled;
+  /** get and close are typically called from different threads */
+  volatile boolean provisioned, closeCalled;
 
   @Override public int messageSizeInBytes(List<byte[]> encodedSpans) {
     return encoding().listSizeInBytes(encodedSpans);
@@ -165,12 +164,14 @@ public abstract class KafkaSender extends Sender {
   }
 
   @Memoized KafkaProducer<byte[], byte[]> get() {
-    return new KafkaProducer<>(properties());
+    KafkaProducer<byte[], byte[]> result = new KafkaProducer<>(properties());
+    provisioned = true;
+    return result;
   }
 
-  @Override public void close() throws IOException {
+  @Override public synchronized void close() {
     if (closeCalled) return;
-    get().close();
+    if (provisioned) get().close();
     closeCalled = true;
   }
 
@@ -181,7 +182,7 @@ public abstract class KafkaSender extends Sender {
   KafkaSender() {
   }
 
-  class KafkaCall extends BaseCall<Void> {
+  class KafkaCall extends BaseCall<Void> { // KafkaFuture is not cancelable
     private final byte[] message;
 
     KafkaCall(byte[] message) {

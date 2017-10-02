@@ -21,6 +21,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
+import javax.management.ObjectName;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -40,8 +41,6 @@ import zipkin2.reporter.Sender;
 import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static zipkin2.reporter.TestObjects.CLIENT_SPAN;
-
-import javax.management.ObjectName;
 
 public class KafkaSenderTest {
   EphemeralKafkaBroker broker = EphemeralKafkaBroker.create();
@@ -115,7 +114,7 @@ public class KafkaSenderTest {
     final Set<ObjectName> withNoProducers = ManagementFactory.getPlatformMBeanServer().queryNames(
         kafkaProducerMXBeanName, null);
     assertThat(withNoProducers).isEmpty();
-   }
+  }
 
   /**
    * The output of toString() on {@link Sender} implementations appears in thread names created by
@@ -128,7 +127,6 @@ public class KafkaSenderTest {
     assertThat(sender.toString()).isEqualTo("KafkaSender(" + broker.getBrokerList().get() + ")");
   }
 
-  /** Blocks until the callback completes to allow read-your-writes consistency during tests. */
   Call<Void> send(Span... spans) {
     return sender.sendSpans(Stream.of(spans)
         .map(SpanBytesEncoder.JSON_V2::encode)
