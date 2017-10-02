@@ -58,19 +58,4 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
-  <build>
-    <plugins>
-      <plugin>
-        <artifactId>maven-shade-plugin</artifactId>
-        <configuration>
-          <relocations>
-            <relocation>
-              <pattern>zipkin2.internal</pattern>
-              <shadedPattern>zipkin2.reporter.kafka11.internal.zipkin</shadedPattern>
-            </relocation>
-          </relocations>
-        </configuration>
-      </plugin>
-    </plugins>
-  </build>
 </project>
