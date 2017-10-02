@@ -233,6 +233,13 @@ public class OkHttpSenderTest {
     });
   }
 
+  @Test public void outOfBandCancel() throws Exception {
+    HttpCall call = (HttpCall) send(CLIENT_SPAN, CLIENT_SPAN);
+    call.cancel();
+
+    assertThat(call.isCanceled()).isTrue();
+  }
+
   @Test public void check_ok() throws Exception {
     server.enqueue(new MockResponse());
 
