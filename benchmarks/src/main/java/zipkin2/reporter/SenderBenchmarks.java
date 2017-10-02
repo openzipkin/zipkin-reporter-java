@@ -100,7 +100,7 @@ public abstract class SenderBenchmarks {
         .metrics(metrics).build();
   }
 
-  abstract Sender createSender() throws Exception;
+  protected abstract Sender createSender() throws Exception;
 
   @Setup(Level.Iteration)
   public void fillQueue() throws IOException {
@@ -123,13 +123,13 @@ public abstract class SenderBenchmarks {
   }
 
   @TearDown(Level.Trial)
-  public void close() throws IOException {
+  public void close() throws Exception {
     reporter.close();
     sender.close();
     afterSenderClose();
   }
 
-  abstract void afterSenderClose() throws IOException;
+  protected abstract void afterSenderClose() throws Exception;
 
   static byte[] spanFromResource(String jsonResource) {
     InputStream stream = SenderBenchmarks.class.getResourceAsStream(jsonResource);

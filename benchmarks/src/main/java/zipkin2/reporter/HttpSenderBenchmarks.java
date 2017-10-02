@@ -20,7 +20,7 @@ import java.net.InetSocketAddress;
 public abstract class HttpSenderBenchmarks extends SenderBenchmarks {
   Undertow server;
 
-  @Override Sender createSender() throws Exception {
+  @Override protected Sender createSender() throws Exception {
     server = Undertow.builder()
         .addHttpListener(0, "127.0.0.1")
         .setHandler(exchange -> exchange.setStatusCode(202).endExchange()).build();
@@ -33,7 +33,7 @@ public abstract class HttpSenderBenchmarks extends SenderBenchmarks {
 
   abstract Sender newHttpSender(String endpoint);
 
-  @Override void afterSenderClose() throws IOException {
+  @Override protected void afterSenderClose() throws IOException {
     server.stop();
   }
 }

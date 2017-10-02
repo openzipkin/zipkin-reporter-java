@@ -29,10 +29,9 @@ import zipkin2.reporter.kafka11.KafkaSender;
 public class KafkaSenderBenchmarks extends SenderBenchmarks {
   EphemeralKafkaBroker broker = EphemeralKafkaBroker.create();
   KafkaJunitRule kafka;
-  KafkaSender sender;
   KafkaConsumer<byte[], byte[]> consumer;
 
-  @Override Sender createSender() throws Exception {
+  @Override protected Sender createSender() throws Exception {
     broker.start();
     kafka = new KafkaJunitRule(broker).waitForStartup();
     consumer = kafka.helper().createByteConsumer();
@@ -50,7 +49,7 @@ public class KafkaSenderBenchmarks extends SenderBenchmarks {
     return KafkaSender.create(broker.getBrokerList().get());
   }
 
-  @Override void afterSenderClose() throws IOException {
+  @Override protected void afterSenderClose() throws IOException {
     broker.stop();
   }
 
