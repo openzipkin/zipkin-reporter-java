@@ -18,7 +18,6 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 import java.io.IOException;
-import java.util.concurrent.TimeoutException;
 import org.junit.AssumptionViolatedException;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
@@ -49,22 +48,17 @@ public class RabbitMQSenderBenchmarks extends SenderBenchmarks {
 
     new Thread(() -> {
       try {
-        channel.basicConsume(result.queue(), true, new DefaultConsumer(channel) {
-          @Override public void handleDelivery(String consumerTag, Envelope envelope,
-              AMQP.BasicProperties properties, byte[] body) throws IOException {
-          }
-        });
+        channel.basicConsume(result.queue(), true, new DefaultConsumer(channel));
       } catch (IOException e) {
         e.printStackTrace();
-      } finally {
       }
     }).start();
 
     return result;
   }
 
-  @Override protected void afterSenderClose() throws IOException, TimeoutException {
-    if (channel != null) channel.close();
+  @Override protected void afterSenderClose() {
+    // channel is implicitly closed with the connection
   }
 
   // Convenience main entry-point

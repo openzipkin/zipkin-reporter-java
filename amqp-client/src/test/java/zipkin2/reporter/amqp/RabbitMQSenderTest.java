@@ -86,7 +86,7 @@ public class RabbitMQSenderTest {
   @Test
   public void checkFalseWhenRabbitMQIsDown() throws Exception {
     sender.close();
-    sender = sender.toBuilder().addresses("1.2.3.4:1213").build();
+    sender = sender.toBuilder().connectionTimeout(100).addresses("1.2.3.4:1213").build();
 
     CheckResult check = sender.check();
     assertThat(check.ok()).isFalse();
