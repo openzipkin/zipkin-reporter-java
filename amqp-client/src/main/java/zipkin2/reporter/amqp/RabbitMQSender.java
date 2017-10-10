@@ -23,7 +23,6 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeoutException;
-import java.util.logging.Logger;
 import zipkin2.Call;
 import zipkin2.Callback;
 import zipkin2.CheckResult;
@@ -45,8 +44,6 @@ import zipkin2.reporter.internal.BaseCall;
  */
 @AutoValue
 public abstract class RabbitMQSender extends Sender {
-  static final Logger logger = Logger.getLogger(RabbitMQSender.class.getName());
-
   /** Creates a sender that sends {@link Encoding#JSON} messages. */
   public static RabbitMQSender create(String addresses) {
     return newBuilder().addresses(addresses).build();
