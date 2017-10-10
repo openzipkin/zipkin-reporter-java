@@ -25,6 +25,7 @@
   <modules>
     <module>core</module>
     <module>kafka11</module>
+    <module>amqp-client</module>
     <module>urlconnection</module>
     <module>okhttp3</module>
     <module>benchmarks</module>
@@ -121,6 +122,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>zipkin-sender-kafka11</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>zipkin-sender-amqp-client</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

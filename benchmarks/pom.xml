@@ -57,6 +57,11 @@
 
     <dependency>
       <groupId>${project.groupId}</groupId>
+      <artifactId>zipkin-sender-amqp-client</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>${project.groupId}</groupId>
       <artifactId>zipkin-reporter</artifactId>
       <type>test-jar</type>
       <scope>compile</scope>
