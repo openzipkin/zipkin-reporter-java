@@ -105,7 +105,7 @@ public abstract class KafkaSender extends Sender {
      *
      * @see ProducerConfig
      */
-    public final Builder overrides(Map<String, String> overrides) {
+    public final Builder overrides(Map<String, ?> overrides) {
       if (overrides == null) throw new NullPointerException("overrides == null");
       properties().putAll(overrides);
       return this;
