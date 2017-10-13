@@ -176,7 +176,7 @@ public abstract class KafkaSender extends Sender {
   }
 
   @Override public final String toString() {
-    return "KafkaSender(" + properties().getProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG) + ")";
+    return "KafkaSender(" + properties().get(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG) + ")";
   }
 
   KafkaSender() {
