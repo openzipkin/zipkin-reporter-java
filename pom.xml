@@ -148,17 +148,6 @@
       <artifactId>zipkin</artifactId>
       <version>${zipkin.version}</version>
     </dependency>
-    <!--
-   For javax.annotation.ParametersAreNonnullByDefault and javax.annotation.Nullable
-   This is added as a root-level dependency to prevent javadoc from failing.
-   -->
-    <dependency>
-      <groupId>org.apache.servicemix.bundles</groupId>
-      <artifactId>org.apache.servicemix.bundles.jsr305</artifactId>
-      <version>3.0.2_1</version>
-      <!-- eventhough annotations are runtime retention, we do not look them up reflectively -->
-      <scope>provided</scope>
-    </dependency>
     <!-- don't worry. auto-* are source retention, not runtime -->
     <dependency>
       <groupId>com.google.auto.value</groupId>
