@@ -41,7 +41,7 @@
 
     <main.basedir>${project.basedir}</main.basedir>
 
-    <zipkin.version>2.2.0</zipkin.version>
+    <zipkin.version>2.2.1</zipkin.version>
     <license-maven-plugin.version>2.11</license-maven-plugin.version>
   </properties>
 
@@ -147,17 +147,6 @@
       <groupId>io.zipkin.zipkin2</groupId>
       <artifactId>zipkin</artifactId>
       <version>${zipkin.version}</version>
-    </dependency>
-    <!--
-   For javax.annotation.ParametersAreNonnullByDefault and javax.annotation.Nullable
-   This is added as a root-level dependency to prevent javadoc from failing.
-   -->
-    <dependency>
-      <groupId>org.apache.servicemix.bundles</groupId>
-      <artifactId>org.apache.servicemix.bundles.jsr305</artifactId>
-      <version>3.0.2_1</version>
-      <!-- eventhough annotations are runtime retention, we do not look them up reflectively -->
-      <scope>provided</scope>
     </dependency>
     <!-- don't worry. auto-* are source retention, not runtime -->
     <dependency>
