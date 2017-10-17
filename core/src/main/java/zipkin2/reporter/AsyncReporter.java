@@ -42,19 +42,14 @@ import static java.util.logging.Level.FINE;
  */
 public abstract class AsyncReporter<S> extends Component implements Reporter<S>, Flushable {
   /**
-   * After a certain threshold, spans are drained and {@link Sender#sendSpans(List) sent} to Zipkin
-   * collectors.
+   * Builds a json reporter for <a href="http://zipkin.io/zipkin-api/#/">Zipkin V2</a>. If http,
+   * the endpoint of the sender is usually "http://zipkinhost:9411/api/v2/spans".
+   *
+   * <p>After a certain threshold, spans are drained and {@link Sender#sendSpans(List) sent} to
+   * Zipkin collectors.
    */
   public static AsyncReporter<zipkin2.Span> create(Sender sender) {
     return new Builder(sender).build();
-  }
-
-  /**
-   * Builds a reporter for <a href="http://zipkin.io/zipkin-api/#/">Zipkin V2</a> spans. If http,
-   * the endpoint of the sender is usually "http://zipkinhost:9411/api/v2/spans".
-   */
-  public static AsyncReporter<zipkin2.Span> v2(Sender sender) {
-    return new Builder(sender).build(SpanBytesEncoder.JSON_V2);
   }
 
   /** Like {@link #create(Sender)}, except you can configure settings such as the timeout. */
