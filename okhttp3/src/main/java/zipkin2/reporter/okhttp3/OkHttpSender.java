@@ -107,8 +107,6 @@ public abstract class OkHttpSender extends Sender {
       clientBuilder().dispatcher(dispatcher).build();
       if (encoding() == Encoding.JSON) {
         return encoder(RequestBodyMessageEncoder.JSON).autoBuild();
-      } else if (encoding() == Encoding.JSON) {
-        return encoder(RequestBodyMessageEncoder.JSON).autoBuild();
       }
       throw new UnsupportedOperationException("Unsupported encoding: " + encoding().name());
     }
