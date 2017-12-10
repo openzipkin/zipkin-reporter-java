@@ -59,6 +59,7 @@ public abstract class RabbitMQSender extends Sender {
     List<Address> addresses;
     String queue = "zipkin";
     Encoding encoding = Encoding.JSON;
+    int messageMaxBytes = 100000; // arbitrary to match kafka, messages theoretically can be 2GiB
 
     public Builder connectionFactory(ConnectionFactory connectionFactory) {
       if (connectionFactory == null) throw new NullPointerException("connectionFactory == null");
@@ -116,10 +117,16 @@ public abstract class RabbitMQSender extends Sender {
       return this;
     }
 
+    /** Maximum size of a message. Default 1000000. */
+    public Builder messageMaxBytes(int messageMaxBytes) {
+      this.messageMaxBytes = messageMaxBytes;
+      return this;
+    }
+
     public final RabbitMQSender build() {
       return new AutoValue_RabbitMQSender(
           encoding,
-          100000, // arbitrary to match kafka, messages theoretically can be 2GiB
+          messageMaxBytes,
           addresses,
           queue,
           connectionFactory.clone(),
@@ -166,6 +173,10 @@ public abstract class RabbitMQSender extends Sender {
     } catch (RuntimeException e) {
       return CheckResult.failed(e);
     }
+  }
+
+  @Override public final String toString() {
+    return "RabbitMQSender{addresses=" + addresses() + ", queue=" + queue() + "}";
   }
 
   @Memoized Connection get() {

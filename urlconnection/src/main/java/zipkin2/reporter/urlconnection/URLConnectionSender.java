@@ -196,7 +196,7 @@ public abstract class URLConnectionSender extends Sender {
   }
 
   @Override public final String toString() {
-    return "URLConnectionSender(" + endpoint() + ")";
+    return "URLConnectionSender{" + endpoint() + "}";
   }
 
   URLConnectionSender() {

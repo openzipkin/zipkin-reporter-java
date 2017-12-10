@@ -181,7 +181,7 @@ public abstract class AsyncReporter<S> extends Component implements Reporter<S>,
             for (byte[] next : consumer.drain()) result.pending.offer(next);
             result.close.countDown();
           }
-        }, "AsyncReporter(" + sender + ")");
+        }, "AsyncReporter{" + sender + "}");
         flushThread.setDaemon(true);
         flushThread.start();
       }
@@ -291,7 +291,7 @@ public abstract class AsyncReporter<S> extends Component implements Reporter<S>,
     }
 
     @Override public String toString() {
-      return "AsyncReporter(" + sender + ")";
+      return "AsyncReporter{" + sender + "}";
     }
   }
 }
