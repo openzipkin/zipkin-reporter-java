@@ -32,6 +32,11 @@ reporter = AsyncReporter.create(URLConnectionSender.create("http://localhost:941
 reporter.report(span);
 ```
 
+## Spring Beans
+If you are trying to trace legacy applications, you may be interested in
+[Spring XML Configuration](spring-beans/). This allows you to trace legacy
+Spring 2.5+ applications without any custom code.
+
 ### Tuning
 
 By default AsyncReporter starts a thread to flush the queue of reported
