@@ -268,7 +268,7 @@ public class OkHttpSenderTest {
    * contain sensitive information.
    */
   @Test public void toStringContainsOnlySenderTypeAndEndpoint() throws Exception {
-    assertThat(sender.toString()).isEqualTo("OkHttpSender(" + endpoint + ")");
+    assertThat(sender.toString()).isEqualTo("OkHttpSender{" + endpoint + "}");
   }
 
   @Test public void bugGuardCache() throws Exception {

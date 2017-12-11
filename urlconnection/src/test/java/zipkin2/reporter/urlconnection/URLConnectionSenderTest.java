@@ -140,7 +140,7 @@ public class URLConnectionSenderTest {
    * contain sensitive information.
    */
   @Test public void toStringContainsOnlySenderTypeAndEndpoint() throws Exception {
-    assertThat(sender.toString()).isEqualTo("URLConnectionSender(" + endpoint + ")");
+    assertThat(sender.toString()).isEqualTo("URLConnectionSender{" + endpoint + "}");
   }
 
   Call<Void> send(Span... spans) {

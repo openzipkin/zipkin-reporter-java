@@ -218,7 +218,7 @@ public class AsyncReporterTest {
 
     // check name is pretty
     assertThat(threadName.take())
-        .isEqualTo("AsyncReporter(FakeSender)");
+        .isEqualTo("AsyncReporter{FakeSender}");
   }
 
   @Test

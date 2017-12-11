@@ -123,8 +123,10 @@ public class KafkaSenderTest {
    * contain sensitive information.
    */
   @Test
-  public void toStringContainsOnlySenderTypeAndBootstrapBrokers() throws Exception {
-    assertThat(sender.toString()).isEqualTo("KafkaSender(" + broker.getBrokerList().get() + ")");
+  public void toStringContainsOnlySummaryInformation() throws Exception {
+    assertThat(sender.toString()).isEqualTo(
+        "KafkaSender{bootstrapServers=" + broker.getBrokerList().get() + ", topic=zipkin}"
+    );
   }
 
   Call<Void> send(Span... spans) {

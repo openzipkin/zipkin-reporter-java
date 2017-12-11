@@ -34,6 +34,8 @@ import zipkin2.CheckResult;
 import zipkin2.Span;
 import zipkin2.codec.SpanBytesDecoder;
 import zipkin2.codec.SpanBytesEncoder;
+import zipkin2.reporter.AsyncReporter;
+import zipkin2.reporter.Sender;
 
 import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -109,6 +111,19 @@ public class RabbitMQSenderTest {
     sender.close();
     assertThat(sender.get().isOpen())
         .isFalse();
+  }
+
+  /**
+   * The output of toString() on {@link Sender} implementations appears in thread names created by
+   * {@link AsyncReporter}. Since thread names are likely to be exposed in logs and other monitoring
+   * tools, care should be taken to ensure the toString() output is a reasonable length and does not
+   * contain sensitive information.
+   */
+  @Test
+  public void toStringContainsOnlySummaryInformation() throws Exception {
+    assertThat(sender.toString()).isEqualTo(
+        "RabbitMQSender{addresses=" + sender.addresses() + ", queue=zipkin-test1}"
+    );
   }
 
   /** Blocks until the callback completes to allow read-your-writes consistency during tests. */

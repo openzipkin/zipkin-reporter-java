@@ -208,7 +208,7 @@ public abstract class OkHttpSender extends Sender {
   }
 
   @Override public final String toString() {
-    return "OkHttpSender(" + endpoint() + ")";
+    return "OkHttpSender{" + endpoint() + "}";
   }
 
   OkHttpSender() {
