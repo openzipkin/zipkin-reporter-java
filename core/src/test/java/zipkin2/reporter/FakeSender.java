@@ -74,6 +74,10 @@ public abstract class FakeSender extends Sender {
     return encoding().listSizeInBytes(encodedSpans);
   }
 
+  @Override public int messageSizeInBytes(int encodedSizeInBytes) {
+    return encoding().listSizeInBytes(encodedSizeInBytes);
+  }
+
   /** close is typically called from a different thread */
   volatile boolean closeCalled;
 

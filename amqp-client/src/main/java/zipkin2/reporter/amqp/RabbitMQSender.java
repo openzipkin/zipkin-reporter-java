@@ -158,6 +158,10 @@ public abstract class RabbitMQSender extends Sender {
     return encoding().listSizeInBytes(encodedSpans);
   }
 
+  @Override public int messageSizeInBytes(int encodedSizeInBytes) {
+    return encoding().listSizeInBytes(encodedSizeInBytes);
+  }
+
   /** This sends all of the spans as a single message. */
   @Override public Call<Void> sendSpans(List<byte[]> encodedSpans) {
     if (closeCalled) throw new IllegalStateException("closed");

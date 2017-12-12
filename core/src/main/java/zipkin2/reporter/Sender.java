@@ -13,6 +13,7 @@
  */
 package zipkin2.reporter;
 
+import java.util.Collections;
 import java.util.List;
 import zipkin2.Call;
 import zipkin2.Component;
@@ -62,6 +63,19 @@ public abstract class Sender extends Component {
    * inefficient list encoding. For example, Scribe base64's then tags each span with a category.
    */
   public abstract int messageSizeInBytes(List<byte[]> encodedSpans);
+
+  /**
+   * Like {@link #messageSizeInBytes(List)}, except for a single-span. This is used to ensure a span
+   * is never accepted that can never be sent.
+   *
+   * <p>Always override this, which is only abstract as added after version 2.0
+   *
+   * @param encodedSizeInBytes the {@link BytesEncoder#sizeInBytes(Object) encoded size} of a span
+   * @since 2.2
+   */
+  public int messageSizeInBytes(int encodedSizeInBytes) {
+    return messageSizeInBytes(Collections.singletonList(new byte[encodedSizeInBytes]));
+  }
 
   /**
    * Sends a list of encoded spans to a transport such as http or Kafka.

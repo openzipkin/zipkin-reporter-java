@@ -14,18 +14,27 @@
 package zipkin2.reporter;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.Iterator;
+import zipkin2.codec.Encoding;
 
-final class BufferNextMessage implements ByteBoundedQueue.Consumer {
-  private final Sender sender;
-  private final int maxBytes;
-  private final long timeoutNanos;
-  private final List<byte[]> buffer = new LinkedList<>();
+/** Use of this type happens off the application's main thread. This type is not thread-safe */
+abstract class BufferNextMessage<S> implements SpanWithSizeConsumer<S> {
+
+  static <S> BufferNextMessage<S> create(Sender sender, int maxBytes, long timeoutNanos) {
+    if (sender.encoding() != Encoding.JSON) { // TODO update this once we support protobuf
+      throw new UnsupportedOperationException("sender.encoding() != Encoding.JSON");
+    }
+    return new BufferNextJsonMessage<>(sender, maxBytes, timeoutNanos);
+  }
+
+  final Sender sender;
+  final int maxBytes;
+  final long timeoutNanos;
+  final ArrayList<S> spans = new ArrayList<>();
+  final ArrayList<Integer> sizes = new ArrayList<>();
 
   long deadlineNanoTime;
-  int sizeInBytes;
+  int messageSizeInBytes;
   boolean bufferFull;
 
   BufferNextMessage(Sender sender, int maxBytes, long timeoutNanos) {
@@ -34,29 +43,67 @@ final class BufferNextMessage implements ByteBoundedQueue.Consumer {
     this.timeoutNanos = timeoutNanos;
   }
 
-  @Override
-  public boolean accept(byte[] next) {
-    buffer.add(next); // speculatively add to the buffer so we can size it
-    int x = sender.messageSizeInBytes(buffer);
-    int y = maxBytes;
-    int includingNextVsMaxBytes = (x < y) ? -1 : ((x == y) ? 0 : 1);
+  abstract int messageSizeInBytes(int nextSizeInBytes);
 
-    // If we can fit queued spans and the next into one message...
-    if (includingNextVsMaxBytes <= 0) {
-      sizeInBytes = x;
+  abstract void resetMessageSizeInBytes();
 
-      if (includingNextVsMaxBytes == 0) {
-        bufferFull = true;
+  static final class BufferNextJsonMessage<S> extends BufferNextMessage<S> {
+    boolean hasAtLeastOneSpan;
+
+    BufferNextJsonMessage(Sender sender, int maxBytes, long timeoutNanos) {
+      super(sender, maxBytes, timeoutNanos);
+      messageSizeInBytes = 2;
+      hasAtLeastOneSpan = false;
+    }
+
+    @Override int messageSizeInBytes(int nextSizeInBytes) {
+      return messageSizeInBytes + nextSizeInBytes + (hasAtLeastOneSpan ? 1 : 0);
+    }
+
+    @Override void resetMessageSizeInBytes() {
+      int length = sizes.size();
+      messageSizeInBytes = 2 + length - 1; // [] and commas
+      hasAtLeastOneSpan = length > 2;
+
+      for (int i = 0; i < length; i++) {
+        messageSizeInBytes += sizes.get(i);
       }
-      return true;
-    } else {
-      buffer.remove(buffer.size() - 1);
-      return false; // we couldn't fit the next message into this buffer
+    }
+
+    @Override void addSpanToBuffer(S next, int nextSizeInBytes) {
+      super.addSpanToBuffer(next, nextSizeInBytes);
+      hasAtLeastOneSpan = true;
+    }
+
+    @Override void drain(SpanWithSizeConsumer<S> consumer) {
+      super.drain(consumer);
+      messageSizeInBytes = 2;
+      hasAtLeastOneSpan = false;
     }
   }
 
+  /** This is done inside a lock that holds up writers, so has to be fast. No encoding! */
+  @Override public boolean offer(S next, int nextSizeInBytes) {
+    int x = messageSizeInBytes(nextSizeInBytes);
+    int y = maxBytes;
+    int includingNextVsMaxBytes = (x < y) ? -1 : ((x == y) ? 0 : 1); // Integer.compare, but JRE 6
+
+    if (includingNextVsMaxBytes > 0) return false; // can't fit the next message into this buffer
+
+    addSpanToBuffer(next, nextSizeInBytes);
+    messageSizeInBytes = x;
+
+    if (includingNextVsMaxBytes == 0) bufferFull = true;
+    return true;
+  }
+
+  void addSpanToBuffer(S next, int nextSizeInBytes) {
+    spans.add(next);
+    sizes.add(nextSizeInBytes);
+  }
+
   long remainingNanos() {
-    if (buffer.isEmpty()) {
+    if (spans.isEmpty()) {
       deadlineNanoTime = System.nanoTime() + timeoutNanos;
     }
     return Math.max(deadlineNanoTime - System.nanoTime(), 0);
@@ -66,17 +113,28 @@ final class BufferNextMessage implements ByteBoundedQueue.Consumer {
     return bufferFull || remainingNanos() <= 0;
   }
 
-  List<byte[]> drain() {
-    if (buffer.isEmpty()) return Collections.emptyList();
-    ArrayList<byte[]> result = new ArrayList<>(buffer);
-    buffer.clear();
-    sizeInBytes = 0;
-    bufferFull = false;
+  // this occurs off the application thread
+  void drain(SpanWithSizeConsumer<S> consumer) {
+    Iterator<S> spanIterator = spans.iterator();
+    Iterator<Integer> sizeIterator = sizes.iterator();
+    while (spanIterator.hasNext()) {
+      if (consumer.offer(spanIterator.next(), sizeIterator.next())) {
+        bufferFull = false;
+        spanIterator.remove();
+        sizeIterator.remove();
+      }
+    }
+
+    resetMessageSizeInBytes();
+    // regardless, reset the clock
     deadlineNanoTime = 0;
-    return result;
+  }
+
+  int count() {
+    return spans.size();
   }
 
   int sizeInBytes() {
-    return sizeInBytes;
+    return messageSizeInBytes;
   }
 }
