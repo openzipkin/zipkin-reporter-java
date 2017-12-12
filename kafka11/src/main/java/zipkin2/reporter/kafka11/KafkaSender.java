@@ -23,6 +23,7 @@ import java.util.Properties;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import zipkin2.Call;
 import zipkin2.Callback;
@@ -197,30 +198,38 @@ public abstract class KafkaSender extends Sender {
     }
 
     @Override protected Void doExecute() throws IOException {
-      final AwaitableCallback callback = new AwaitableCallback();
-      get().send(new ProducerRecord<>(topic(), message), (metadata, exception) -> {
-        if (exception == null) {
-          callback.onSuccess(null);
-        } else {
-          callback.onError(exception);
-        }
-      });
+      AwaitableCallback callback = new AwaitableCallback();
+      get().send(new ProducerRecord<>(topic(), message), new CallbackAdapter(callback));
       callback.await();
       return null;
     }
 
     @Override protected void doEnqueue(Callback<Void> callback) {
-      get().send(new ProducerRecord<>(topic(), message), (metadata, exception) -> {
-        if (exception == null) {
-          callback.onSuccess(null);
-        } else {
-          callback.onError(exception);
-        }
-      });
+      get().send(new ProducerRecord<>(topic(), message), new CallbackAdapter(callback));
     }
 
     @Override public Call<Void> clone() {
       return new KafkaCall(message);
+    }
+  }
+
+  static final class CallbackAdapter implements org.apache.kafka.clients.producer.Callback {
+    final Callback<Void> delegate;
+
+    CallbackAdapter(Callback<Void> delegate) {
+      this.delegate = delegate;
+    }
+
+    @Override public void onCompletion(RecordMetadata metadata, Exception exception) {
+      if (exception == null) {
+        delegate.onSuccess(null);
+      } else {
+        delegate.onError(exception);
+      }
+    }
+
+    @Override public String toString() {
+      return delegate.toString();
     }
   }
 }

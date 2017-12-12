@@ -7,6 +7,10 @@
     </encoder>
   </appender>
 
+  <!-- hush the unit test runner -->
+  <logger name="com.github.charithe.kafka.EphemeralKafkaBroker" level="WARN"/>
+  <logger name="kafka.server.BrokerMetadataCheckpoint" level="OFF"/>
+
   <!-- don't waste logs when ZK check fails -->
   <logger name="org.apache.zookeeper.ClientCnxn" level="OFF"/>
   <logger name="org.apache.kafka.clients.NetworkClient" level="OFF"/>
