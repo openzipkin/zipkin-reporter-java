@@ -125,6 +125,10 @@ public abstract class URLConnectionSender extends Sender {
     return encoding().listSizeInBytes(encodedSpans);
   }
 
+  @Override public int messageSizeInBytes(int encodedSizeInBytes) {
+    return encoding().listSizeInBytes(encodedSizeInBytes);
+  }
+
   /** The returned call sends spans as a POST to {@link #endpoint()}. */
   @Override public Call<Void> sendSpans(List<byte[]> encodedSpans) {
     if (closeCalled) throw new IllegalStateException("close");

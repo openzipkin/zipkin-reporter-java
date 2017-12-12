@@ -34,6 +34,7 @@ import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
 import zipkin2.CheckResult;
 import zipkin2.Span;
+import zipkin2.codec.SpanBytesDecoder;
 
 /**
  * This benchmark reports spans as fast as possible. The sender clears the queue as fast as
@@ -58,7 +59,8 @@ public abstract class SenderBenchmarks {
 
   public int messageMaxBytes;
 
-  static final byte[] clientSpan = spanFromResource("/zipkin2-client.json");
+  static final byte[] clientSpanBytes = spanFromResource("/zipkin2-client.json");
+  static final Span clientSpan = SpanBytesDecoder.JSON_V2.decodeOne(clientSpanBytes);
 
   static final InMemoryReporterMetrics metrics = new InMemoryReporterMetrics();
 
@@ -104,7 +106,7 @@ public abstract class SenderBenchmarks {
 
   @Setup(Level.Iteration)
   public void fillQueue() throws IOException {
-    while (reporter.pending.offer(clientSpan));
+    while (reporter.pending.offer(clientSpan, clientSpanBytes.length));
   }
 
   @TearDown(Level.Iteration)
@@ -115,7 +117,7 @@ public abstract class SenderBenchmarks {
   @Benchmark
   public void report(InMemoryReporterMetricsAsCounters counters) throws InterruptedException {
     // if we were able to add more to the queue, that means the sender sent spans
-    if (reporter.pending.offer(clientSpan)) {
+    if (reporter.pending.offer(clientSpan, clientSpanBytes.length)) {
       metrics.incrementSpans(1);
     } else {
       Thread.sleep(10);

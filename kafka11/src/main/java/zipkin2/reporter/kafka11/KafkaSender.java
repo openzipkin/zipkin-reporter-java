@@ -142,6 +142,10 @@ public abstract class KafkaSender extends Sender {
     return encoding().listSizeInBytes(encodedSpans);
   }
 
+  @Override public int messageSizeInBytes(int encodedSizeInBytes) {
+    return encoding().listSizeInBytes(encodedSizeInBytes);
+  }
+
   /**
    * This sends all of the spans as a single message.
    *

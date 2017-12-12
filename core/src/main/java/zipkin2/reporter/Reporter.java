@@ -24,8 +24,23 @@ import zipkin2.Span;
  * zipkin2.Span).
  */
 public interface Reporter<S> {
-  Reporter<Span> NOOP = s -> {};
-  Reporter<Span> CONSOLE = s -> System.out.println(s.toString());
+  Reporter<Span> NOOP = new Reporter<Span>() {
+    @Override public void report(Span span) {
+    }
+
+    @Override public String toString() {
+      return "NoopReporter{}";
+    }
+  };
+  Reporter<Span> CONSOLE = new Reporter<Span>() {
+    @Override public void report(Span span) {
+      System.out.println(span.toString());
+    }
+
+    @Override public String toString() {
+      return "ConsoleReporter{}";
+    }
+  };
 
   /**
    * Schedules the span to be sent onto the transport.

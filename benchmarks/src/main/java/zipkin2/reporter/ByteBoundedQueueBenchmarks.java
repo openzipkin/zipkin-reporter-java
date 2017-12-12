@@ -29,6 +29,10 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Warmup;
+import org.openjdk.jmh.runner.Runner;
+import org.openjdk.jmh.runner.RunnerException;
+import org.openjdk.jmh.runner.options.Options;
+import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 @Measurement(iterations = 5, time = 1)
 @Warmup(iterations = 10, time = 1)
@@ -37,7 +41,7 @@ import org.openjdk.jmh.annotations.Warmup;
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
 @State(Scope.Group)
 public class ByteBoundedQueueBenchmarks {
-  static final byte[] ONE = {1};
+  static final byte ONE = 1;
 
   @AuxCounters
   @State(Scope.Thread)
@@ -71,16 +75,16 @@ public class ByteBoundedQueueBenchmarks {
     }
   }
 
-  ByteBoundedQueue q;
+  ByteBoundedQueue<Byte> q;
 
   @Setup
   public void setup() {
-    q = new ByteBoundedQueue(10000, 10000);
+    q = new ByteBoundedQueue<>(10000, 10000);
   }
 
   @Benchmark @Group("no_contention") @GroupThreads(1)
   public void no_contention_offer(OfferCounters counters) {
-    if (q.offer(ONE)) {
+    if (q.offer(ONE, 1)) {
       counters.offersMade++;
     } else {
       counters.offersFailed++;
@@ -89,7 +93,7 @@ public class ByteBoundedQueueBenchmarks {
 
   @Benchmark @Group("no_contention") @GroupThreads(1)
   public void no_contention_drain(DrainCounters counters, ConsumerMarker cm) {
-    q.drainTo(buffer -> {
+    q.drainTo((s, b) -> {
       counters.drained++;
       return true;
     }, 1000);
@@ -97,7 +101,7 @@ public class ByteBoundedQueueBenchmarks {
 
   @Benchmark @Group("mild_contention") @GroupThreads(2)
   public void mild_contention_offer(OfferCounters counters) {
-    if (q.offer(ONE)) {
+    if (q.offer(ONE, 1)) {
       counters.offersMade++;
     } else {
       counters.offersFailed++;
@@ -106,7 +110,7 @@ public class ByteBoundedQueueBenchmarks {
 
   @Benchmark @Group("mild_contention") @GroupThreads(1)
   public void mild_contention_drain(DrainCounters counters, ConsumerMarker cm) {
-    q.drainTo(buffer -> {
+    q.drainTo((s, b) -> {
       counters.drained++;
       return true;
     }, 1000);
@@ -114,7 +118,7 @@ public class ByteBoundedQueueBenchmarks {
 
   @Benchmark @Group("high_contention") @GroupThreads(8)
   public void high_contention_offer(OfferCounters counters) {
-    if (q.offer(ONE)) {
+    if (q.offer(ONE, 1)) {
       counters.offersMade++;
     } else {
       counters.offersFailed++;
@@ -123,7 +127,7 @@ public class ByteBoundedQueueBenchmarks {
 
   @Benchmark @Group("high_contention") @GroupThreads(1)
   public void high_contention_drain(DrainCounters counters, ConsumerMarker cm) {
-    q.drainTo(buffer -> {
+    q.drainTo((s, b) -> {
       counters.drained++;
       return true;
     }, 1000);
@@ -134,5 +138,14 @@ public class ByteBoundedQueueBenchmarks {
     // If this thread didn't drain, return
     if (marker.get() == null) return;
     q.clear();
+  }
+
+  // Convenience main entry-point
+  public static void main(String[] args) throws RunnerException {
+    Options opt = new OptionsBuilder()
+        .include(".*" + ByteBoundedQueueBenchmarks.class.getSimpleName() + ".*")
+        .build();
+
+    new Runner(opt).run();
   }
 }
