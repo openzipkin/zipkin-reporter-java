@@ -502,7 +502,7 @@
               <excludePackageNames>zipkin2.reporter.internal,zipkin2.reporter.internal.*
               </excludePackageNames>
               <!-- hush pedantic warnings: we don't put param and return on everything! -->
-              <additionalparam>-Xdoclint:none</additionalparam>
+              <doclint>none</doclint>
             </configuration>
             <executions>
               <execution>
