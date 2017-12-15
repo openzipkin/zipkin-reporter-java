@@ -13,18 +13,15 @@ Bean Factories exist for the following types:
 Here's a basic example
 ```xml
   <bean id="spanReporter" class="zipkin2.reporter.beans.AsyncReporterFactoryBean">
-    <property name="encoder" value="JSON_V2"/>
     <property name="sender">
       <bean class="zipkin2.reporter.beans.OkHttpSenderFactoryBean">
         <property name="endpoint" value="http://localhost:9411/api/v2/spans"/>
       </bean>
     </property>
-    <!-- wait up to half a second for any in-flight spans on close -->
-    <property name="closeTimeout" value="500"/>
   </bean>
 ```
 
-Here's an example with Kafka configuration:
+Here's an example with Kafka configuration and extended configuration:
 ```xml
   <bean id="sender" class="zipkin2.reporter.beans.KafkaSenderFactoryBean">
     <property name="bootstrapServers" value="your_host"/>
@@ -32,7 +29,8 @@ Here's an example with Kafka configuration:
   </bean>
 
   <bean id="spanReporter" class="zipkin2.reporter.beans.AsyncReporterFactoryBean">
-    <property name="encoder" value="JSON_V2"/>
+    <!-- if using an old zipkin server, you can send in v1 format -->
+    <property name="encoder" value="JSON_V1"/>
     <property name="sender" ref="sender"/>
     <!-- wait up to half a second for any in-flight spans on close -->
     <property name="closeTimeout" value="500"/>

@@ -23,7 +23,7 @@ import zipkin2.reporter.Sender;
 /** Spring XML config does not support chained builders. This converts accordingly */
 public class AsyncReporterFactoryBean extends AbstractFactoryBean {
   Sender sender;
-  SpanBytesEncoder encoder = SpanBytesEncoder.JSON_V1;
+  SpanBytesEncoder encoder = SpanBytesEncoder.JSON_V2;
   ReporterMetrics metrics;
   Integer messageMaxBytes;
   Integer messageTimeout;
