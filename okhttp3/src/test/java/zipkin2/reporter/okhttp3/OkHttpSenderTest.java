@@ -35,7 +35,7 @@ import zipkin2.codec.SpanBytesDecoder;
 import zipkin2.codec.SpanBytesEncoder;
 import zipkin2.reporter.AsyncReporter;
 import zipkin2.reporter.Sender;
-import zipkin2.reporter.internal.AwaitableCallback;
+import zipkin2.reporter.AwaitableCallback;
 
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
