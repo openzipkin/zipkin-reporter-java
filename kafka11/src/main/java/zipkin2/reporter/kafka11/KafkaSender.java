@@ -31,8 +31,7 @@ import zipkin2.CheckResult;
 import zipkin2.codec.Encoding;
 import zipkin2.reporter.BytesMessageEncoder;
 import zipkin2.reporter.Sender;
-import zipkin2.reporter.internal.AwaitableCallback;
-import zipkin2.reporter.internal.BaseCall;
+import zipkin2.reporter.AwaitableCallback;
 
 /**
  * This sends (usually TBinaryProtocol big-endian) encoded spans to a Kafka topic.
@@ -190,7 +189,7 @@ public abstract class KafkaSender extends Sender {
   KafkaSender() {
   }
 
-  class KafkaCall extends BaseCall<Void> { // KafkaFuture is not cancelable
+  class KafkaCall extends Call.Base<Void> { // KafkaFuture is not cancelable
     private final byte[] message;
 
     KafkaCall(byte[] message) {

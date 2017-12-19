@@ -31,7 +31,6 @@ import zipkin2.internal.Platform;
 import zipkin2.reporter.AsyncReporter;
 import zipkin2.reporter.BytesMessageEncoder;
 import zipkin2.reporter.Sender;
-import zipkin2.reporter.internal.BaseCall;
 
 /**
  * This sends (usually json v2) encoded spans to a RabbitMQ queue.
@@ -216,7 +215,7 @@ public abstract class RabbitMQSender extends Sender {
     }
   };
 
-  class RabbitMQCall extends BaseCall<Void> { // RabbitMQFuture is not cancelable
+  class RabbitMQCall extends Call.Base<Void> { // RabbitMQFuture is not cancelable
     private final byte[] message;
 
     RabbitMQCall(byte[] message) {

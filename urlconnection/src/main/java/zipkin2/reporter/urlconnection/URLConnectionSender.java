@@ -28,7 +28,6 @@ import zipkin2.CheckResult;
 import zipkin2.codec.Encoding;
 import zipkin2.reporter.BytesMessageEncoder;
 import zipkin2.reporter.Sender;
-import zipkin2.reporter.internal.BaseCall;
 
 /**
  * Reports spans to Zipkin, using its <a href="http://zipkin.io/zipkin-api/#/">POST</a> endpoint.
@@ -206,7 +205,7 @@ public abstract class URLConnectionSender extends Sender {
   URLConnectionSender() {
   }
 
-  class HttpPostCall extends BaseCall<Void> {
+  class HttpPostCall extends Call.Base<Void> {
     private final byte[] message;
 
     HttpPostCall(byte[] message) {
