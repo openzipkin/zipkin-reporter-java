@@ -1,5 +1,5 @@
 /**
- * Copyright 2016-2017 The OpenZipkin Authors
+ * Copyright 2016-2018 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -32,7 +32,7 @@ final class HttpCall extends Call<Void> {
   }
 
   @Override public Void execute() throws IOException {
-    call.execute();
+    parseResponse(call.execute());
     return null;
   }
 
@@ -88,9 +88,7 @@ final class HttpCall extends Call<Void> {
       if ("gzip".equalsIgnoreCase(response.header("Content-Encoding"))) {
         content = Okio.buffer(new GzipSource(responseBody.source()));
       }
-      if (response.isSuccessful()) {
-        return;
-      } else {
+      if (!response.isSuccessful()) {
         throw new IllegalStateException(
             "response for " + response.request().tag() + " failed: " + content.readUtf8());
       }
