@@ -42,8 +42,8 @@
     <dependency>
       <groupId>org.apache.kafka</groupId>
       <artifactId>kafka-clients</artifactId>
-      <!-- 0.11.0.2 clients can talk to old 0.10 brokers -->
-      <version>0.11.0.2</version>
+      <!-- recent clients can talk to old 0.10 brokers -->
+      <version>1.0.0</version>
     </dependency>
 
     <dependency>
@@ -56,8 +56,8 @@
     <dependency>
       <groupId>com.github.charithe</groupId>
       <artifactId>kafka-junit</artifactId>
-      <!-- pinned to 0.11.0.0 -->
-      <version>3.1.1</version>
+      <!-- pinned to 1.0.0 -->
+      <version>4.0.0</version>
       <scope>test</scope>
     </dependency>
   </dependencies>

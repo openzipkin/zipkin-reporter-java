@@ -89,14 +89,14 @@
     <dependency>
       <groupId>io.undertow</groupId>
       <artifactId>undertow-core</artifactId>
-      <version>1.4.20.Final</version>
+      <version>1.4.21.Final</version>
     </dependency>
 
     <dependency>
       <groupId>com.github.charithe</groupId>
       <artifactId>kafka-junit</artifactId>
-      <!-- pinned to 0.11.0.0 -->
-      <version>3.1.0</version>
+      <!-- pinned to 1.0.0 -->
+      <version>4.0.0</version>
     </dependency>
     <dependency>
       <groupId>junit</groupId>
