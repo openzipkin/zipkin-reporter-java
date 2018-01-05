@@ -123,6 +123,11 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
+        <artifactId>zipkin-sender-kafka08</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
         <artifactId>zipkin-sender-kafka11</artifactId>
         <version>${project.version}</version>
       </dependency>
