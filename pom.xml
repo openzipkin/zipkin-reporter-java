@@ -24,6 +24,7 @@
 
   <modules>
     <module>core</module>
+    <module>kafka08</module>
     <module>kafka11</module>
     <module>amqp-client</module>
     <module>urlconnection</module>

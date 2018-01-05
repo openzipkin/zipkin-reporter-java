@@ -11,21 +11,20 @@
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
  */
-package zipkin2.reporter.kafka11;
+package zipkin2.reporter.kafka08;
 
-import com.github.charithe.kafka.EphemeralKafkaBroker;
 import com.github.charithe.kafka.KafkaJunitRule;
 import java.lang.management.ManagementFactory;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Stream;
 import javax.management.ObjectName;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
+import kafka.serializer.DefaultDecoder;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.junit.After;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -42,17 +41,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static zipkin2.reporter.TestObjects.CLIENT_SPAN;
 
 public class KafkaSenderTest {
-  EphemeralKafkaBroker broker = EphemeralKafkaBroker.create();
-  @Rule public KafkaJunitRule kafka = new KafkaJunitRule(broker).waitForStartup();
+
+  @Rule public KafkaJunitRule kafka = new KafkaJunitRule();
   @Rule public ExpectedException thrown = ExpectedException.none();
 
-  KafkaSender sender;
+  String bootstrapServers = "localhost:" + kafka.kafkaBrokerPort();
+  KafkaSender sender = KafkaSender.create(bootstrapServers);
 
-  @Before public void open() {
-    sender = KafkaSender.create(broker.getBrokerList().get());
-  }
-
-  @After public void close() {
+  @After
+  public void close() {
     sender.close();
   }
 
@@ -60,7 +57,7 @@ public class KafkaSenderTest {
   public void sendsSpans() throws Exception {
     send(CLIENT_SPAN, CLIENT_SPAN).execute();
 
-    assertThat(SpanBytesDecoder.JSON_V2.decodeList(readMessage()))
+    assertThat(SpanBytesDecoder.JSON_V2.decodeList(readMessages().get(0)))
         .containsExactly(CLIENT_SPAN, CLIENT_SPAN);
   }
 
@@ -71,18 +68,18 @@ public class KafkaSenderTest {
 
     send(CLIENT_SPAN, CLIENT_SPAN).execute();
 
-    assertThat(SpanBytesDecoder.JSON_V2.decodeList(readMessage("customzipkintopic")))
+    assertThat(SpanBytesDecoder.JSON_V2.decodeList(readMessages("customzipkintopic").get(0)))
         .containsExactly(CLIENT_SPAN, CLIENT_SPAN);
   }
 
   @Test
-  public void checkFalseWhenKafkaIsDown() throws Exception {
-    broker.stop();
+  public void checkFalseWhenKafkaIsDown() {
+    kafka.shutdownKafka();
 
     // Make a new tracer that fails faster than 60 seconds
     sender.close();
     Map<String, String> overrides = new LinkedHashMap<>();
-    overrides.put(ProducerConfig.MAX_BLOCK_MS_CONFIG, "100");
+    overrides.put(ProducerConfig.METADATA_FETCH_TIMEOUT_CONFIG, "100");
     sender = sender.toBuilder().overrides(overrides).build();
 
     CheckResult check = sender.check();
@@ -124,7 +121,7 @@ public class KafkaSenderTest {
   @Test
   public void toStringContainsOnlySummaryInformation() {
     assertThat(sender.toString()).isEqualTo(
-        "KafkaSender{bootstrapServers=" + broker.getBrokerList().get() + ", topic=zipkin}"
+        "KafkaSender{bootstrapServers=" + bootstrapServers + ", topic=zipkin}"
     );
   }
 
@@ -134,13 +131,11 @@ public class KafkaSenderTest {
         .collect(toList()));
   }
 
-  private byte[] readMessage(String topic) throws Exception {
-    KafkaConsumer<byte[], byte[]> consumer = kafka.helper().createByteConsumer();
-    return kafka.helper().consume(topic, consumer, 1)
-        .get().stream().map(ConsumerRecord::value).findFirst().get();
+  private List<byte[]> readMessages(String topic) throws TimeoutException {
+    return kafka.readMessages(topic, 1, new DefaultDecoder(kafka.consumerConfig().props()));
   }
 
-  private byte[] readMessage() throws Exception {
-    return readMessage("zipkin");
+  private List<byte[]> readMessages() throws TimeoutException {
+    return readMessages("zipkin");
   }
 }
