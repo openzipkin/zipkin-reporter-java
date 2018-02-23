@@ -43,7 +43,7 @@
 
     <main.basedir>${project.basedir}</main.basedir>
 
-    <zipkin.version>2.4.6</zipkin.version>
+    <zipkin.version>2.5.0</zipkin.version>
     <license-maven-plugin.version>2.11</license-maven-plugin.version>
   </properties>
 
