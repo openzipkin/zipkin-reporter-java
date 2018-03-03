@@ -23,6 +23,7 @@
   <packaging>pom</packaging>
 
   <modules>
+    <module>bom</module>
     <module>core</module>
     <module>kafka08</module>
     <module>kafka11</module>
@@ -43,7 +44,8 @@
 
     <main.basedir>${project.basedir}</main.basedir>
 
-    <zipkin.version>2.5.0</zipkin.version>
+    <!-- use the same value in bom/pom.xml -->
+    <zipkin.version>2.5.1</zipkin.version>
     <license-maven-plugin.version>2.11</license-maven-plugin.version>
   </properties>
 
@@ -109,36 +111,6 @@
         <groupId>${project.groupId}</groupId>
         <artifactId>zipkin-reporter</artifactId>
         <type>test-jar</type>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>${project.groupId}</groupId>
-        <artifactId>zipkin-sender-okhttp3</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>${project.groupId}</groupId>
-        <artifactId>zipkin-sender-urlconnection</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>${project.groupId}</groupId>
-        <artifactId>zipkin-sender-kafka08</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>${project.groupId}</groupId>
-        <artifactId>zipkin-sender-kafka11</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>${project.groupId}</groupId>
-        <artifactId>zipkin-sender-amqp-client</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>${project.groupId}</groupId>
-        <artifactId>zipkin-reporter-spring-beans</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

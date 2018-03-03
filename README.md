@@ -104,3 +104,50 @@ You can switch to v1 encoding like so:
 reporter = AsyncReporter.builder(URLConnectionSender.create("http://localhost:9411/api/v1/spans"))
                         .build(SpanBytesEncoder.JSON_V1);
 ```
+
+
+## Artifacts
+All artifacts publish to the group ID "io.zipkin.zipkin2". We use a
+common release version for all components.
+### Library Releases
+Releases are uploaded to [Bintray](https://bintray.com/openzipkin/maven/brave) and synchronized to [Maven Central](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22io.zipkin.reporter2%22)
+### Library Snapshots
+Snapshots are uploaded to [JFrog](http://oss.jfrog.org/artifactory/oss-snapshot-local) after commits to master.
+### Version alignments
+When using multiple reporter components, you'll want to align versions
+in one place. This allows you to more safely upgrade, with less worry
+about conflicts.
+
+You can use our Maven instrumentation BOM (Bill of Materials) for this:
+
+Ex. in your dependencies section, import the BOM like this:
+```xml
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>io.zipkin.reporter2</groupId>
+        <artifactId>zipkin-reporter-bom</artifactId>
+        <version>${zipkin-reporter.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+```
+
+Now, you can leave off the version when choosing any supported
+instrumentation. Also any indirect use will have versions aligned:
+```xml
+<dependency>
+  <groupId>io.zipkin.reporter2</groupId>
+  <artifactId>zipkin-sender-okhttp3</artifactId>
+</dependency>
+```
+
+With this in place, you can use the built-in properties
+`zipkin-reporter.version` and `zipkin.version` to override dependency
+versions coherently. This is most commonly to test a new feature or fix.
+
+Note: If you override a version, always double check that your version
+is valid (equal to or later) than what you are updating. This will avoid
+class conflicts.

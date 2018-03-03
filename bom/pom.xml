@@ -1,0 +1,122 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>io.zipkin.reporter2</groupId>
+  <artifactId>zipkin-reporter-bom</artifactId>
+  <name>Zipkin Reporter BOM</name>
+  <version>2.3.4-SNAPSHOT</version>
+  <packaging>pom</packaging>
+  <description>Bill Of Materials POM for all Zipkin reporter artifacts</description>
+
+  <properties>
+    <main.basedir>${project.basedir}/../..</main.basedir>
+
+    <!-- allows someone to update the version via property when importing the pom -->
+    <zipkin-reporter.version>${project.version}</zipkin-reporter.version>
+
+    <!-- use the same value in ../pom.xml -->
+    <zipkin.version>2.5.1</zipkin.version>
+  </properties>
+
+  <url>https://github.com/openzipkin/zipkin-reporter-java</url>
+  <inceptionYear>2016</inceptionYear>
+
+  <organization>
+    <name>OpenZipkin</name>
+    <url>http://zipkin.io/</url>
+  </organization>
+
+  <licenses>
+    <license>
+      <name>The Apache Software License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <scm>
+    <url>https://github.com/openzipkin/zipkin-reporter-java</url>
+    <connection>scm:git:https://github.com/openzipkin/zipkin-reporter-java.git</connection>
+    <developerConnection>scm:git:https://github.com/openzipkin/zipkin-reporter-java.git
+    </developerConnection>
+    <tag>HEAD</tag>
+  </scm>
+
+  <!-- Developer section is needed for Maven Central, but doesn't need to include each person -->
+  <developers>
+    <developer>
+      <id>openzipkin</id>
+      <name>OpenZipkin Gitter</name>
+      <url>https://gitter.im/openzipkin/zipkin</url>
+    </developer>
+  </developers>
+
+  <distributionManagement>
+    <repository>
+      <id>bintray</id>
+      <url>https://api.bintray.com/maven/openzipkin/maven/zipkin-reporter-java/;publish=1</url>
+    </repository>
+    <snapshotRepository>
+      <id>jfrog-snapshots</id>
+      <url>http://oss.jfrog.org/artifactory/oss-snapshot-local</url>
+    </snapshotRepository>
+  </distributionManagement>
+
+  <issueManagement>
+    <system>Github</system>
+    <url>https://github.com/openzipkin/zipkin-reporter-java/issues</url>
+  </issueManagement>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>io.zipkin.zipkin2</groupId>
+        <artifactId>zipkin</artifactId>
+        <version>${zipkin.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>zipkin-reporter</artifactId>
+        <version>${zipkin-reporter.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>zipkin-reporter</artifactId>
+        <type>test-jar</type>
+        <version>${zipkin-reporter.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>zipkin-sender-okhttp3</artifactId>
+        <version>${zipkin-reporter.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>zipkin-sender-urlconnection</artifactId>
+        <version>${zipkin-reporter.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>zipkin-sender-kafka08</artifactId>
+        <version>${zipkin-reporter.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>zipkin-sender-kafka11</artifactId>
+        <version>${zipkin-reporter.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>zipkin-sender-amqp-client</artifactId>
+        <version>${zipkin-reporter.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>zipkin-reporter-spring-beans</artifactId>
+        <version>${zipkin-reporter.version}</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+</project>
