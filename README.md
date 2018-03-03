@@ -107,7 +107,7 @@ reporter = AsyncReporter.builder(URLConnectionSender.create("http://localhost:94
 
 
 ## Artifacts
-All artifacts publish to the group ID "io.zipkin.zipkin2". We use a
+All artifacts publish to the group ID "io.zipkin.reporter2". We use a
 common release version for all components.
 ### Library Releases
 Releases are uploaded to [Bintray](https://bintray.com/openzipkin/maven/brave) and synchronized to [Maven Central](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22io.zipkin.reporter2%22)
