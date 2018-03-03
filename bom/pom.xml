@@ -12,10 +12,6 @@
 
   <properties>
     <main.basedir>${project.basedir}/../..</main.basedir>
-
-    <!-- allows someone to update the version via property when importing the pom -->
-    <zipkin-reporter.version>${project.version}</zipkin-reporter.version>
-
     <!-- use the same value in ../pom.xml -->
     <zipkin.version>2.5.1</zipkin.version>
   </properties>
@@ -79,43 +75,43 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>zipkin-reporter</artifactId>
-        <version>${zipkin-reporter.version}</version>
+        <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>zipkin-reporter</artifactId>
         <type>test-jar</type>
-        <version>${zipkin-reporter.version}</version>
+        <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>zipkin-sender-okhttp3</artifactId>
-        <version>${zipkin-reporter.version}</version>
+        <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>zipkin-sender-urlconnection</artifactId>
-        <version>${zipkin-reporter.version}</version>
+        <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>zipkin-sender-kafka08</artifactId>
-        <version>${zipkin-reporter.version}</version>
+        <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>zipkin-sender-kafka11</artifactId>
-        <version>${zipkin-reporter.version}</version>
+        <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>zipkin-sender-amqp-client</artifactId>
-        <version>${zipkin-reporter.version}</version>
+        <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>zipkin-reporter-spring-beans</artifactId>
-        <version>${zipkin-reporter.version}</version>
+        <version>${project.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
