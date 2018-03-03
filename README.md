@@ -60,6 +60,11 @@ will show in metrics as spans dropped. If you get into this position,
 switch to an asynchronous sender (like kafka), or increase the concurrency
 of your sender.
 
+Spikes of high CPU could be due to encoding many spans, caused indirectly
+by a large `messageTimeout` or `messageMaxBytes`. Consider lowering the
+`messageMaxBytes` if this occurs, as it will result in less work per
+message.
+
 ## Sender
 The sender component handles the last step of sending a list of encoded spans onto a transport.
 This involves I/O, so you can call `Sender.check()` to check its health on a given frequency. 
