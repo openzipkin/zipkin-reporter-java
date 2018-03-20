@@ -1,5 +1,5 @@
 /**
- * Copyright 2016-2017 The OpenZipkin Authors
+ * Copyright 2016-2018 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -171,7 +171,7 @@ public abstract class AsyncReporter<S> extends Component implements Reporter<S>,
 
       if (messageTimeoutNanos > 0) { // Start a thread that flushes the queue in a loop.
         final BufferNextMessage<S> consumer =
-            BufferNextMessage.create(sender, messageMaxBytes, messageTimeoutNanos);
+            BufferNextMessage.create(encoder.encoding(), messageMaxBytes, messageTimeoutNanos);
         final Thread flushThread = new Thread("AsyncReporter{" + sender + "}") {
           @Override public void run() {
             try {
@@ -234,7 +234,7 @@ public abstract class AsyncReporter<S> extends Component implements Reporter<S>,
     }
 
     @Override public final void flush() {
-      flush(BufferNextMessage.create(sender, messageMaxBytes, 0));
+      flush(BufferNextMessage.create(encoder.encoding(), messageMaxBytes, 0));
     }
 
     void flush(BufferNextMessage<S> bundler) {

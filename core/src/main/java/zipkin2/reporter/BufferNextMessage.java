@@ -1,5 +1,5 @@
 /**
- * Copyright 2016-2017 The OpenZipkin Authors
+ * Copyright 2016-2018 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -20,14 +20,16 @@ import zipkin2.codec.Encoding;
 /** Use of this type happens off the application's main thread. This type is not thread-safe */
 abstract class BufferNextMessage<S> implements SpanWithSizeConsumer<S> {
 
-  static <S> BufferNextMessage<S> create(Sender sender, int maxBytes, long timeoutNanos) {
-    if (sender.encoding() != Encoding.JSON) { // TODO update this once we support protobuf
-      throw new UnsupportedOperationException("sender.encoding() != Encoding.JSON");
+  static <S> BufferNextMessage<S> create(Encoding encoding, int maxBytes, long timeoutNanos) {
+    switch (encoding) {
+      case JSON:
+        return new BufferNextJsonMessage<>(maxBytes, timeoutNanos);
+      case PROTO3:
+        return new BufferNextProto3Message<>(maxBytes, timeoutNanos);
     }
-    return new BufferNextJsonMessage<>(sender, maxBytes, timeoutNanos);
+    throw new UnsupportedOperationException("encoding: " + encoding);
   }
 
-  final Sender sender;
   final int maxBytes;
   final long timeoutNanos;
   final ArrayList<S> spans = new ArrayList<>();
@@ -37,8 +39,7 @@ abstract class BufferNextMessage<S> implements SpanWithSizeConsumer<S> {
   int messageSizeInBytes;
   boolean bufferFull;
 
-  BufferNextMessage(Sender sender, int maxBytes, long timeoutNanos) {
-    this.sender = sender;
+  BufferNextMessage(int maxBytes, long timeoutNanos) {
     this.maxBytes = maxBytes;
     this.timeoutNanos = timeoutNanos;
   }
@@ -50,8 +51,8 @@ abstract class BufferNextMessage<S> implements SpanWithSizeConsumer<S> {
   static final class BufferNextJsonMessage<S> extends BufferNextMessage<S> {
     boolean hasAtLeastOneSpan;
 
-    BufferNextJsonMessage(Sender sender, int maxBytes, long timeoutNanos) {
-      super(sender, maxBytes, timeoutNanos);
+    BufferNextJsonMessage(int maxBytes, long timeoutNanos) {
+      super(maxBytes, timeoutNanos);
       messageSizeInBytes = 2;
       hasAtLeastOneSpan = false;
     }
@@ -62,11 +63,15 @@ abstract class BufferNextMessage<S> implements SpanWithSizeConsumer<S> {
 
     @Override void resetMessageSizeInBytes() {
       int length = sizes.size();
-      messageSizeInBytes = 2 + length - 1; // [] and commas
-      hasAtLeastOneSpan = length > 2;
-
-      for (int i = 0; i < length; i++) {
-        messageSizeInBytes += sizes.get(i);
+      hasAtLeastOneSpan = length > 0;
+      if (length < 2) {
+        messageSizeInBytes = 2;
+        if (hasAtLeastOneSpan) messageSizeInBytes += sizes.get(0);
+      } else {
+        messageSizeInBytes = 2 + length - 1; // [] and commas
+        for (int i = 0; i < length; i++) {
+          messageSizeInBytes += sizes.get(i);
+        }
       }
     }
 
@@ -77,8 +82,24 @@ abstract class BufferNextMessage<S> implements SpanWithSizeConsumer<S> {
 
     @Override void drain(SpanWithSizeConsumer<S> consumer) {
       super.drain(consumer);
-      messageSizeInBytes = 2;
-      hasAtLeastOneSpan = false;
+    }
+  }
+
+  static final class BufferNextProto3Message<S> extends BufferNextMessage<S> {
+    BufferNextProto3Message(int maxBytes, long timeoutNanos) {
+      super(maxBytes, timeoutNanos);
+    }
+
+    /** proto3 repeated fields are simply concatenated. there is no other overhead */
+    @Override int messageSizeInBytes(int nextSizeInBytes) {
+      return messageSizeInBytes += nextSizeInBytes;
+    }
+
+    @Override void resetMessageSizeInBytes() {
+      messageSizeInBytes = 0;
+      for (int i = 0, length = sizes.size(); i < length; i++) {
+        messageSizeInBytes += sizes.get(i);
+      }
     }
   }
 

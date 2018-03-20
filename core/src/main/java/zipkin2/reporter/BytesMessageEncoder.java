@@ -1,5 +1,5 @@
 /**
- * Copyright 2016-2017 The OpenZipkin Authors
+ * Copyright 2016-2018 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -41,6 +41,33 @@ public enum BytesMessageEncoder {
         if (i < length) buf[pos++] = ',';
       }
       buf[pos] = ']';
+      return buf;
+    }
+  },
+  /**
+   * This function simply concatenates the byte arrays.
+   *
+   * <p>The list of byte arrays represents a repeated (type 2) field. As such, each byte array is
+   * expected to have a prefix of the field number, followed by the encoded length of the span,
+   * finally, the actual span bytes.
+   *
+   * @see Encoding#PROTO3
+   */
+  PROTO3 {
+    @Override public byte[] encode(List<byte[]> values) {
+      int sizeOfArray = 0;
+      int length = values.size();
+      for (int i = 0; i < length; ) {
+        sizeOfArray += values.get(i++).length;
+      }
+
+      byte[] buf = new byte[sizeOfArray];
+      int pos = 0;
+      for (int i = 0; i < length; ) {
+        byte[] v = values.get(i++);
+        System.arraycopy(v, 0, buf, pos, v.length);
+        pos += v.length;
+      }
       return buf;
     }
   };
