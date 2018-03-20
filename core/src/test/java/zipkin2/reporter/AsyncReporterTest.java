@@ -1,5 +1,5 @@
 /**
- * Copyright 2016-2017 The OpenZipkin Authors
+ * Copyright 2016-2018 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -14,6 +14,7 @@
 package zipkin2.reporter;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -22,6 +23,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.After;
 import org.junit.Test;
 import zipkin2.Span;
+import zipkin2.codec.BytesEncoder;
 import zipkin2.codec.Encoding;
 import zipkin2.codec.SpanBytesEncoder;
 import zipkin2.reporter.AsyncReporter.BoundedAsyncReporter;
@@ -33,7 +35,8 @@ public class AsyncReporterTest {
 
   Span span = TestObjects.CLIENT_SPAN;
   int sizeInBytesOfSingleSpanMessage =
-      Encoding.JSON.listSizeInBytes(Collections.singletonList(SpanBytesEncoder.JSON_V2.encode(span)));
+      Encoding.JSON.listSizeInBytes(
+          Collections.singletonList(SpanBytesEncoder.JSON_V2.encode(span)));
 
   AsyncReporter<Span> reporter;
   InMemoryReporterMetrics metrics = new InMemoryReporterMetrics();
@@ -393,5 +396,35 @@ public class AsyncReporterTest {
       assertThat(metrics.spansDropped()).isEqualTo(1);
       assertThat(metrics.messagesDropped()).isEqualTo(1);
     }
+  }
+
+  @Test(expected = UnsupportedOperationException.class)
+  public void build_proto3_unsupportedByDefaultBytesEncoder() {
+    AsyncReporter.builder(FakeSender.create().encoding(Encoding.PROTO3))
+        .messageTimeout(0, TimeUnit.MILLISECONDS)
+        .build();
+  }
+
+  @Test public void build_proto3_allowedWithCustomBytesEncoder() {
+    AsyncReporter.builder(FakeSender.create().encoding(Encoding.PROTO3))
+        .messageTimeout(0, TimeUnit.MILLISECONDS)
+        // there's no builtin protobuf format of zipkin spans, yet, so there's no encoder
+        .build(new BytesEncoder<Span>() {
+          @Override public Encoding encoding() {
+            return Encoding.PROTO3;
+          }
+
+          @Override public int sizeInBytes(Span input) {
+            return 0;
+          }
+
+          @Override public byte[] encode(Span input) {
+            return new byte[0];
+          }
+
+          @Override public byte[] encodeList(List<Span> input) {
+            return new byte[0];
+          }
+        });
   }
 }
