@@ -348,7 +348,6 @@
         <version>2.5.2</version>
         <configuration>
           <createChecksum>true</createChecksum>
-          <installAtEnd>true</installAtEnd>
         </configuration>
       </plugin>
 
