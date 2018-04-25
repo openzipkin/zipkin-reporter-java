@@ -3,7 +3,7 @@ Zipkin Reporter Benchmarks
 
 This module includes [JMH](http://openjdk.java.net/projects/code-tools/jmh/) benchmarks for Zipkin Reporter.
 
-=== Running the benchmark
+### Running the benchmark
 From the parent directory, run `./mvnw install` to build the benchmarks, and the following to run them:
 
 ```bash
