@@ -116,12 +116,12 @@
       <dependency>
         <groupId>com.squareup.okhttp3</groupId>
         <artifactId>okhttp</artifactId>
-        <version>3.9.1</version>
+        <version>3.10.0</version>
       </dependency>
       <dependency>
         <groupId>com.squareup.okhttp3</groupId>
         <artifactId>mockwebserver</artifactId>
-        <version>3.9.1</version>
+        <version>3.10.0</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
@@ -132,11 +132,16 @@
       <artifactId>zipkin</artifactId>
       <version>${zipkin.version}</version>
     </dependency>
-    <!-- don't worry. auto-* are source retention, not runtime -->
+    <!-- TODO: reconsider auto-value as it now requires an annotation jar dep -->
+    <dependency>
+      <groupId>com.google.auto.value</groupId>
+      <artifactId>auto-value-annotations</artifactId>
+      <version>1.6</version>
+    </dependency>
     <dependency>
       <groupId>com.google.auto.value</groupId>
       <artifactId>auto-value</artifactId>
-      <version>1.5.3</version>
+      <version>1.6</version>
       <scope>provided</scope>
     </dependency>
     <!-- generated code includes Generated annotations! -->
@@ -156,7 +161,7 @@
     <dependency>
       <groupId>org.assertj</groupId>
       <artifactId>assertj-core</artifactId>
-      <version>3.9.0</version>
+      <version>3.9.1</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -170,16 +175,16 @@
   <build>
     <pluginManagement>
       <plugins>
-        <!-- mvn -N io.takari:maven:wrapper -Dmaven=3.5.2 -->
+        <!-- mvn -N io.takari:maven:wrapper -Dmaven=3.5.3 -->
         <plugin>
           <groupId>io.takari</groupId>
           <artifactId>maven</artifactId>
-          <version>0.5.0</version>
+          <version>0.6.0</version>
         </plugin>
         <!-- unhook direct dependence on internal classes -->
         <plugin>
           <artifactId>maven-shade-plugin</artifactId>
-          <version>3.1.0</version>
+          <version>3.1.1</version>
           <executions>
             <execution>
               <phase>package</phase>
@@ -199,7 +204,7 @@
                     <!-- Shade references to classes packages -->
                     <artifact>io.zipkin.zipkin2:zipkin</artifact>
                     <includes>
-                      <include>zipkin/internal/Platform*.class</include>
+                      <include>zipkin2/internal/Platform*.class</include>
                     </includes>
                     <excludes>
                       <exclude>*</exclude>
@@ -274,12 +279,12 @@
           <dependency>
             <groupId>org.codehaus.plexus</groupId>
             <artifactId>plexus-compiler-javac-errorprone</artifactId>
-            <version>2.8.2</version>
+            <version>2.8.4</version>
           </dependency>
           <dependency>
             <groupId>com.google.errorprone</groupId>
             <artifactId>error_prone_core</artifactId>
-            <version>2.1.3</version>
+            <version>2.3.1</version>
           </dependency>
         </dependencies>
       </plugin>
@@ -401,7 +406,7 @@
 
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>2.20.1</version>
+        <version>2.21.0</version>
       </plugin>
 
       <plugin>
@@ -415,7 +420,7 @@
       <plugin>
         <groupId>org.apache.felix</groupId>
         <artifactId>maven-bundle-plugin</artifactId>
-        <version>3.4.0</version>
+        <version>3.5.0</version>
         <configuration>
           <obrRepository>NONE</obrRepository>
           <instructions>
@@ -433,7 +438,7 @@
       </plugin>
       <plugin>
         <artifactId>maven-jar-plugin</artifactId>
-        <version>3.0.2</version>
+        <version>3.1.0</version>
         <configuration>
           <archive>
             <manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>

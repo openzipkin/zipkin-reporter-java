@@ -1,5 +1,5 @@
 /**
- * Copyright 2016-2017 The OpenZipkin Authors
+ * Copyright 2016-2018 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -21,12 +21,16 @@ public class OkHttpSenderFactoryBean extends AbstractFactoryBean {
 
   String endpoint;
   Integer maxRequests;
+  Integer connectTimeout, readTimeout, writeTimeout;
   Boolean compressionEnabled;
   Integer messageMaxBytes;
 
   @Override protected OkHttpSender createInstance() throws Exception {
     OkHttpSender.Builder builder = OkHttpSender.newBuilder();
     if (endpoint != null) builder.endpoint(endpoint);
+    if (connectTimeout != null) builder.connectTimeout(connectTimeout);
+    if (readTimeout != null) builder.readTimeout(readTimeout);
+    if (writeTimeout != null) builder.writeTimeout(writeTimeout);
     if (maxRequests != null) builder.maxRequests(maxRequests);
     if (compressionEnabled != null) builder.compressionEnabled(compressionEnabled);
     if (messageMaxBytes != null) builder.messageMaxBytes(messageMaxBytes);
@@ -51,6 +55,18 @@ public class OkHttpSenderFactoryBean extends AbstractFactoryBean {
 
   public void setMaxRequests(Integer maxRequests) {
     this.maxRequests = maxRequests;
+  }
+
+  public void setConnectTimeout(Integer connectTimeout) {
+    this.connectTimeout = connectTimeout;
+  }
+
+  public void setReadTimeout(Integer readTimeout) {
+    this.readTimeout = readTimeout;
+  }
+
+  public void setWriteTimeout(Integer writeTimeout) {
+    this.writeTimeout = writeTimeout;
   }
 
   public void setCompressionEnabled(Boolean compressionEnabled) {

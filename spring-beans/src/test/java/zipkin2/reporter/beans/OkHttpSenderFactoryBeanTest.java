@@ -1,5 +1,5 @@
 /**
- * Copyright 2016-2017 The OpenZipkin Authors
+ * Copyright 2016-2018 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -38,6 +38,45 @@ public class OkHttpSenderFactoryBeanTest {
     assertThat(context.getBean("sender", OkHttpSender.class))
         .extracting("endpoint")
         .containsExactly(HttpUrl.parse("http://localhost:9411/api/v2/spans"));
+  }
+
+  @Test public void connectTimeout() {
+    context = new XmlBeans(""
+        + "<bean id=\"sender\" class=\"zipkin2.reporter.beans.OkHttpSenderFactoryBean\">\n"
+        + "  <property name=\"endpoint\" value=\"http://localhost:9411/api/v2/spans\"/>\n"
+        + "  <property name=\"connectTimeout\" value=\"1000\"/>\n"
+        + "</bean>"
+    );
+
+    assertThat(context.getBean("sender", OkHttpSender.class))
+        .extracting("client.connectTimeout")
+        .containsExactly(1000);
+  }
+
+  @Test public void writeTimeout() {
+    context = new XmlBeans(""
+        + "<bean id=\"sender\" class=\"zipkin2.reporter.beans.OkHttpSenderFactoryBean\">\n"
+        + "  <property name=\"endpoint\" value=\"http://localhost:9411/api/v2/spans\"/>\n"
+        + "  <property name=\"writeTimeout\" value=\"1000\"/>\n"
+        + "</bean>"
+    );
+
+    assertThat(context.getBean("sender", OkHttpSender.class))
+        .extracting("client.writeTimeout")
+        .containsExactly(1000);
+  }
+
+  @Test public void readTimeout() {
+    context = new XmlBeans(""
+        + "<bean id=\"sender\" class=\"zipkin2.reporter.beans.OkHttpSenderFactoryBean\">\n"
+        + "  <property name=\"endpoint\" value=\"http://localhost:9411/api/v2/spans\"/>\n"
+        + "  <property name=\"readTimeout\" value=\"1000\"/>\n"
+        + "</bean>"
+    );
+
+    assertThat(context.getBean("sender", OkHttpSender.class))
+        .extracting("client.readTimeout")
+        .containsExactly(1000);
   }
 
   @Test public void maxRequests() {

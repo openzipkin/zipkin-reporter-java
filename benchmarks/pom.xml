@@ -29,7 +29,7 @@
 
   <properties>
     <main.basedir>${project.basedir}/..</main.basedir>
-    <jmh.version>1.19</jmh.version>
+    <jmh.version>1.20</jmh.version>
     <main.java.version>1.8</main.java.version>
     <main.signature.artifact>java18</main.signature.artifact>
   </properties>
@@ -86,12 +86,6 @@
     </dependency>
 
     <dependency>
-      <groupId>ch.qos.logback</groupId>
-      <artifactId>logback-classic</artifactId>
-      <version>1.2.3</version>
-    </dependency>
-
-    <dependency>
       <groupId>org.openjdk.jmh</groupId>
       <artifactId>jmh-generator-annprocess</artifactId>
       <version>${jmh.version}</version>
@@ -101,14 +95,14 @@
     <dependency>
       <groupId>io.undertow</groupId>
       <artifactId>undertow-core</artifactId>
-      <version>1.4.21.Final</version>
+      <version>1.4.24.Final</version>
     </dependency>
 
     <dependency>
       <groupId>com.github.charithe</groupId>
       <artifactId>kafka-junit</artifactId>
-      <!-- pinned to 1.0.0 -->
-      <version>4.0.0</version>
+      <!-- pinned to 1.1.0 -->
+      <version>4.1.1</version>
     </dependency>
     <dependency>
       <groupId>junit</groupId>
@@ -155,7 +149,6 @@
       </plugin>
       <plugin>
         <artifactId>maven-shade-plugin</artifactId>
-        <version>3.0.0</version>
         <executions>
           <execution>
             <phase>package</phase>

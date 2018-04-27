@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import zipkin2.Call;
 import zipkin2.CheckResult;
@@ -178,6 +179,8 @@ public abstract class AsyncReporter<S> extends Component implements Reporter<S>,
               while (!result.closed.get()) {
                 result.flush(consumer);
               }
+            } catch (RuntimeException | Error e) {
+              BoundedAsyncReporter.logger.log(Level.WARNING, "Unexpected error flushing spans", e);
             } finally {
               int count = consumer.count();
               if (count > 0) {

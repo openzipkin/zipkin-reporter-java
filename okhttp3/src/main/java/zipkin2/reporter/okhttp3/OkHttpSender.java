@@ -1,5 +1,5 @@
 /**
- * Copyright 2016-2017 The OpenZipkin Authors
+ * Copyright 2016-2018 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -34,6 +34,8 @@ import okio.Okio;
 import zipkin2.CheckResult;
 import zipkin2.codec.Encoding;
 import zipkin2.reporter.Sender;
+
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 /**
  * Reports spans to Zipkin, using its <a href="http://zipkin.io/zipkin-api/#/">POST</a> endpoint.
@@ -84,6 +86,24 @@ public abstract class OkHttpSender extends Sender {
 
     /** Controls the "Content-Type" header when sending spans. */
     public abstract Builder encoding(Encoding encoding);
+
+    /** Sets the default connect timeout (in milliseconds) for new connections. Default 10000 */
+    public final Builder connectTimeout(int connectTimeoutMillis) {
+      clientBuilder().connectTimeout(connectTimeoutMillis, MILLISECONDS);
+      return this;
+    }
+
+    /** Sets the default read timeout (in milliseconds) for new connections. Default 10000 */
+    public final Builder readTimeout(int readTimeoutMillis) {
+      clientBuilder().readTimeout(readTimeoutMillis, MILLISECONDS);
+      return this;
+    }
+
+    /** Sets the default write timeout (in milliseconds) for new connections. Default 10000 */
+    public final Builder writeTimeout(int writeTimeoutMillis) {
+      clientBuilder().writeTimeout(writeTimeoutMillis, MILLISECONDS);
+      return this;
+    }
 
     public abstract OkHttpClient.Builder clientBuilder();
 
