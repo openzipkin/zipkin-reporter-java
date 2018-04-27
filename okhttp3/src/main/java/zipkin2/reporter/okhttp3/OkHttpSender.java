@@ -84,7 +84,12 @@ public abstract class OkHttpSender extends Sender {
     /** Maximum in-flight requests. Default 64 */
     public abstract Builder maxRequests(int maxRequests);
 
-    /** Controls the "Content-Type" header when sending spans. */
+    /**
+     * Use this to change the encoding used in messages. Default is {@linkplain Encoding#JSON}
+     * This also controls the "Content-Type" header when sending spans.
+     *
+     * <p>Note: If ultimately sending to Zipkin, version 2.8+ is required to process protobuf.
+     */
     public abstract Builder encoding(Encoding encoding);
 
     /** Sets the default connect timeout (in milliseconds) for new connections. Default 10000 */
@@ -125,10 +130,14 @@ public abstract class OkHttpSender extends Sender {
       dispatcher.setMaxRequests(maxRequests());
       dispatcher.setMaxRequestsPerHost(maxRequests());
       clientBuilder().dispatcher(dispatcher).build();
-      if (encoding() == Encoding.JSON) {
-        return encoder(RequestBodyMessageEncoder.JSON).autoBuild();
+      switch (encoding()) {
+        case JSON:
+          return encoder(RequestBodyMessageEncoder.JSON).autoBuild();
+        case PROTO3:
+          return encoder(RequestBodyMessageEncoder.PROTO3).autoBuild();
+        default:
+          throw new UnsupportedOperationException("Unsupported encoding: " + encoding().name());
       }
-      throw new UnsupportedOperationException("Unsupported encoding: " + encoding().name());
     }
 
     abstract Builder encoder(RequestBodyMessageEncoder encoder);
@@ -247,7 +256,7 @@ public abstract class OkHttpSender extends Sender {
       this.body = body;
     }
 
-    @Override public long contentLength() throws IOException {
+    @Override public long contentLength() {
       return body.size();
     }
 

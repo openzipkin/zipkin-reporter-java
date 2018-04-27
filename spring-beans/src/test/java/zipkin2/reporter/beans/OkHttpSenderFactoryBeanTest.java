@@ -17,6 +17,7 @@ import java.util.Arrays;
 import okhttp3.HttpUrl;
 import org.junit.After;
 import org.junit.Test;
+import zipkin2.codec.Encoding;
 import zipkin2.reporter.okhttp3.OkHttpSender;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -116,6 +117,19 @@ public class OkHttpSenderFactoryBeanTest {
     assertThat(context.getBean("sender", OkHttpSender.class))
         .extracting("messageMaxBytes")
         .containsExactly(1024);
+  }
+
+  @Test public void encoding() {
+    context = new XmlBeans(""
+        + "<bean id=\"sender\" class=\"zipkin2.reporter.beans.OkHttpSenderFactoryBean\">\n"
+        + "  <property name=\"endpoint\" value=\"http://localhost:9411/api/v2/spans\"/>\n"
+        + "  <property name=\"encoding\" value=\"PROTO3\"/>\n"
+        + "</bean>"
+    );
+
+    assertThat(context.getBean("sender", OkHttpSender.class))
+        .extracting("encoding")
+        .containsExactly(Encoding.PROTO3);
   }
 
   @Test(expected = IllegalStateException.class) public void close_closesSender() {

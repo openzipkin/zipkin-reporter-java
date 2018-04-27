@@ -87,6 +87,8 @@ public enum BytesMessageEncoder {
     switch (encoding) {
       case JSON:
         return JSON;
+      case PROTO3:
+        return PROTO3;
       default:
         throw new UnsupportedOperationException(encoding.name());
     }

@@ -1,5 +1,5 @@
 /**
- * Copyright 2016-2017 The OpenZipkin Authors
+ * Copyright 2016-2018 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -18,6 +18,7 @@ import java.net.URI;
 import java.util.Arrays;
 import org.junit.After;
 import org.junit.Test;
+import zipkin2.codec.Encoding;
 import zipkin2.reporter.urlconnection.URLConnectionSender;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -94,6 +95,19 @@ public class URLConnectionSenderFactoryBeanTest {
     assertThat(context.getBean("sender", URLConnectionSender.class))
         .extracting("messageMaxBytes")
         .containsExactly(1024);
+  }
+
+  @Test public void encoding() {
+    context = new XmlBeans(""
+        + "<bean id=\"sender\" class=\"zipkin2.reporter.beans.URLConnectionSenderFactoryBean\">\n"
+        + "  <property name=\"endpoint\" value=\"http://localhost:9411/api/v2/spans\"/>\n"
+        + "  <property name=\"encoding\" value=\"PROTO3\"/>\n"
+        + "</bean>"
+    );
+
+    assertThat(context.getBean("sender", URLConnectionSender.class))
+        .extracting("encoding")
+        .containsExactly(Encoding.PROTO3);
   }
 
   @Test(expected = IllegalStateException.class) public void close_closesSender() {

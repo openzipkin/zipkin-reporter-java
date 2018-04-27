@@ -24,13 +24,13 @@ Here's a basic example
 Here's an example with Kafka configuration and extended configuration:
 ```xml
   <bean id="sender" class="zipkin2.reporter.beans.KafkaSenderFactoryBean">
-    <property name="bootstrapServers" value="your_host"/>
+    <property name="bootstrapServers" value="192.168.99.100:9092"/>
+    <!-- if using a zipkin server 2.8+, you can send in binary format -->
+    <property name="encoding" value="PROTO3"/>
     <property name="topic" value="test_zipkin"/>
   </bean>
 
   <bean id="spanReporter" class="zipkin2.reporter.beans.AsyncReporterFactoryBean">
-    <!-- if using an old zipkin server, you can send in v1 format -->
-    <property name="encoder" value="JSON_V1"/>
     <property name="sender" ref="sender"/>
     <!-- wait up to half a second for any in-flight spans on close -->
     <property name="closeTimeout" value="500"/>

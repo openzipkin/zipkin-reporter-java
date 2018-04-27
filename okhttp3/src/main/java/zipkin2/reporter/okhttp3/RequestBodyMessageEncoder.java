@@ -1,5 +1,5 @@
 /**
- * Copyright 2016-2017 The OpenZipkin Authors
+ * Copyright 2016-2018 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -24,6 +24,11 @@ enum RequestBodyMessageEncoder {
   JSON {
     @Override public RequestBody encode(List<byte[]> values) {
       return new JsonRequestBody(values);
+    }
+  },
+  PROTO3 {
+    @Override RequestBody encode(List<byte[]> encodedSpans) {
+      return new Protobuf3RequestBody(encodedSpans);
     }
   };
 
@@ -62,6 +67,21 @@ enum RequestBodyMessageEncoder {
         if (i < length) sink.writeByte(',');
       }
       sink.writeByte(']');
+    }
+  }
+
+  static final class Protobuf3RequestBody extends StreamingRequestBody {
+    static final MediaType CONTENT_TYPE = MediaType.parse("application/x-protobuf");
+
+    Protobuf3RequestBody(List<byte[]> values) {
+      super(Encoding.PROTO3, CONTENT_TYPE, values);
+    }
+
+    @Override public void writeTo(BufferedSink sink) throws IOException {
+      for (int i = 0, length = values.size(); i < length; ) {
+        byte[] next = values.get(i++);
+        sink.write(next);
+      }
     }
   }
 
