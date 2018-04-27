@@ -1,5 +1,5 @@
 /**
- * Copyright 2016-2017 The OpenZipkin Authors
+ * Copyright 2016-2018 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -14,17 +14,20 @@
 package zipkin2.reporter.beans;
 
 import org.springframework.beans.factory.config.AbstractFactoryBean;
+import zipkin2.codec.Encoding;
 import zipkin2.reporter.kafka11.KafkaSender;
 
 /** Spring XML config does not support chained builders. This converts accordingly */
 public class KafkaSenderFactoryBean extends AbstractFactoryBean {
 
   String bootstrapServers, topic;
+  Encoding encoding;
   Integer messageMaxBytes;
 
   @Override protected KafkaSender createInstance() throws Exception {
     KafkaSender.Builder builder = KafkaSender.newBuilder();
     if (bootstrapServers != null) builder.bootstrapServers(bootstrapServers);
+    if (encoding != null) builder.encoding(encoding);
     if (topic != null) builder.topic(topic);
     if (messageMaxBytes != null) builder.messageMaxBytes(messageMaxBytes);
     return builder.build();
@@ -48,6 +51,10 @@ public class KafkaSenderFactoryBean extends AbstractFactoryBean {
 
   public void setTopic(String topic) {
     this.topic = topic;
+  }
+
+  public void setEncoding(Encoding encoding) {
+    this.encoding = encoding;
   }
 
   public void setMessageMaxBytes(Integer messageMaxBytes) {

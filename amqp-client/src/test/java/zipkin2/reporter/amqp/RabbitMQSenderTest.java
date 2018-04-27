@@ -1,5 +1,5 @@
 /**
- * Copyright 2016-2017 The OpenZipkin Authors
+ * Copyright 2016-2018 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -18,7 +18,6 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 import java.io.IOException;
-import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -32,6 +31,7 @@ import org.junit.rules.ExpectedException;
 import zipkin2.Call;
 import zipkin2.CheckResult;
 import zipkin2.Span;
+import zipkin2.codec.Encoding;
 import zipkin2.codec.SpanBytesDecoder;
 import zipkin2.codec.SpanBytesEncoder;
 import zipkin2.reporter.AsyncReporter;
@@ -68,6 +68,20 @@ public class RabbitMQSenderTest {
     send(CLIENT_SPAN, CLIENT_SPAN).execute();
 
     assertThat(SpanBytesDecoder.JSON_V2.decodeList(readMessage()))
+        .containsExactly(CLIENT_SPAN, CLIENT_SPAN);
+  }
+
+  @Test
+  public void sendsSpans_PROTO3() throws Exception {
+    sender.close();
+    Thread.sleep(100);
+
+    sender = sender.toBuilder().encoding(Encoding.PROTO3).build();
+    declareQueue(sender.queue());
+
+    send(CLIENT_SPAN, CLIENT_SPAN).execute();
+
+    assertThat(SpanBytesDecoder.PROTO3.decodeList(readMessage()))
         .containsExactly(CLIENT_SPAN, CLIENT_SPAN);
   }
 
@@ -128,9 +142,9 @@ public class RabbitMQSenderTest {
 
   /** Blocks until the callback completes to allow read-your-writes consistency during tests. */
   Call<Void> send(Span... spans) {
-    return sender.sendSpans(Stream.of(spans)
-        .map(SpanBytesEncoder.JSON_V2::encode)
-        .collect(toList()));
+    SpanBytesEncoder bytesEncoder = sender.encoding() == Encoding.JSON
+        ? SpanBytesEncoder.JSON_V2 : SpanBytesEncoder.PROTO3;
+    return sender.sendSpans(Stream.of(spans).map(bytesEncoder::encode).collect(toList()));
   }
 
   private void declareQueue(String queue) throws Exception {

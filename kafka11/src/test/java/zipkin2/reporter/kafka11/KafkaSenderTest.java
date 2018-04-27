@@ -32,6 +32,7 @@ import org.junit.rules.ExpectedException;
 import zipkin2.Call;
 import zipkin2.CheckResult;
 import zipkin2.Span;
+import zipkin2.codec.Encoding;
 import zipkin2.codec.SpanBytesDecoder;
 import zipkin2.codec.SpanBytesEncoder;
 import zipkin2.reporter.AsyncReporter;
@@ -61,6 +62,17 @@ public class KafkaSenderTest {
     send(CLIENT_SPAN, CLIENT_SPAN).execute();
 
     assertThat(SpanBytesDecoder.JSON_V2.decodeList(readMessage()))
+        .containsExactly(CLIENT_SPAN, CLIENT_SPAN);
+  }
+
+  @Test
+  public void sendsSpans_PROTO3() throws Exception {
+    sender.close();
+    sender = sender.toBuilder().encoding(Encoding.PROTO3).build();
+
+    send(CLIENT_SPAN, CLIENT_SPAN).execute();
+
+    assertThat(SpanBytesDecoder.PROTO3.decodeList(readMessage()))
         .containsExactly(CLIENT_SPAN, CLIENT_SPAN);
   }
 
@@ -129,9 +141,9 @@ public class KafkaSenderTest {
   }
 
   Call<Void> send(Span... spans) {
-    return sender.sendSpans(Stream.of(spans)
-        .map(SpanBytesEncoder.JSON_V2::encode)
-        .collect(toList()));
+    SpanBytesEncoder bytesEncoder = sender.encoding() == Encoding.JSON
+        ? SpanBytesEncoder.JSON_V2 : SpanBytesEncoder.PROTO3;
+    return sender.sendSpans(Stream.of(spans).map(bytesEncoder::encode).collect(toList()));
   }
 
   private byte[] readMessage(String topic) throws Exception {

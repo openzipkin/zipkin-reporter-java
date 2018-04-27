@@ -33,7 +33,7 @@ import zipkin2.reporter.BytesMessageEncoder;
 import zipkin2.reporter.Sender;
 
 /**
- * This sends (usually TBinaryProtocol big-endian) encoded spans to a Kafka topic.
+ * This sends (usually json v2) encoded spans to a Kafka topic.
  *
  * <p>This sender is thread-safe.
  *
@@ -42,6 +42,7 @@ import zipkin2.reporter.Sender;
 @AutoValue
 public abstract class KafkaSender extends Sender {
 
+  /** Creates a sender that sends {@link Encoding#JSON} messages. */
   public static KafkaSender create(String bootstrapServers) {
     return newBuilder().bootstrapServers(bootstrapServers).build();
   }
@@ -74,7 +75,7 @@ public abstract class KafkaSender extends Sender {
 
     /**
      * Initial set of kafka servers to connect to, rest of cluster will be discovered (comma
-     * separated). No default
+     * separated). Ex "192.168.99.100:9092" No default
      *
      * @see ProducerConfig#BOOTSTRAP_SERVERS_CONFIG
      */
@@ -110,6 +111,11 @@ public abstract class KafkaSender extends Sender {
       return this;
     }
 
+    /**
+     * Use this to change the encoding used in messages. Default is {@linkplain Encoding#JSON}
+     *
+     * <p>Note: If ultimately sending to Zipkin, version 2.8+ is required to process protobuf.
+     */
     public abstract Builder encoding(Encoding encoding);
 
     abstract Encoding encoding();
@@ -120,7 +126,7 @@ public abstract class KafkaSender extends Sender {
 
     abstract Builder encoder(BytesMessageEncoder encoder);
 
-    public abstract KafkaSender autoBuild();
+    abstract KafkaSender autoBuild();
 
     Builder() {
     }

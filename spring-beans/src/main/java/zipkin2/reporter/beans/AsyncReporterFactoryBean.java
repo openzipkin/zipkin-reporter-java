@@ -1,5 +1,5 @@
 /**
- * Copyright 2016-2017 The OpenZipkin Authors
+ * Copyright 2016-2018 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -23,7 +23,7 @@ import zipkin2.reporter.Sender;
 /** Spring XML config does not support chained builders. This converts accordingly */
 public class AsyncReporterFactoryBean extends AbstractFactoryBean {
   Sender sender;
-  SpanBytesEncoder encoder = SpanBytesEncoder.JSON_V2;
+  SpanBytesEncoder encoder;
   ReporterMetrics metrics;
   Integer messageMaxBytes;
   Integer messageTimeout;
@@ -43,7 +43,7 @@ public class AsyncReporterFactoryBean extends AbstractFactoryBean {
     if (closeTimeout != null) builder.closeTimeout(closeTimeout, TimeUnit.MILLISECONDS);
     if (queuedMaxSpans != null) builder.queuedMaxSpans(queuedMaxSpans);
     if (queuedMaxBytes != null) builder.queuedMaxBytes(queuedMaxBytes);
-    return builder.build(encoder);
+    return encoder != null ? builder.build(encoder) : builder.build();
   }
 
   @Override protected void destroyInstance(Object instance) throws Exception {

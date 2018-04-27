@@ -1,5 +1,5 @@
 /**
- * Copyright 2016-2017 The OpenZipkin Authors
+ * Copyright 2016-2018 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -16,6 +16,7 @@ package zipkin2.reporter.beans;
 import java.util.concurrent.TimeUnit;
 import org.junit.After;
 import org.junit.Test;
+import zipkin2.codec.Encoding;
 import zipkin2.codec.SpanBytesEncoder;
 import zipkin2.reporter.AsyncReporter;
 import zipkin2.reporter.ReporterMetrics;
@@ -27,6 +28,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class AsyncReporterFactoryBeanTest {
 
   public static Sender SENDER = URLConnectionSender.create("http://localhost:9411/api/v2/spans");
+  public static Sender PROTO3_SENDER = URLConnectionSender.newBuilder()
+      .endpoint("http://localhost:9411/api/v2/spans")
+      .encoding(Encoding.PROTO3)
+      .build();
   public static ReporterMetrics METRICS = ReporterMetrics.NOOP_METRICS;
 
   XmlBeans context;
@@ -141,18 +146,32 @@ public class AsyncReporterFactoryBeanTest {
         .containsExactly(512);
   }
 
-  @Test public void encoder() {
+  @Test public void sender_proto3() {
     context = new XmlBeans(""
         + "<bean id=\"asyncReporter\" class=\"zipkin2.reporter.beans.AsyncReporterFactoryBean\">\n"
         + "  <property name=\"sender\">\n"
-        + "    <util:constant static-field=\"" + getClass().getName() + ".SENDER\"/>\n"
+        + "    <util:constant static-field=\"" + getClass().getName() + ".PROTO3_SENDER\"/>\n"
         + "  </property>\n"
-        + "  <property name=\"encoder\" value=\"JSON_V2\"/>\n"
         + "</bean>"
     );
 
     assertThat(context.getBean("asyncReporter", AsyncReporter.class))
         .extracting("encoder")
-        .containsExactly(SpanBytesEncoder.JSON_V2);
+        .containsExactly(SpanBytesEncoder.PROTO3);
+  }
+
+  @Test public void encoder() {
+    context = new XmlBeans(""
+        + "<bean id=\"asyncReporter\" class=\"zipkin2.reporter.beans.AsyncReporterFactoryBean\">\n"
+        + "  <property name=\"sender\">\n"
+        + "    <util:constant static-field=\"" + getClass().getName() + ".PROTO3_SENDER\"/>\n"
+        + "  </property>\n"
+        + "  <property name=\"encoder\" value=\"PROTO3\"/>\n"
+        + "</bean>"
+    );
+
+    assertThat(context.getBean("asyncReporter", AsyncReporter.class))
+        .extracting("encoder")
+        .containsExactly(SpanBytesEncoder.PROTO3);
   }
 }

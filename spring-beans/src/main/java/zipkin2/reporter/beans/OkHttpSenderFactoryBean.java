@@ -14,12 +14,14 @@
 package zipkin2.reporter.beans;
 
 import org.springframework.beans.factory.config.AbstractFactoryBean;
+import zipkin2.codec.Encoding;
 import zipkin2.reporter.okhttp3.OkHttpSender;
 
 /** Spring XML config does not support chained builders. This converts accordingly */
 public class OkHttpSenderFactoryBean extends AbstractFactoryBean {
 
   String endpoint;
+  Encoding encoding;
   Integer maxRequests;
   Integer connectTimeout, readTimeout, writeTimeout;
   Boolean compressionEnabled;
@@ -28,6 +30,7 @@ public class OkHttpSenderFactoryBean extends AbstractFactoryBean {
   @Override protected OkHttpSender createInstance() throws Exception {
     OkHttpSender.Builder builder = OkHttpSender.newBuilder();
     if (endpoint != null) builder.endpoint(endpoint);
+    if (encoding != null) builder.encoding(encoding);
     if (connectTimeout != null) builder.connectTimeout(connectTimeout);
     if (readTimeout != null) builder.readTimeout(readTimeout);
     if (writeTimeout != null) builder.writeTimeout(writeTimeout);
@@ -51,6 +54,10 @@ public class OkHttpSenderFactoryBean extends AbstractFactoryBean {
 
   public void setEndpoint(String endpoint) {
     this.endpoint = endpoint;
+  }
+
+  public void setEncoding(Encoding encoding) {
+    this.encoding = encoding;
   }
 
   public void setMaxRequests(Integer maxRequests) {

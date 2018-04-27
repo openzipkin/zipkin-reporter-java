@@ -98,10 +98,26 @@ class CustomReporter implements Flushable {
   }
 ```
 
+
+### Protocol Buffers Encoding
+By default, senders use json v2 encoding, which is easy to understand, but
+twice as large as binary encoding for normal spans. If you are running a
+recent (2.8+) version of Zipkin server, consider [Protocol Buffers](https://developers.google.com/protocol-buffers/docs/proto3)
+when you want to optimize for least size.
+
+You can switch to proto3 encoding like so:
+
+```java
+sender = KafkaSender.newBuilder()
+                    .encoding(Encoding.PROTO3)
+                    .bootstrapServers("192.168.99.100:9092")
+                    .build()
+```
+
 ### Legacy Encoding
-V2 builders use json v2 encoding, which is easy to understand and twice
-as efficient as the v1 json encoding. However, it relies on recent (1.31+)
-versions of zipkin server.
+By default, senders use json v2 encoding, which is easy to understand and
+twice as efficient as the v1 json encoding. However, it relies on recent
+(1.31+) versions of zipkin server.
 
 You can switch to v1 encoding like so:
 

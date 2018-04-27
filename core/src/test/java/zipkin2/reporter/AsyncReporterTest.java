@@ -398,14 +398,13 @@ public class AsyncReporterTest {
     }
   }
 
-  @Test(expected = UnsupportedOperationException.class)
-  public void build_proto3_unsupportedByDefaultBytesEncoder() {
+  @Test public void build_proto3() {
     AsyncReporter.builder(FakeSender.create().encoding(Encoding.PROTO3))
         .messageTimeout(0, TimeUnit.MILLISECONDS)
         .build();
   }
 
-  @Test public void build_proto3_allowedWithCustomBytesEncoder() {
+  @Test public void build_proto3_withCustomBytesEncoder() {
     AsyncReporter.builder(FakeSender.create().encoding(Encoding.PROTO3))
         .messageTimeout(0, TimeUnit.MILLISECONDS)
         // there's no builtin protobuf format of zipkin spans, yet, so there's no encoder

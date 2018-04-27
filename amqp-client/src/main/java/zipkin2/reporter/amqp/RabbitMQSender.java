@@ -1,5 +1,5 @@
 /**
- * Copyright 2016-2017 The OpenZipkin Authors
+ * Copyright 2016-2018 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -72,7 +72,7 @@ public abstract class RabbitMQSender extends Sender {
       return this;
     }
 
-    /** Comma-separated list of host:port pairs */
+    /** Comma-separated list of host:port pairs. ex "192.168.99.100:5672" No Default. */
     public Builder addresses(String addresses) {
       if (addresses == null) throw new NullPointerException("addresses == null");
       this.addresses = convertAddresses(addresses);
@@ -86,6 +86,11 @@ public abstract class RabbitMQSender extends Sender {
       return this;
     }
 
+    /**
+     * Use this to change the encoding used in messages. Default is {@linkplain Encoding#JSON}
+     *
+     * <p>Note: If ultimately sending to Zipkin, version 2.8+ is required to process protobuf.
+     */
     public Builder encoding(Encoding encoding) {
       if (encoding == null) throw new NullPointerException("encoding == null");
       this.encoding = encoding;

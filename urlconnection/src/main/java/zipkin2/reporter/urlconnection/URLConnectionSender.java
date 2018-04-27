@@ -1,5 +1,5 @@
 /**
- * Copyright 2016-2017 The OpenZipkin Authors
+ * Copyright 2016-2018 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -81,16 +81,26 @@ public abstract class URLConnectionSender extends Sender {
     /** Maximum size of a message. Default 5MiB */
     public abstract Builder messageMaxBytes(int messageMaxBytes);
 
-    /** Controls the "Content-Type" header when sending spans. */
+    /**
+     * Use this to change the encoding used in messages. Default is {@linkplain Encoding#JSON}
+     * This also controls the "Content-Type" header when sending spans.
+     *
+     * <p>Note: If ultimately sending to Zipkin, version 2.8+ is required to process protobuf.
+     */
     public abstract Builder encoding(Encoding encoding);
 
     abstract Encoding encoding();
 
     public final URLConnectionSender build() {
-      if (encoding() == Encoding.JSON) {
-        return mediaType("application/json").encoder(BytesMessageEncoder.JSON).autoBuild();
+      switch (encoding()) {
+        case JSON:
+          return mediaType("application/json").encoder(BytesMessageEncoder.JSON).autoBuild();
+        case PROTO3:
+          return mediaType("application/x-protobuf").encoder(BytesMessageEncoder.PROTO3)
+              .autoBuild();
+        default:
+          throw new UnsupportedOperationException("Unsupported encoding: " + encoding().name());
       }
-      throw new UnsupportedOperationException("Unsupported encoding: " + encoding().name());
     }
 
     abstract Builder encoder(BytesMessageEncoder encoder);

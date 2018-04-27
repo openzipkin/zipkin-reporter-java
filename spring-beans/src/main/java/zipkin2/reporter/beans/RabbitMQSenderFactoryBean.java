@@ -1,5 +1,5 @@
 /**
- * Copyright 2016-2017 The OpenZipkin Authors
+ * Copyright 2016-2018 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -14,12 +14,14 @@
 package zipkin2.reporter.beans;
 
 import org.springframework.beans.factory.config.AbstractFactoryBean;
+import zipkin2.codec.Encoding;
 import zipkin2.reporter.amqp.RabbitMQSender;
 
 /** Spring XML config does not support chained builders. This converts accordingly */
 public class RabbitMQSenderFactoryBean extends AbstractFactoryBean {
 
   String addresses, queue;
+  Encoding encoding;
   Integer connectionTimeout;
   String virtualHost;
   String username, password;
@@ -28,6 +30,7 @@ public class RabbitMQSenderFactoryBean extends AbstractFactoryBean {
   @Override protected RabbitMQSender createInstance() throws Exception {
     RabbitMQSender.Builder builder = RabbitMQSender.newBuilder();
     if (addresses != null) builder.addresses(addresses);
+    if (encoding != null) builder.encoding(encoding);
     if (queue != null) builder.queue(queue);
     if (connectionTimeout != null) builder.connectionTimeout(connectionTimeout);
     if (virtualHost != null) builder.virtualHost(virtualHost);
@@ -55,6 +58,10 @@ public class RabbitMQSenderFactoryBean extends AbstractFactoryBean {
 
   public void setQueue(String queue) {
     this.queue = queue;
+  }
+
+  public void setEncoding(Encoding encoding) {
+    this.encoding = encoding;
   }
 
   public void setConnectionTimeout(Integer connectionTimeout) {
