@@ -181,6 +181,7 @@ public abstract class AsyncReporter<S> extends Component implements Reporter<S>,
               }
             } catch (RuntimeException | Error e) {
               BoundedAsyncReporter.logger.log(Level.WARNING, "Unexpected error flushing spans", e);
+              throw e;
             } finally {
               int count = consumer.count();
               if (count > 0) {
