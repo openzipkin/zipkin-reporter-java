@@ -13,7 +13,6 @@
  */
 package zipkin2.reporter.urlconnection;
 
-import com.google.auto.value.AutoValue;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -34,24 +33,32 @@ import zipkin2.reporter.Sender;
  *
  * <p>This sender is thread-safe.
  */
-@AutoValue
-public abstract class URLConnectionSender extends Sender {
+public final class URLConnectionSender extends Sender {
   /** Creates a sender that posts {@link Encoding#JSON} messages. */
   public static URLConnectionSender create(String endpoint) {
     return newBuilder().endpoint(endpoint).build();
   }
 
   public static Builder newBuilder() {
-    return new AutoValue_URLConnectionSender.Builder()
-        .encoding(Encoding.JSON)
-        .connectTimeout(10 * 1000)
-        .readTimeout(60 * 1000)
-        .compressionEnabled(true)
-        .messageMaxBytes(5 * 1024 * 1024);
+    return new Builder();
   }
 
-  @AutoValue.Builder
-  public static abstract class Builder {
+  public static final class Builder {
+    URL endpoint;
+    Encoding encoding = Encoding.JSON;
+    int messageMaxBytes = 5 * 1024 * 1024;
+    int connectTimeout = 10 * 1000, readTimeout = 60 * 1000;
+    boolean compressionEnabled = true;
+
+    Builder(URLConnectionSender sender) {
+      this.endpoint = sender.endpoint;
+      this.encoding = sender.encoding;
+      this.messageMaxBytes = sender.messageMaxBytes;
+      this.connectTimeout = sender.connectTimeout;
+      this.readTimeout = sender.readTimeout;
+      this.compressionEnabled = sender.compressionEnabled;
+    }
+
     /**
      * No default. The POST URL for zipkin's <a href="http://zipkin.io/zipkin-api/#/">v2 api</a>,
      * usually "http://zipkinhost:9411/api/v2/spans"
@@ -67,19 +74,35 @@ public abstract class URLConnectionSender extends Sender {
       }
     }
 
-    public abstract Builder endpoint(URL postUrl);
+    public Builder endpoint(URL endpoint) {
+      if (endpoint == null) throw new NullPointerException("endpoint == null");
+      this.endpoint = endpoint;
+      return this;
+    }
 
     /** Default 10 * 1000 milliseconds. 0 implies no timeout. */
-    public abstract Builder connectTimeout(int connectTimeout);
+    public Builder connectTimeout(int connectTimeout) {
+      this.connectTimeout = connectTimeout;
+      return this;
+    }
 
     /** Default 60 * 1000 milliseconds. 0 implies no timeout. */
-    public abstract Builder readTimeout(int readTimeout);
+    public Builder readTimeout(int readTimeout) {
+      this.readTimeout = readTimeout;
+      return this;
+    }
 
     /** Default true. true implies that spans will be gzipped before transport. */
-    public abstract Builder compressionEnabled(boolean compressSpans);
+    public Builder compressionEnabled(boolean compressionEnabled) {
+      this.compressionEnabled = compressionEnabled;
+      return this;
+    }
 
     /** Maximum size of a message. Default 5MiB */
-    public abstract Builder messageMaxBytes(int messageMaxBytes);
+    public Builder messageMaxBytes(int messageMaxBytes) {
+      this.messageMaxBytes = messageMaxBytes;
+      return this;
+    }
 
     /**
      * Use this to change the encoding used in messages. Default is {@linkplain Encoding#JSON}
@@ -87,45 +110,53 @@ public abstract class URLConnectionSender extends Sender {
      *
      * <p>Note: If ultimately sending to Zipkin, version 2.8+ is required to process protobuf.
      */
-    public abstract Builder encoding(Encoding encoding);
-
-    abstract Encoding encoding();
-
-    public final URLConnectionSender build() {
-      switch (encoding()) {
-        case JSON:
-          return mediaType("application/json").encoder(BytesMessageEncoder.JSON).autoBuild();
-        case PROTO3:
-          return mediaType("application/x-protobuf").encoder(BytesMessageEncoder.PROTO3)
-              .autoBuild();
-        default:
-          throw new UnsupportedOperationException("Unsupported encoding: " + encoding().name());
-      }
+    public Builder encoding(Encoding encoding) {
+      if (encoding == null) throw new NullPointerException("encoding == null");
+      this.encoding = encoding;
+      return this;
     }
 
-    abstract Builder encoder(BytesMessageEncoder encoder);
-
-    abstract Builder mediaType(String mediaType);
-
-    abstract URLConnectionSender autoBuild();
+    public final URLConnectionSender build() {
+      return new URLConnectionSender(this);
+    }
 
     Builder() {
     }
   }
 
-  public abstract Builder toBuilder();
+  final URL endpoint;
+  final Encoding encoding;
+  final String mediaType;
+  final BytesMessageEncoder encoder;
+  final int messageMaxBytes;
+  final int connectTimeout, readTimeout;
+  final boolean compressionEnabled;
 
-  abstract BytesMessageEncoder encoder();
+  URLConnectionSender(Builder builder) {
+    if (builder.endpoint == null) throw new NullPointerException("endpoint == null");
+    this.endpoint = builder.endpoint;
+    this.encoding = builder.encoding;
+    switch (builder.encoding) {
+      case JSON:
+        this.mediaType = "application/json";
+        this.encoder = BytesMessageEncoder.JSON;
+        break;
+      case PROTO3:
+        this.mediaType = "application/x-protobuf";
+        this.encoder = BytesMessageEncoder.PROTO3;
+        break;
+      default:
+        throw new UnsupportedOperationException("Unsupported encoding: " + encoding.name());
+    }
+    this.messageMaxBytes = builder.messageMaxBytes;
+    this.connectTimeout = builder.connectTimeout;
+    this.readTimeout = builder.readTimeout;
+    this.compressionEnabled = builder.compressionEnabled;
+  }
 
-  abstract URL endpoint();
-
-  abstract int connectTimeout();
-
-  abstract int readTimeout();
-
-  abstract boolean compressionEnabled();
-
-  abstract String mediaType();
+  public Builder toBuilder() {
+    return new Builder(this);
+  }
 
   /** close is typically called from a different thread */
   volatile boolean closeCalled;
@@ -138,10 +169,18 @@ public abstract class URLConnectionSender extends Sender {
     return encoding().listSizeInBytes(encodedSizeInBytes);
   }
 
-  /** The returned call sends spans as a POST to {@link #endpoint()}. */
+  @Override public Encoding encoding() {
+    return encoding;
+  }
+
+  @Override public int messageMaxBytes() {
+    return messageMaxBytes;
+  }
+
+  /** The returned call sends spans as a POST to {@link Builder#endpoint}. */
   @Override public Call<Void> sendSpans(List<byte[]> encodedSpans) {
     if (closeCalled) throw new IllegalStateException("close");
-    return new HttpPostCall(encoder().encode(encodedSpans));
+    return new HttpPostCall(encoder.encode(encodedSpans));
   }
 
   /** Sends an empty json message to the configured endpoint. */
@@ -161,12 +200,12 @@ public abstract class URLConnectionSender extends Sender {
 
   void send(byte[] body, String mediaType) throws IOException {
     // intentionally not closing the connection, so as to use keep-alives
-    HttpURLConnection connection = (HttpURLConnection) endpoint().openConnection();
-    connection.setConnectTimeout(connectTimeout());
-    connection.setReadTimeout(readTimeout());
+    HttpURLConnection connection = (HttpURLConnection) endpoint.openConnection();
+    connection.setConnectTimeout(connectTimeout);
+    connection.setReadTimeout(readTimeout);
     connection.setRequestMethod("POST");
     connection.addRequestProperty("Content-Type", mediaType);
-    if (compressionEnabled()) {
+    if (compressionEnabled) {
       connection.addRequestProperty("Content-Encoding", "gzip");
       ByteArrayOutputStream gzipped = new ByteArrayOutputStream();
       GZIPOutputStream compressor = new GZIPOutputStream(gzipped);
@@ -209,10 +248,7 @@ public abstract class URLConnectionSender extends Sender {
   }
 
   @Override public final String toString() {
-    return "URLConnectionSender{" + endpoint() + "}";
-  }
-
-  URLConnectionSender() {
+    return "URLConnectionSender{" + endpoint + "}";
   }
 
   class HttpPostCall extends Call.Base<Void> {
@@ -223,13 +259,13 @@ public abstract class URLConnectionSender extends Sender {
     }
 
     @Override protected Void doExecute() throws IOException {
-      send(message, mediaType());
+      send(message, mediaType);
       return null;
     }
 
     @Override protected void doEnqueue(Callback<Void> callback) {
       try {
-        send(message, mediaType());
+        send(message, mediaType);
         callback.onSuccess(null);
       } catch (IOException | RuntimeException | Error e) {
         callback.onError(e);

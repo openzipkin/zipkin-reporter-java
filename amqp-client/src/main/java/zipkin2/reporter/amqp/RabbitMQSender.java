@@ -13,8 +13,6 @@
  */
 package zipkin2.reporter.amqp;
 
-import com.google.auto.value.AutoValue;
-import com.google.auto.value.extension.memoized.Memoized;
 import com.rabbitmq.client.Address;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
@@ -41,8 +39,7 @@ import zipkin2.reporter.Sender;
  *
  * <p>For thread safety, a channel is created for each thread that calls {@link #sendSpans(List)}.
  */
-@AutoValue
-public abstract class RabbitMQSender extends Sender {
+public final class RabbitMQSender extends Sender {
   /** Creates a sender that sends {@link Encoding#JSON} messages. */
   public static RabbitMQSender create(String addresses) {
     return newBuilder().addresses(addresses).build();
@@ -59,6 +56,14 @@ public abstract class RabbitMQSender extends Sender {
     String queue = "zipkin";
     Encoding encoding = Encoding.JSON;
     int messageMaxBytes = 100000; // arbitrary to match kafka, messages theoretically can be 2GiB
+
+    Builder(RabbitMQSender sender) {
+      connectionFactory = sender.connectionFactory.clone();
+      addresses = sender.addresses;
+      queue = sender.queue;
+      encoding = sender.encoding;
+      messageMaxBytes = sender.messageMaxBytes;
+    }
 
     public Builder connectionFactory(ConnectionFactory connectionFactory) {
       if (connectionFactory == null) throw new NullPointerException("connectionFactory == null");
@@ -128,48 +133,58 @@ public abstract class RabbitMQSender extends Sender {
     }
 
     public final RabbitMQSender build() {
-      return new AutoValue_RabbitMQSender(
-          encoding,
-          messageMaxBytes,
-          addresses,
-          queue,
-          connectionFactory.clone(),
-          BytesMessageEncoder.forEncoding(encoding)
-      );
+      return new RabbitMQSender(this);
+    }
+
+    Builder() {
     }
   }
 
-  public final Builder toBuilder() {
-    return new Builder()
-        .connectionFactory(connectionFactory().clone())
-        .addresses(addresses())
-        .queue(queue())
-        .encoding(encoding());
+  final Encoding encoding;
+  final int messageMaxBytes;
+  final List<Address> addresses;
+  final String queue;
+  final ConnectionFactory connectionFactory;
+  final BytesMessageEncoder encoder;
+
+  RabbitMQSender(Builder builder) {
+    if (builder.addresses == null) throw new NullPointerException("addresses == null");
+    encoding = builder.encoding;
+    encoder = BytesMessageEncoder.forEncoding(encoding);
+    messageMaxBytes = builder.messageMaxBytes;
+    addresses = builder.addresses;
+    queue = builder.queue;
+    connectionFactory = builder.connectionFactory.clone();
   }
 
-  abstract List<Address> addresses();
-
-  abstract String queue();
-
-  abstract ConnectionFactory connectionFactory();
-
-  abstract BytesMessageEncoder encoder();
+  public final Builder toBuilder() {
+    return new Builder(this);
+  }
 
   /** get and close are typically called from different threads */
-  volatile boolean provisioned, closeCalled;
+  volatile Connection connection;
+  volatile boolean closeCalled;
+
+  @Override public Encoding encoding() {
+    return encoding;
+  }
+
+  @Override public int messageMaxBytes() {
+    return messageMaxBytes;
+  }
 
   @Override public int messageSizeInBytes(List<byte[]> encodedSpans) {
-    return encoding().listSizeInBytes(encodedSpans);
+    return encoding.listSizeInBytes(encodedSpans);
   }
 
   @Override public int messageSizeInBytes(int encodedSizeInBytes) {
-    return encoding().listSizeInBytes(encodedSizeInBytes);
+    return encoding.listSizeInBytes(encodedSizeInBytes);
   }
 
   /** This sends all of the spans as a single message. */
   @Override public Call<Void> sendSpans(List<byte[]> encodedSpans) {
     if (closeCalled) throw new IllegalStateException("closed");
-    byte[] message = encoder().encode(encodedSpans);
+    byte[] message = encoder.encode(encodedSpans);
     return new RabbitMQCall(message);
   }
 
@@ -184,23 +199,32 @@ public abstract class RabbitMQSender extends Sender {
   }
 
   @Override public final String toString() {
-    return "RabbitMQSender{addresses=" + addresses() + ", queue=" + queue() + "}";
+    return "RabbitMQSender{addresses=" + addresses + ", queue=" + queue + "}";
   }
 
-  @Memoized Connection get() {
-    Connection result;
+  Connection get() {
+    if (connection == null) {
+      synchronized (this) {
+        if (connection == null) {
+          connection = newConnection();
+        }
+      }
+    }
+    return connection;
+  }
+
+  Connection newConnection() {
     try {
-      result = connectionFactory().newConnection(addresses());
+      return connectionFactory.newConnection(addresses);
     } catch (IOException | TimeoutException e) {
       throw new IllegalStateException("Unable to establish connection to RabbitMQ server", e);
     }
-    provisioned = true;
-    return result;
   }
 
   @Override public synchronized void close() throws IOException {
     if (closeCalled) return;
-    if (provisioned) get().close();
+    Connection connection = this.connection;
+    if (connection != null) connection.close();
     closeCalled = true;
   }
 
@@ -233,7 +257,7 @@ public abstract class RabbitMQSender extends Sender {
     }
 
     void publish() throws IOException {
-      localChannel.get().basicPublish("", queue(), null, message);
+      localChannel.get().basicPublish("", queue, null, message);
     }
 
     @Override protected void doEnqueue(Callback<Void> callback) {

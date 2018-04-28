@@ -56,7 +56,7 @@ public class RabbitMQSenderTest {
       throw new AssumptionViolatedException(check.error().getMessage(), check.error());
     }
 
-    declareQueue(sender.queue());
+    declareQueue(sender.queue);
   }
 
   @After public void close() throws IOException {
@@ -77,7 +77,7 @@ public class RabbitMQSenderTest {
     Thread.sleep(100);
 
     sender = sender.toBuilder().encoding(Encoding.PROTO3).build();
-    declareQueue(sender.queue());
+    declareQueue(sender.queue);
 
     send(CLIENT_SPAN, CLIENT_SPAN).execute();
 
@@ -91,7 +91,7 @@ public class RabbitMQSenderTest {
     Thread.sleep(100);
 
     sender = sender.toBuilder().queue("zipkin-test2").build();
-    declareQueue(sender.queue());
+    declareQueue(sender.queue);
 
     send(CLIENT_SPAN, CLIENT_SPAN).execute();
 
@@ -136,7 +136,7 @@ public class RabbitMQSenderTest {
   @Test
   public void toStringContainsOnlySummaryInformation() throws Exception {
     assertThat(sender.toString()).isEqualTo(
-        "RabbitMQSender{addresses=" + sender.addresses() + ", queue=zipkin-test1}"
+        "RabbitMQSender{addresses=" + sender.addresses + ", queue=zipkin-test1}"
     );
   }
 
@@ -164,7 +164,7 @@ public class RabbitMQSenderTest {
 
     Channel channel = sender.get().createChannel();
     try {
-      channel.basicConsume(sender.queue(), true, new DefaultConsumer(channel) {
+      channel.basicConsume(sender.queue, true, new DefaultConsumer(channel) {
         @Override public void handleDelivery(String consumerTag, Envelope envelope,
             AMQP.BasicProperties properties, byte[] body) throws IOException {
           result.set(body);
