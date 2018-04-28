@@ -288,7 +288,7 @@ public class OkHttpSenderTest {
   }
 
   @Test public void bugGuardCache() throws Exception {
-    assertThat(sender.client().cache())
+    assertThat(sender.client.cache())
         .withFailMessage("senders should not open a disk cache")
         .isNull();
   }

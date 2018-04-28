@@ -13,7 +13,6 @@
  */
 package zipkin2.reporter;
 
-import com.google.auto.value.AutoValue;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -26,10 +25,9 @@ import zipkin2.codec.Encoding;
 import zipkin2.codec.SpanBytesDecoder;
 import zipkin2.codec.SpanBytesEncoder;
 
-@AutoValue
-public abstract class FakeSender extends Sender {
+public final class FakeSender extends Sender {
   static FakeSender create() {
-    return new AutoValue_FakeSender(
+    return new FakeSender(
         Encoding.JSON,
         Integer.MAX_VALUE,
         BytesMessageEncoder.forEncoding(Encoding.JSON),
@@ -40,53 +38,76 @@ public abstract class FakeSender extends Sender {
     );
   }
 
+  final Encoding encoding;
+  final int messageMaxBytes;
+  final BytesMessageEncoder messageEncoder;
+  final BytesEncoder<Span> encoder;
+  final BytesDecoder<Span> decoder;
+  final Consumer<List<Span>> onSpans;
+
+  FakeSender(
+      Encoding encoding,
+      int messageMaxBytes,
+      BytesMessageEncoder messageEncoder,
+      BytesEncoder<Span> encoder,
+      BytesDecoder<Span> decoder,
+      Consumer<List<Span>> onSpans
+  ) {
+    this.encoding = encoding;
+    this.messageMaxBytes = messageMaxBytes;
+    this.messageEncoder = messageEncoder;
+    this.encoder = encoder;
+    this.decoder = decoder;
+    this.onSpans = onSpans;
+  }
+
   FakeSender encoding(Encoding encoding) {
-    return new AutoValue_FakeSender(
+    return new FakeSender(
         encoding,
-        messageMaxBytes(),
-        messageEncoder(), // invalid but not needed, yet
-        encoder(), // invalid but not needed, yet
-        decoder(), // invalid but not needed, yet
-        onSpans()
+        messageMaxBytes,
+        messageEncoder, // invalid but not needed, yet
+        encoder, // invalid but not needed, yet
+        decoder, // invalid but not needed, yet
+        onSpans
     );
   }
 
   FakeSender onSpans(Consumer<List<Span>> onSpans) {
-    return new AutoValue_FakeSender(
-        encoding(),
-        messageMaxBytes(),
-        messageEncoder(),
-        encoder(),
-        decoder(),
+    return new FakeSender(
+        encoding,
+        messageMaxBytes,
+        messageEncoder,
+        encoder,
+        decoder,
         onSpans
     );
   }
 
   FakeSender messageMaxBytes(int messageMaxBytes) {
-    return new AutoValue_FakeSender(
-        encoding(),
+    return new FakeSender(
+        encoding,
         messageMaxBytes,
-        messageEncoder(),
-        encoder(),
-        decoder(),
-        onSpans()
+        messageEncoder,
+        encoder,
+        decoder,
+        onSpans
     );
   }
 
-  abstract BytesMessageEncoder messageEncoder();
+  @Override public Encoding encoding() {
+    return encoding;
+  }
 
-  abstract BytesEncoder<Span> encoder();
-
-  abstract BytesDecoder<Span> decoder();
-
-  abstract Consumer<List<Span>> onSpans();
+  @Override public int messageMaxBytes() {
+    return messageMaxBytes;
+  }
 
   @Override public int messageSizeInBytes(List<byte[]> encodedSpans) {
-    return encoding().listSizeInBytes(encodedSpans);
+    return encoding.listSizeInBytes(encodedSpans);
   }
 
   @Override public int messageSizeInBytes(int encodedSizeInBytes) {
-    return encoding().listSizeInBytes(encodedSizeInBytes);
+    return encoding.listSizeInBytes(encodedSizeInBytes);
   }
 
   /** close is typically called from a different thread */
@@ -95,9 +116,9 @@ public abstract class FakeSender extends Sender {
   @Override public Call<Void> sendSpans(List<byte[]> encodedSpans) {
     if (closeCalled) throw new IllegalStateException("closed");
     List<Span> decoded = encodedSpans.stream()
-        .map(s -> decoder().decodeOne(s))
+        .map(s -> decoder.decodeOne(s))
         .collect(Collectors.toList());
-    onSpans().accept(decoded);
+    onSpans.accept(decoded);
     return Call.create(null);
   }
 
@@ -111,8 +132,5 @@ public abstract class FakeSender extends Sender {
 
   @Override public String toString() {
     return "FakeSender";
-  }
-
-  FakeSender() {
   }
 }

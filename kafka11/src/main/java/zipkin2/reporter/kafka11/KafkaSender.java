@@ -13,10 +13,7 @@
  */
 package zipkin2.reporter.kafka11;
 
-import com.google.auto.value.AutoValue;
-import com.google.auto.value.extension.memoized.Memoized;
 import java.io.IOException;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -29,9 +26,9 @@ import zipkin2.Call;
 import zipkin2.Callback;
 import zipkin2.CheckResult;
 import zipkin2.codec.Encoding;
+import zipkin2.reporter.AwaitableCallback;
 import zipkin2.reporter.BytesMessageEncoder;
 import zipkin2.reporter.Sender;
-import zipkin2.reporter.AwaitableCallback;
 
 /**
  * This sends (usually json v2) encoded spans to a Kafka topic.
@@ -40,8 +37,7 @@ import zipkin2.reporter.AwaitableCallback;
  *
  * <p>This sender is linked against Kafka 0.10.2+, which allows it to work with Kafka 0.10+ brokers
  */
-@AutoValue
-public abstract class KafkaSender extends Sender {
+public final class KafkaSender extends Sender {
   /** Creates a sender that sends {@link Encoding#JSON} messages. */
   public static KafkaSender create(String bootstrapServers) {
     return newBuilder().bootstrapServers(bootstrapServers).build();
@@ -55,23 +51,34 @@ public abstract class KafkaSender extends Sender {
     properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
         ByteArraySerializer.class.getName());
     properties.put(ProducerConfig.ACKS_CONFIG, "0");
-    return new zipkin2.reporter.kafka11.AutoValue_KafkaSender.Builder()
-        .encoding(Encoding.JSON)
-        .properties(properties)
-        .topic("zipkin")
-        .overrides(Collections.EMPTY_MAP)
-        .messageMaxBytes(1000000);
+    return new Builder(properties);
   }
 
   /** Configuration including defaults needed to send spans to a Kafka topic. */
-  @AutoValue.Builder
-  public static abstract class Builder {
-    abstract Builder properties(Properties properties);
+  public static final class Builder {
+    final Properties properties;
+    Encoding encoding = Encoding.JSON;
+    String topic = "zipkin";
+    int messageMaxBytes = 1000000;
+
+    Builder(Properties properties) {
+      this.properties = properties;
+    }
+
+    Builder(KafkaSender sender) {
+      properties = new Properties();
+      properties.putAll(sender.properties);
+      encoding = sender.encoding;
+      topic = sender.topic;
+      messageMaxBytes = sender.messageMaxBytes;
+    }
 
     /** Topic zipkin spans will be send to. Defaults to "zipkin" */
-    public abstract Builder topic(String topic);
-
-    abstract Properties properties();
+    public Builder topic(String topic) {
+      if (topic == null) throw new NullPointerException("topic == null");
+      this.topic = topic;
+      return this;
+    }
 
     /**
      * Initial set of kafka servers to connect to, rest of cluster will be discovered (comma
@@ -81,7 +88,7 @@ public abstract class KafkaSender extends Sender {
      */
     public final Builder bootstrapServers(String bootstrapServers) {
       if (bootstrapServers == null) throw new NullPointerException("bootstrapServers == null");
-      properties().put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+      properties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
       return this;
     }
 
@@ -89,7 +96,10 @@ public abstract class KafkaSender extends Sender {
      * Maximum size of a message. Must be equal to or less than the server's "message.max.bytes".
      * Default 1000000.
      */
-    public abstract Builder messageMaxBytes(int messageMaxBytes);
+    public Builder messageMaxBytes(int messageMaxBytes) {
+      this.messageMaxBytes = messageMaxBytes;
+      return this;
+    }
 
     /**
      * By default, a producer will be created, targeted to {@link #bootstrapServers(String)} with 0
@@ -107,7 +117,7 @@ public abstract class KafkaSender extends Sender {
      */
     public final Builder overrides(Map<String, ?> overrides) {
       if (overrides == null) throw new NullPointerException("overrides == null");
-      properties().putAll(overrides);
+      properties.putAll(overrides);
       return this;
     }
 
@@ -116,39 +126,54 @@ public abstract class KafkaSender extends Sender {
      *
      * <p>Note: If ultimately sending to Zipkin, version 2.8+ is required to process protobuf.
      */
-    public abstract Builder encoding(Encoding encoding);
-
-    abstract Encoding encoding();
-
-    public final KafkaSender build() {
-      return encoder(BytesMessageEncoder.forEncoding(encoding())).autoBuild();
+    public Builder encoding(Encoding encoding) {
+      if (encoding == null) throw new NullPointerException("encoding == null");
+      this.encoding = encoding;
+      return this;
     }
 
-    abstract Builder encoder(BytesMessageEncoder encoder);
-
-    abstract KafkaSender autoBuild();
-
-    Builder() {
+    public KafkaSender build() {
+      return new KafkaSender(this);
     }
   }
 
-  public abstract Builder toBuilder();
+  final Properties properties;
+  final String topic;
+  final Encoding encoding;
+  final BytesMessageEncoder encoder;
+  final int messageMaxBytes;
 
-  abstract BytesMessageEncoder encoder();
+  KafkaSender(Builder builder) {
+    properties = new Properties();
+    properties.putAll(builder.properties);
+    topic = builder.topic;
+    encoding = builder.encoding;
+    encoder = BytesMessageEncoder.forEncoding(builder.encoding);
+    messageMaxBytes = builder.messageMaxBytes;
+  }
 
-  abstract String topic();
-
-  abstract Properties properties();
+  public Builder toBuilder() {
+    return new Builder(this);
+  }
 
   /** get and close are typically called from different threads */
-  volatile boolean provisioned, closeCalled;
+  volatile KafkaProducer<byte[], byte[]> producer;
+  volatile boolean closeCalled;
 
   @Override public int messageSizeInBytes(List<byte[]> encodedSpans) {
-    return encoding().listSizeInBytes(encodedSpans);
+    return encoding.listSizeInBytes(encodedSpans);
   }
 
   @Override public int messageSizeInBytes(int encodedSizeInBytes) {
-    return encoding().listSizeInBytes(encodedSizeInBytes);
+    return encoding.listSizeInBytes(encodedSizeInBytes);
+  }
+
+  @Override public Encoding encoding() {
+    return encoding;
+  }
+
+  @Override public int messageMaxBytes() {
+    return messageMaxBytes;
   }
 
   /**
@@ -158,40 +183,43 @@ public abstract class KafkaSender extends Sender {
    */
   @Override public zipkin2.Call<Void> sendSpans(List<byte[]> encodedSpans) {
     if (closeCalled) throw new IllegalStateException("closed");
-    byte[] message = encoder().encode(encodedSpans);
+    byte[] message = encoder.encode(encodedSpans);
     return new KafkaCall(message);
   }
 
   /** Ensures there are no problems reading metadata about the topic. */
   @Override public CheckResult check() {
     try {
-      get().partitionsFor(topic()); // make sure we can query the metadata
+      get().partitionsFor(topic); // make sure we can query the metadata
       return CheckResult.OK;
     } catch (RuntimeException e) {
       return CheckResult.failed(e);
     }
   }
 
-  @Memoized KafkaProducer<byte[], byte[]> get() {
-    KafkaProducer<byte[], byte[]> result = new KafkaProducer<>(properties());
-    provisioned = true;
-    return result;
+  KafkaProducer<byte[], byte[]> get() {
+    if (producer == null) {
+      synchronized (this) {
+        if (producer == null) {
+          producer = new KafkaProducer<>(properties);
+        }
+      }
+    }
+    return producer;
   }
 
   @Override public synchronized void close() {
     if (closeCalled) return;
-    if (provisioned) get().close();
+    KafkaProducer<byte[], byte[]>  producer = this.producer;
+    if (producer != null) producer.close();
     closeCalled = true;
   }
 
   @Override public final String toString() {
     return "KafkaSender{"
-        + "bootstrapServers=" + properties().get(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG)
-        + ", topic=" + topic()
+        + "bootstrapServers=" + properties.get(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG)
+        + ", topic=" + topic
         + "}";
-  }
-
-  KafkaSender() {
   }
 
   class KafkaCall extends Call.Base<Void> { // KafkaFuture is not cancelable
@@ -203,13 +231,13 @@ public abstract class KafkaSender extends Sender {
 
     @Override protected Void doExecute() throws IOException {
       AwaitableCallback callback = new AwaitableCallback();
-      get().send(new ProducerRecord<>(topic(), message), new CallbackAdapter(callback));
+      get().send(new ProducerRecord<>(topic, message), new CallbackAdapter(callback));
       callback.await();
       return null;
     }
 
     @Override protected void doEnqueue(Callback<Void> callback) {
-      get().send(new ProducerRecord<>(topic(), message), new CallbackAdapter(callback));
+      get().send(new ProducerRecord<>(topic, message), new CallbackAdapter(callback));
     }
 
     @Override public Call<Void> clone() {

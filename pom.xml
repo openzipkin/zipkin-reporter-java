@@ -132,25 +132,6 @@
       <artifactId>zipkin</artifactId>
       <version>${zipkin.version}</version>
     </dependency>
-    <!-- TODO: reconsider auto-value as it now requires an annotation jar dep -->
-    <dependency>
-      <groupId>com.google.auto.value</groupId>
-      <artifactId>auto-value-annotations</artifactId>
-      <version>1.6</version>
-    </dependency>
-    <dependency>
-      <groupId>com.google.auto.value</groupId>
-      <artifactId>auto-value</artifactId>
-      <version>1.6</version>
-      <scope>provided</scope>
-    </dependency>
-    <!-- generated code includes Generated annotations! -->
-    <dependency>
-      <groupId>javax.annotation</groupId>
-      <artifactId>javax.annotation-api</artifactId>
-      <version>1.3.1</version>
-      <scope>provided</scope>
-    </dependency>
 
     <dependency>
       <groupId>junit</groupId>
