@@ -241,7 +241,7 @@ public final class OkHttpSender extends Sender {
           .post(RequestBody.create(MediaType.parse("application/json"), "[]")).build();
       try (Response response = client.newCall(request).execute()) {
         if (!response.isSuccessful()) {
-          throw new IllegalStateException("check response failed: " + response);
+          return CheckResult.failed(new RuntimeException("check response failed: " + response));
         }
       }
       return CheckResult.OK;

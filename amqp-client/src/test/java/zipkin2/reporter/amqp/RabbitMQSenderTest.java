@@ -107,7 +107,7 @@ public class RabbitMQSenderTest {
     CheckResult check = sender.check();
     assertThat(check.ok()).isFalse();
     assertThat(check.error())
-        .isInstanceOf(IllegalStateException.class);
+        .isInstanceOf(RuntimeException.class);
   }
 
   @Test

@@ -80,7 +80,7 @@ final class HttpCall extends Call<Void> {
       if (response.isSuccessful()) {
         return;
       } else {
-        throw new IllegalStateException("response failed: " + response);
+        throw new RuntimeException("response failed: " + response);
       }
     }
     try (ResponseBody responseBody = response.body()) {
@@ -89,7 +89,7 @@ final class HttpCall extends Call<Void> {
         content = Okio.buffer(new GzipSource(responseBody.source()));
       }
       if (!response.isSuccessful()) {
-        throw new IllegalStateException(
+        throw new RuntimeException(
             "response for " + response.request().tag() + " failed: " + content.readUtf8());
       }
     }
