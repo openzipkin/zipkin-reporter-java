@@ -217,7 +217,7 @@ public final class RabbitMQSender extends Sender {
     try {
       return connectionFactory.newConnection(addresses);
     } catch (IOException | TimeoutException e) {
-      throw new IllegalStateException("Unable to establish connection to RabbitMQ server", e);
+      throw new RuntimeException("Unable to establish connection to RabbitMQ server", e);
     }
   }
 
