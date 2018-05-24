@@ -39,6 +39,12 @@ import static java.util.logging.Level.FINE;
  *
  * <p>Spans are bundled into messages based on size in bytes or a timeout, whichever happens first.
  *
+ * <p>The thread that sends flushes spans to the {@linkplain Sender} does so in a synchronous loop.
+ * This means that even asynchronous transports will wait for an ack before sending a next message.
+ * We do this so that a surge of spans doesn't overrun memory or bandwidth via hundreds or
+ * thousands of in-flight messages. The downside of this is that reporting is limited in speed to
+ * what a single thread can clear. When a thread cannot clear the backlog, new spans are dropped.
+ *
  * @param <S> type of the span, usually {@link zipkin2.Span}
  */
 public abstract class AsyncReporter<S> extends Component implements Reporter<S>, Flushable {
