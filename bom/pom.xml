@@ -11,7 +11,7 @@
   <properties>
     <main.basedir>${project.basedir}/../..</main.basedir>
     <!-- use the same value in ../pom.xml -->
-    <zipkin.version>2.8.4</zipkin.version>
+    <zipkin.version>2.9.0</zipkin.version>
   </properties>
 
   <url>https://github.com/openzipkin/zipkin-reporter-java</url>
@@ -84,6 +84,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>zipkin-sender-okhttp3</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>zipkin-sender-libthrift</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

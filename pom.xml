@@ -30,6 +30,7 @@
     <module>amqp-client</module>
     <module>urlconnection</module>
     <module>okhttp3</module>
+    <module>libthrift</module>
     <module>spring-beans</module>
     <module>benchmarks</module>
   </modules>
@@ -45,7 +46,7 @@
     <main.basedir>${project.basedir}</main.basedir>
 
     <!-- use the same value in bom/pom.xml -->
-    <zipkin.version>2.8.4</zipkin.version>
+    <zipkin.version>2.9.0</zipkin.version>
     <license-maven-plugin.version>2.11</license-maven-plugin.version>
   </properties>
 

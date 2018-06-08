@@ -49,12 +49,12 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>zipkin-sender-okhttp3</artifactId>
+      <artifactId>zipkin-sender-libthrift</artifactId>
       <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>com.squareup.okhttp3</groupId>
-      <artifactId>okhttp</artifactId>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>zipkin-sender-okhttp3</artifactId>
       <scope>provided</scope>
     </dependency>
     <dependency>
