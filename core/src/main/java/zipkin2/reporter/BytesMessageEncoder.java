@@ -14,7 +14,6 @@
 package zipkin2.reporter;
 
 import java.util.List;
-import org.omg.PortableServer.THREAD_POLICY_ID;
 import zipkin2.codec.BytesEncoder;
 import zipkin2.codec.Encoding;
 
