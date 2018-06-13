@@ -32,6 +32,7 @@ import okio.GzipSink;
 import okio.Okio;
 import zipkin2.CheckResult;
 import zipkin2.codec.Encoding;
+import zipkin2.reporter.BytesMessageEncoder;
 import zipkin2.reporter.Sender;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -162,6 +163,9 @@ public final class OkHttpSender extends Sender {
     switch (encoding) {
       case JSON:
         encoder = RequestBodyMessageEncoder.JSON;
+        break;
+      case THRIFT:
+        this.encoder = RequestBodyMessageEncoder.THRIFT;
         break;
       case PROTO3:
         encoder = RequestBodyMessageEncoder.PROTO3;

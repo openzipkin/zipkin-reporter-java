@@ -88,6 +88,21 @@ public class URLConnectionSenderTest {
         .containsExactly(CLIENT_SPAN, CLIENT_SPAN);
   }
 
+  @Test public void sendsSpans_THRIFT() throws Exception {
+    sender = sender.toBuilder().encoding(Encoding.THRIFT).build();
+
+    server.enqueue(new MockResponse());
+
+    send(CLIENT_SPAN, CLIENT_SPAN).execute();
+
+    // Ensure only one request was sent
+    assertThat(server.getRequestCount()).isEqualTo(1);
+
+    // Now, let's read back the spans we sent!
+    assertThat(SpanBytesDecoder.THRIFT.decodeList(server.takeRequest().getBody().readByteArray()))
+        .containsExactly(CLIENT_SPAN, CLIENT_SPAN);
+  }
+
   @Test public void compression() throws Exception {
     List<RecordedRequest> requests = new ArrayList<>();
     for (boolean compressionEnabled : asList(true, false)) {
@@ -160,8 +175,20 @@ public class URLConnectionSenderTest {
   }
 
   Call<Void> send(Span... spans) {
-    SpanBytesEncoder bytesEncoder = sender.encoding() == Encoding.JSON
-        ? SpanBytesEncoder.JSON_V2 : SpanBytesEncoder.PROTO3;
+    SpanBytesEncoder bytesEncoder;
+    switch (sender.encoding()) {
+      case JSON:
+        bytesEncoder = SpanBytesEncoder.JSON_V2;
+        break;
+      case THRIFT:
+        bytesEncoder = SpanBytesEncoder.THRIFT;
+        break;
+      case PROTO3:
+        bytesEncoder = SpanBytesEncoder.PROTO3;
+        break;
+      default:
+        throw new UnsupportedOperationException("encoding: " + sender.encoding());
+    }
     return sender.sendSpans(Stream.of(spans).map(bytesEncoder::encode).collect(toList()));
   }
 }
