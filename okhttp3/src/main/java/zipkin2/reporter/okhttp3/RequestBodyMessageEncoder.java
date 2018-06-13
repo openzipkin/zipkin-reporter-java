@@ -22,8 +22,14 @@ import zipkin2.codec.Encoding;
 
 enum RequestBodyMessageEncoder {
   JSON {
-    @Override public RequestBody encode(List<byte[]> values) {
-      return new JsonRequestBody(values);
+    @Override public RequestBody encode(List<byte[]> encodedSpans) {
+      return new JsonRequestBody(encodedSpans);
+    }
+  },
+  @Deprecated
+  THRIFT {
+    @Override RequestBody encode(List<byte[]> encodedSpans) {
+      return new ThriftRequestBody(encodedSpans);
     }
   },
   PROTO3 {
@@ -67,6 +73,31 @@ enum RequestBodyMessageEncoder {
         if (i < length) sink.writeByte(',');
       }
       sink.writeByte(']');
+    }
+  }
+
+  static final class ThriftRequestBody extends StreamingRequestBody {
+    static final MediaType CONTENT_TYPE = MediaType.parse("application/x-thrift");
+
+    ThriftRequestBody(List<byte[]> values) {
+      super(Encoding.THRIFT, CONTENT_TYPE, values);
+    }
+
+    @Override
+    public void writeTo(BufferedSink sink) throws IOException {
+      // TBinaryProtocol List header is element type followed by count
+      int length = values.size();
+      sink.writeByte(12); // TYPE_STRUCT
+      sink.writeByte((length >>> 24L) & 0xff);
+      sink.writeByte((length >>> 16L) & 0xff);
+      sink.writeByte((length >>> 8L) & 0xff);
+      sink.writeByte(length & 0xff);
+
+      // Then each struct is written one-at-a-time with no delimiters until done.
+      for (int i = 0; i < length; ) {
+        byte[] next = values.get(i++);
+        sink.write(next);
+      }
     }
   }
 

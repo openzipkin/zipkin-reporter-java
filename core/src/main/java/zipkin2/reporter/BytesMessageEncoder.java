@@ -14,6 +14,7 @@
 package zipkin2.reporter;
 
 import java.util.List;
+import org.omg.PortableServer.THREAD_POLICY_ID;
 import zipkin2.codec.BytesEncoder;
 import zipkin2.codec.Encoding;
 
@@ -41,6 +42,43 @@ public enum BytesMessageEncoder {
         if (i < length) buf[pos++] = ',';
       }
       buf[pos] = ']';
+      return buf;
+    }
+  },
+  /**
+   * The first format of Zipkin was TBinaryProtocol, big-endian thrift. It is no longer used, but
+   * defined here to allow legacy code to migrate to the current reporter library.
+   *
+   * <p>This writes the list header followed by a concatenation of the input.
+   *
+   * @see Encoding#THRIFT
+   * @deprecated this format is deprecated in favor of json or proto3
+   */
+  @Deprecated
+  THRIFT {
+    @Override public byte[] encode(List<byte[]> values) {
+      int sizeOfArray = 5;
+      int length = values.size();
+      for (int i = 0; i < length; i++) {
+        sizeOfArray += values.get(i).length;
+      }
+
+      byte[] buf = new byte[sizeOfArray];
+      int pos = 0;
+
+      // TBinaryProtocol List header is element type followed by count
+      buf[pos++] = 12; // TYPE_STRUCT
+      buf[pos++] = (byte) ((length >>> 24L) & 0xff);
+      buf[pos++] = (byte) ((length >>> 16L) & 0xff);
+      buf[pos++] = (byte) ((length >>> 8L) & 0xff);
+      buf[pos++] = (byte) (length & 0xff);
+
+      // Then each struct is written one-at-a-time with no delimiters until done.
+      for (int i = 0; i < length; ) {
+        byte[] v = values.get(i++);
+        System.arraycopy(v, 0, buf, pos, v.length);
+        pos += v.length;
+      }
       return buf;
     }
   },
@@ -89,6 +127,8 @@ public enum BytesMessageEncoder {
         return JSON;
       case PROTO3:
         return PROTO3;
+      case THRIFT:
+        return THRIFT;
       default:
         throw new UnsupportedOperationException(encoding.name());
     }

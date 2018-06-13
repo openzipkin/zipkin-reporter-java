@@ -74,6 +74,17 @@ public class KafkaSenderTest {
   }
 
   @Test
+  public void sendsSpans_THRIFT() throws Exception {
+    sender.close();
+    sender = sender.toBuilder().encoding(Encoding.THRIFT).build();
+
+    send(CLIENT_SPAN, CLIENT_SPAN).execute();
+
+    assertThat(SpanBytesDecoder.THRIFT.decodeList(readMessages().get(0)))
+        .containsExactly(CLIENT_SPAN, CLIENT_SPAN);
+  }
+
+  @Test
   public void sendsSpansToCorrectTopic() throws Exception {
     sender.close();
     sender = sender.toBuilder().topic("customzipkintopic").build();
@@ -96,8 +107,7 @@ public class KafkaSenderTest {
 
     CheckResult check = sender.check();
     assertThat(check.ok()).isFalse();
-    assertThat(check.error())
-        .isInstanceOf(org.apache.kafka.common.errors.TimeoutException.class);
+    assertThat(check.error()).isInstanceOf(org.apache.kafka.common.errors.TimeoutException.class);
   }
 
   @Test
@@ -113,14 +123,14 @@ public class KafkaSenderTest {
     send(CLIENT_SPAN, CLIENT_SPAN).execute();
 
     final ObjectName kafkaProducerMXBeanName = new ObjectName("kafka.producer:*");
-    final Set<ObjectName> withProducers = ManagementFactory.getPlatformMBeanServer().queryNames(
-        kafkaProducerMXBeanName, null);
+    final Set<ObjectName> withProducers =
+        ManagementFactory.getPlatformMBeanServer().queryNames(kafkaProducerMXBeanName, null);
     assertThat(withProducers).isNotEmpty();
 
     sender.close();
 
-    final Set<ObjectName> withNoProducers = ManagementFactory.getPlatformMBeanServer().queryNames(
-        kafkaProducerMXBeanName, null);
+    final Set<ObjectName> withNoProducers =
+        ManagementFactory.getPlatformMBeanServer().queryNames(kafkaProducerMXBeanName, null);
     assertThat(withNoProducers).isEmpty();
   }
 
@@ -132,14 +142,25 @@ public class KafkaSenderTest {
    */
   @Test
   public void toStringContainsOnlySummaryInformation() {
-    assertThat(sender.toString()).isEqualTo(
-        "KafkaSender{bootstrapServers=" + bootstrapServers + ", topic=zipkin}"
-    );
+    assertThat(sender.toString())
+        .isEqualTo("KafkaSender{bootstrapServers=" + bootstrapServers + ", topic=zipkin}");
   }
 
   Call<Void> send(Span... spans) {
-    SpanBytesEncoder bytesEncoder = sender.encoding() == Encoding.JSON
-        ? SpanBytesEncoder.JSON_V2 : SpanBytesEncoder.PROTO3;
+    SpanBytesEncoder bytesEncoder;
+    switch (sender.encoding()) {
+      case JSON:
+        bytesEncoder = SpanBytesEncoder.JSON_V2;
+        break;
+      case THRIFT:
+        bytesEncoder = SpanBytesEncoder.THRIFT;
+        break;
+      case PROTO3:
+        bytesEncoder = SpanBytesEncoder.PROTO3;
+        break;
+      default:
+        throw new UnsupportedOperationException("encoding: " + sender.encoding());
+    }
     return sender.sendSpans(Stream.of(spans).map(bytesEncoder::encode).collect(toList()));
   }
 

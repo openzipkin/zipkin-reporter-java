@@ -426,4 +426,33 @@ public class AsyncReporterTest {
           }
         });
   }
+
+  @Test public void build_thrift() {
+    AsyncReporter.builder(FakeSender.create().encoding(Encoding.THRIFT))
+        .messageTimeout(0, TimeUnit.MILLISECONDS)
+        .build();
+  }
+
+  @Test public void build_thrift_withCustomBytesEncoder() {
+    AsyncReporter.builder(FakeSender.create().encoding(Encoding.THRIFT))
+        .messageTimeout(0, TimeUnit.MILLISECONDS)
+        // there's no builtin protobuf format of zipkin spans, yet, so there's no encoder
+        .build(new BytesEncoder<Span>() {
+          @Override public Encoding encoding() {
+            return Encoding.THRIFT;
+          }
+
+          @Override public int sizeInBytes(Span input) {
+            return 0;
+          }
+
+          @Override public byte[] encode(Span input) {
+            return new byte[0];
+          }
+
+          @Override public byte[] encodeList(List<Span> input) {
+            return new byte[0];
+          }
+        });
+  }
 }

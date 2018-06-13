@@ -24,6 +24,8 @@ abstract class BufferNextMessage<S> implements SpanWithSizeConsumer<S> {
     switch (encoding) {
       case JSON:
         return new BufferNextJsonMessage<>(maxBytes, timeoutNanos);
+      case THRIFT:
+        return new BufferNextThriftMessage<>(maxBytes, timeoutNanos);
       case PROTO3:
         return new BufferNextProto3Message<>(maxBytes, timeoutNanos);
     }
@@ -57,11 +59,13 @@ abstract class BufferNextMessage<S> implements SpanWithSizeConsumer<S> {
       hasAtLeastOneSpan = false;
     }
 
-    @Override int messageSizeInBytes(int nextSizeInBytes) {
+    @Override
+    int messageSizeInBytes(int nextSizeInBytes) {
       return messageSizeInBytes + nextSizeInBytes + (hasAtLeastOneSpan ? 1 : 0);
     }
 
-    @Override void resetMessageSizeInBytes() {
+    @Override
+    void resetMessageSizeInBytes() {
       int length = sizes.size();
       hasAtLeastOneSpan = length > 0;
       if (length < 2) {
@@ -75,13 +79,31 @@ abstract class BufferNextMessage<S> implements SpanWithSizeConsumer<S> {
       }
     }
 
-    @Override void addSpanToBuffer(S next, int nextSizeInBytes) {
+    @Override
+    void addSpanToBuffer(S next, int nextSizeInBytes) {
       super.addSpanToBuffer(next, nextSizeInBytes);
       hasAtLeastOneSpan = true;
     }
+  }
 
-    @Override void drain(SpanWithSizeConsumer<S> consumer) {
-      super.drain(consumer);
+  static final class BufferNextThriftMessage<S> extends BufferNextMessage<S> {
+
+    BufferNextThriftMessage(int maxBytes, long timeoutNanos) {
+      super(maxBytes, timeoutNanos);
+      messageSizeInBytes = 5;
+    }
+
+    @Override
+    int messageSizeInBytes(int nextSizeInBytes) {
+      return messageSizeInBytes + nextSizeInBytes;
+    }
+
+    @Override
+    void resetMessageSizeInBytes() {
+      messageSizeInBytes = 5;
+      for (int i = 0, length = sizes.size(); i < length; i++) {
+        messageSizeInBytes += sizes.get(i);
+      }
     }
   }
 
@@ -91,11 +113,13 @@ abstract class BufferNextMessage<S> implements SpanWithSizeConsumer<S> {
     }
 
     /** proto3 repeated fields are simply concatenated. there is no other overhead */
-    @Override int messageSizeInBytes(int nextSizeInBytes) {
+    @Override
+    int messageSizeInBytes(int nextSizeInBytes) {
       return messageSizeInBytes += nextSizeInBytes;
     }
 
-    @Override void resetMessageSizeInBytes() {
+    @Override
+    void resetMessageSizeInBytes() {
       messageSizeInBytes = 0;
       for (int i = 0, length = sizes.size(); i < length; i++) {
         messageSizeInBytes += sizes.get(i);
@@ -104,7 +128,8 @@ abstract class BufferNextMessage<S> implements SpanWithSizeConsumer<S> {
   }
 
   /** This is done inside a lock that holds up writers, so has to be fast. No encoding! */
-  @Override public boolean offer(S next, int nextSizeInBytes) {
+  @Override
+  public boolean offer(S next, int nextSizeInBytes) {
     int x = messageSizeInBytes(nextSizeInBytes);
     int y = maxBytes;
     int includingNextVsMaxBytes = (x < y) ? -1 : ((x == y) ? 0 : 1); // Integer.compare, but JRE 6

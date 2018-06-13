@@ -162,6 +162,8 @@ public abstract class AsyncReporter<S> extends Component implements Reporter<S>,
           return build(SpanBytesEncoder.JSON_V2);
         case PROTO3:
           return build(SpanBytesEncoder.PROTO3);
+        case THRIFT:
+          return build(SpanBytesEncoder.THRIFT);
         default:
           throw new UnsupportedOperationException(sender.encoding().name());
       }

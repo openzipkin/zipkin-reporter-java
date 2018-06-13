@@ -141,6 +141,10 @@ public final class URLConnectionSender extends Sender {
         this.mediaType = "application/json";
         this.encoder = BytesMessageEncoder.JSON;
         break;
+      case THRIFT:
+        this.mediaType = "application/x-thrift";
+        this.encoder = BytesMessageEncoder.THRIFT;
+        break;
       case PROTO3:
         this.mediaType = "application/x-protobuf";
         this.encoder = BytesMessageEncoder.PROTO3;
