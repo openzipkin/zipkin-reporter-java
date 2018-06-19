@@ -11,7 +11,7 @@
   <properties>
     <main.basedir>${project.basedir}/../..</main.basedir>
     <!-- use the same value in ../pom.xml -->
-    <zipkin.version>2.9.3</zipkin.version>
+    <zipkin.version>2.9.4</zipkin.version>
   </properties>
 
   <url>https://github.com/openzipkin/zipkin-reporter-java</url>
@@ -33,8 +33,7 @@
   <scm>
     <url>https://github.com/openzipkin/zipkin-reporter-java</url>
     <connection>scm:git:https://github.com/openzipkin/zipkin-reporter-java.git</connection>
-    <developerConnection>scm:git:https://github.com/openzipkin/zipkin-reporter-java.git
-    </developerConnection>
+    <developerConnection>scm:git:https://github.com/openzipkin/zipkin-reporter-java.git</developerConnection>
     <tag>HEAD</tag>
   </scm>
 
@@ -68,6 +67,12 @@
       <dependency>
         <groupId>io.zipkin.zipkin2</groupId>
         <artifactId>zipkin</artifactId>
+        <version>${zipkin.version}</version>
+      </dependency>
+      <!-- Also set version of the JUnit rule that tests reporters -->
+      <dependency>
+        <groupId>io.zipkin.zipkin2</groupId>
+        <artifactId>zipkin-junit</artifactId>
         <version>${zipkin.version}</version>
       </dependency>
       <dependency>
