@@ -27,24 +27,33 @@ import org.apache.thrift.protocol.TType;
 import static org.apache.thrift.TApplicationException.BAD_SEQUENCE_ID;
 import static org.apache.thrift.TApplicationException.MISSING_RESULT;
 
-final class InternalScribeCodec {
+public final class InternalScribeCodec { // public for zipkin-finagle
 
   static final TField CATEGORY_FIELD_DESC = new TField("category", TType.STRING, (short) 1);
   static final TField MESSAGE_FIELD_DESC = new TField("message", TType.STRING, (short) 2);
   static final TField MESSAGES_FIELD_DESC = new TField("messages", TType.LIST, (short) 1);
 
-  static int messageSizeInBytes(byte[] category, List<byte[]> encodedSpans) {
-    int sizeInBytes = 12 + 3; // messageBegin = overhead + size of "Log"
-    sizeInBytes += 5; // FieldBegin
+  public static int messageSizeInBytes(byte[] category, int spanSizeInBytes) {
+    int sizeInBytes = 4 + (4 + 3 /* Log */) + 4; // strict write message begin
+    sizeInBytes += 3; // FieldBegin
+    sizeInBytes += 5; // ListBegin
+    sizeInBytes += sizeOfLogEntry(category, spanSizeInBytes);
+    sizeInBytes += 1; // FieldStop
+    return sizeInBytes;
+  }
+
+  public static int messageSizeInBytes(byte[] category, List<byte[]> encodedSpans) {
+    int sizeInBytes = 4 + (4 + 3 /* Log */) + 4; // strict write message begin
+    sizeInBytes += 3; // FieldBegin
     sizeInBytes += 5; // ListBegin
     for (byte[] encodedSpan : encodedSpans) {
-      sizeInBytes += sizeOfLogEntry(category, encodedSpan);
+      sizeInBytes += sizeOfLogEntry(category, encodedSpan.length);
     }
     sizeInBytes += 1; // FieldStop
     return sizeInBytes;
   }
 
-  static void writeLogRequest(
+  public static void writeLogRequest(
       byte[] category, List<byte[]> encodedSpans, int seqid, TBinaryProtocol oprot)
       throws TException {
     oprot.writeMessageBegin(new TMessage("Log", TMessageType.CALL, seqid));
@@ -78,9 +87,9 @@ final class InternalScribeCodec {
     throw new TApplicationException(MISSING_RESULT, "Log failed: unknown result");
   }
 
-  static int sizeOfLogEntry(byte[] category, byte[] span) {
-    int sizeInBytes = 5 + 4 + category.length;
-    sizeInBytes += 5 + 4 + base64SizeInBytes(span);
+  static int sizeOfLogEntry(byte[] category, int spanSizeInBytes) {
+    int sizeInBytes = 3 + 4 + category.length;
+    sizeInBytes += 3 + 4 + base64SizeInBytes(spanSizeInBytes);
     sizeInBytes++; // stop
     return sizeInBytes;
   }
@@ -97,16 +106,12 @@ final class InternalScribeCodec {
     oprot.writeFieldStop();
   }
 
-  static final byte[] MAP =
-      new byte[] {
-        'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R',
-            'S',
-        'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k',
-            'l',
-        'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '0', '1', '2', '3',
-            '4',
-        '5', '6', '7', '8', '9', '+', '/'
-      };
+  static final byte[] MAP = {
+    'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S',
+    'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l',
+    'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '0', '1', '2', '3', '4',
+    '5', '6', '7', '8', '9', '+', '/'
+  };
 
   /**
    * Adapted from okio.Base64 as JRE 6 doesn't have a base64Url encoder
@@ -114,7 +119,7 @@ final class InternalScribeCodec {
    * <p>Original author: Alexander Y. Kleymenov
    */
   static byte[] base64(byte[] in) {
-    int length = base64SizeInBytes(in);
+    int length = base64SizeInBytes(in.length);
     byte[] out = new byte[length];
     int index = 0, end = in.length - in.length % 3;
     for (int i = 0; i < end; i += 3) {
@@ -137,10 +142,13 @@ final class InternalScribeCodec {
         out[index++] = '=';
         break;
     }
+    assert index == out.length;
     return out;
   }
 
-  static int base64SizeInBytes(byte[] in) {
-    return (in.length + 2) * 4 / 3;
+  static int base64SizeInBytes(int sizeInBytes) {
+    int result = sizeInBytes * 4 / 3;
+    int padding = sizeInBytes * 4 % 3;
+    return result + padding;
   }
 }

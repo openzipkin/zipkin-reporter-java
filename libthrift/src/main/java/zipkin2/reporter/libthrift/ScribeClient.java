@@ -35,6 +35,10 @@ final class ScribeClient implements Closeable {
     prot = new TBinaryProtocol(new TFramedTransport(socket));
   }
 
+  static int messageSizeInBytes(int spanSizeInBytes) {
+    return InternalScribeCodec.messageSizeInBytes(category, spanSizeInBytes);
+  }
+
   static int messageSizeInBytes(List<byte[]> encodedSpans) {
     return InternalScribeCodec.messageSizeInBytes(category, encodedSpans);
   }
