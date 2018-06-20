@@ -23,7 +23,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import zipkin2.Span;
 import zipkin2.codec.SpanBytesEncoder;
-import zipkin2.collector.CollectorMetrics;
+import zipkin2.collector.InMemoryCollectorMetrics;
 import zipkin2.collector.scribe.ScribeCollector;
 import zipkin2.storage.InMemoryStorage;
 
@@ -37,13 +37,15 @@ public class LibthriftSenderTest {
   @Rule public ExpectedException thrown = ExpectedException.none();
 
   InMemoryStorage storage = InMemoryStorage.newBuilder().build();
+  InMemoryCollectorMetrics collectorMetrics = new InMemoryCollectorMetrics();
+  InMemoryCollectorMetrics scribeCollectorMetrics = collectorMetrics.forTransport("scribe");
   ScribeCollector collector;
 
   @Before
   public void start() {
     collector =
         ScribeCollector.newBuilder()
-            .metrics(CollectorMetrics.NOOP_METRICS)
+            .metrics(collectorMetrics)
             .storage(storage)
             .build();
     collector.start();
@@ -64,12 +66,26 @@ public class LibthriftSenderTest {
   }
 
   @Test
+  public void sendsSpansExpectedMetrics() throws Exception {
+    send(CLIENT_SPAN, CLIENT_SPAN);
+
+    assertThat(scribeCollectorMetrics.messages()).isEqualTo(1);
+    assertThat(scribeCollectorMetrics.messagesDropped()).isZero();
+    assertThat(scribeCollectorMetrics.spans()).isEqualTo(2);
+    assertThat(scribeCollectorMetrics.spansDropped()).isZero();
+    byte[] thrift = SpanBytesEncoder.THRIFT.encode(CLIENT_SPAN);
+
+    // span bytes is cumulative thrift size, not message size
+    assertThat(scribeCollectorMetrics.bytes()).isEqualTo(thrift.length * 2);
+  }
+
+  @Test
   public void check_okWhenScribeIsListening() {
     assertThat(sender.check().ok()).isTrue();
   }
 
   @Test
-  public void check_notOkWhenScribeIsDown() throws Exception {
+  public void check_notOkWhenScribeIsDown() {
     collector.close();
 
     assertThat(sender.check().ok()).isFalse();

@@ -116,6 +116,10 @@ public final class LibthriftSender extends Sender {
     return messageMaxBytes;
   }
 
+  @Override public int messageSizeInBytes(int encodedSizeInBytes) {
+    return ScribeClient.messageSizeInBytes(encodedSizeInBytes);
+  }
+
   /** Size of the Thrift RPC message */
   @Override
   public int messageSizeInBytes(List<byte[]> encodedSpans) {
