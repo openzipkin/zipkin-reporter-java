@@ -114,7 +114,7 @@ public final class InternalScribeCodec { // public for zipkin-finagle
   };
 
   /**
-   * Adapted from okio.Base64 as JRE 6 doesn't have a base64Url encoder
+   * Adapted from okio.Base64 as JRE 6 doesn't have a base64 encoder
    *
    * <p>Original author: Alexander Y. Kleymenov
    */
@@ -142,13 +142,13 @@ public final class InternalScribeCodec { // public for zipkin-finagle
         out[index++] = '=';
         break;
     }
-    assert index == out.length;
+    assert index == out.length : "index " + index + " != out.length " + out.length;
     return out;
   }
 
   static int base64SizeInBytes(int sizeInBytes) {
     int result = sizeInBytes * 4 / 3;
-    int padding = sizeInBytes * 4 % 3;
-    return result + padding;
+    int remainder = sizeInBytes * 4 % 3;
+    return remainder == 0 ? result : result + (4 - remainder);
   }
 }
