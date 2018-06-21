@@ -15,6 +15,7 @@ package zipkin2.reporter.libthrift;
 
 import java.io.ByteArrayOutputStream;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.List;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.transport.TIOStreamTransport;
@@ -27,8 +28,19 @@ import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static zipkin2.reporter.TestObjects.CLIENT_SPAN;
 import static zipkin2.reporter.TestObjects.TODAY;
+import static zipkin2.reporter.TestObjects.UTF_8;
 
 public class InternalScribeCodecTest {
+
+  @Test
+  public void base64_matches() {
+    // testing every padding value
+    for (String input : Arrays.asList("abc", "abcd", "abcd", "abcde")) {
+      byte[] base64 = Base64.getEncoder().encode(input.getBytes(UTF_8));
+      assertThat(InternalScribeCodec.base64SizeInBytes(input.length())).isEqualTo(base64.length);
+      assertThat(InternalScribeCodec.base64(input.getBytes(UTF_8))).containsExactly(base64);
+    }
+  }
 
   @Test
   public void sendsSpansExpectedMetrics() throws Exception {
