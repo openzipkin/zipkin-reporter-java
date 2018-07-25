@@ -30,9 +30,9 @@ public final class InMemoryReporterMetrics implements ReporterMetrics {
   }
 
   private final ConcurrentHashMap<MetricKey, AtomicLong> metrics =
-      new ConcurrentHashMap<MetricKey, AtomicLong>();
-  private final ConcurrentHashMap<Throwable, AtomicLong> messagesDropped =
-      new ConcurrentHashMap<Throwable, AtomicLong>();
+      new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<Class<? extends Throwable>, AtomicLong> messagesDropped =
+      new ConcurrentHashMap<>();
 
   @Override public void incrementMessages() {
     increment(MetricKey.messages, 1);
@@ -43,12 +43,12 @@ public final class InMemoryReporterMetrics implements ReporterMetrics {
   }
 
   @Override public void incrementMessagesDropped(Throwable cause) {
-    increment(messagesDropped, cause, 1);
+    increment(messagesDropped, cause.getClass(), 1);
   }
 
-  public Map<Throwable, Long> messagesDroppedByCause() {
-    Map<Throwable, Long> result = new LinkedHashMap<Throwable, Long>(messagesDropped.size());
-    for (Map.Entry<Throwable, AtomicLong> kv : messagesDropped.entrySet()) {
+  public Map<Class<? extends Throwable>, Long> messagesDroppedByCause() {
+    Map<Class<? extends Throwable>, Long> result = new LinkedHashMap<>(messagesDropped.size());
+    for (Map.Entry<Class<? extends Throwable>, AtomicLong> kv : messagesDropped.entrySet()) {
       result.put(kv.getKey(), kv.getValue().longValue());
     }
     return result;

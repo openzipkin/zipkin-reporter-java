@@ -289,7 +289,7 @@ public class AsyncReporterTest {
     assertThat(metrics.spansDropped()).isEqualTo(1);
     assertThat(metrics.messagesDropped()).isEqualTo(1);
     assertThat(metrics.messagesDroppedByCause().keySet().iterator().next())
-        .isInstanceOf(IllegalStateException.class);
+        .isEqualTo(IllegalStateException.class);
   }
 
   @Test
