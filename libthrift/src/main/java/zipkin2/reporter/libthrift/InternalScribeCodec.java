@@ -67,7 +67,7 @@ public final class InternalScribeCodec { // public for zipkin-finagle
   public static boolean readLogResponse(int seqid, TBinaryProtocol iprot) throws TException {
     TMessage msg = iprot.readMessageBegin();
     if (msg.type == TMessageType.EXCEPTION) {
-      throw TApplicationException.read(iprot);
+      throw TApplicationException.readFrom(iprot);
     } else if (msg.seqid != seqid) {
       throw new TApplicationException(BAD_SEQUENCE_ID, "Log failed: out of sequence response");
     }
