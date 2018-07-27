@@ -43,7 +43,7 @@
       <groupId>org.apache.kafka</groupId>
       <artifactId>kafka-clients</artifactId>
       <!-- recent clients can talk to old 0.10 brokers -->
-      <version>1.1.0</version>
+      <version>1.1.1</version>
     </dependency>
 
     <dependency>
