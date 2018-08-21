@@ -230,7 +230,8 @@ public final class KafkaSender extends Sender {
     if (closeCalled) return;
     KafkaProducer<byte[], byte[]>  producer = this.producer;
     if (producer != null) producer.close();
-    if (adminClient != null) adminClient.close();
+    AdminClient adminClient = this.adminClient;
+    if (adminClient != null) adminClient.close(1, TimeUnit.SECONDS);
     closeCalled = true;
   }
 
