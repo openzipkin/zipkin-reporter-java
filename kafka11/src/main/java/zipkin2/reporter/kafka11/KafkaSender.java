@@ -17,10 +17,14 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
+
+import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import zipkin2.Call;
 import zipkin2.Callback;
@@ -159,6 +163,7 @@ public final class KafkaSender extends Sender {
   /** get and close are typically called from different threads */
   volatile KafkaProducer<byte[], byte[]> producer;
   volatile boolean closeCalled;
+  volatile AdminClient adminClient;
 
   @Override public int messageSizeInBytes(List<byte[]> encodedSpans) {
     return encoding.listSizeInBytes(encodedSpans);
@@ -190,9 +195,10 @@ public final class KafkaSender extends Sender {
   /** Ensures there are no problems reading metadata about the topic. */
   @Override public CheckResult check() {
     try {
-      get().partitionsFor(topic); // make sure we can query the metadata
+      KafkaFuture<String> maybeClusterId = getAdminClient().describeCluster().clusterId();
+      maybeClusterId.get(1, TimeUnit.SECONDS);
       return CheckResult.OK;
-    } catch (RuntimeException e) {
+    } catch (Exception e) {
       return CheckResult.failed(e);
     }
   }
@@ -206,6 +212,18 @@ public final class KafkaSender extends Sender {
       }
     }
     return producer;
+  }
+
+
+  AdminClient getAdminClient() {
+    if (adminClient == null) {
+      synchronized (this) {
+        if (adminClient == null) {
+          adminClient = AdminClient.create(properties);
+        }
+      }
+    }
+    return adminClient;
   }
 
   @Override public synchronized void close() {

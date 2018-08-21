@@ -19,6 +19,7 @@ import java.lang.management.ManagementFactory;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Stream;
 import javax.management.ObjectName;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -110,8 +111,7 @@ public class KafkaSenderTest {
 
     CheckResult check = sender.check();
     assertThat(check.ok()).isFalse();
-    assertThat(check.error())
-        .isInstanceOf(org.apache.kafka.common.errors.TimeoutException.class);
+    assertThat(check.error()).isInstanceOf(TimeoutException.class);
   }
 
   @Test
