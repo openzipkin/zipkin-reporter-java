@@ -134,7 +134,10 @@ abstract class BufferNextMessage<S> implements SpanWithSizeConsumer<S> {
     int y = maxBytes;
     int includingNextVsMaxBytes = (x < y) ? -1 : ((x == y) ? 0 : 1); // Integer.compare, but JRE 6
 
-    if (includingNextVsMaxBytes > 0) return false; // can't fit the next message into this buffer
+    if (includingNextVsMaxBytes > 0) {
+      bufferFull = true;
+      return false; // can't fit the next message into this buffer
+    }
 
     addSpanToBuffer(next, nextSizeInBytes);
     messageSizeInBytes = x;
