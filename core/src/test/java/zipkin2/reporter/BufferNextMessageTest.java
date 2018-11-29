@@ -62,6 +62,8 @@ public class BufferNextMessageTest {
     assertThat(pending.offer(4, 1))
         // should drop because 4 implies ",4" which makes the total length 11
         .isFalse();
+    // then we should consider buffer is full and drain all
+    assertThat(pending.bufferFull).isTrue();
   }
 
   @Test public void drain_json() {
@@ -144,6 +146,8 @@ public class BufferNextMessageTest {
     assertThat(pending.offer(3, 3))
         // should drop because this implies adding 3 bytes which makes the total length 12
         .isFalse();
+    // then we should consider buffer is full and drain all
+    assertThat(pending.bufferFull).isTrue();
   }
 
   @Test public void drain_proto3() {
