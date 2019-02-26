@@ -165,8 +165,7 @@ instrumentation. Also any indirect use will have versions aligned:
 </dependency>
 ```
 
-With this in place, you can use the built-in properties
-`zipkin-reporter.version` and `zipkin.version` to override dependency
+With this in place, you can use the property `zipkin-reporter.version` to override dependency
 versions coherently. This is most commonly to test a new feature or fix.
 
 Note: If you override a version, always double check that your version
