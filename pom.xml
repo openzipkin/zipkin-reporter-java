@@ -33,6 +33,7 @@
     <module>libthrift</module>
     <module>spring-beans</module>
     <module>benchmarks</module>
+    <module>metrics-micrometer</module>
   </modules>
 
   <properties>
