@@ -55,8 +55,8 @@
     <errorprone.args />
 
     <!-- use the same value in bom/pom.xml -->
-    <zipkin.version>2.12.1</zipkin.version>
-    <license-maven-plugin.version>2.11</license-maven-plugin.version>
+    <zipkin.version>2.12.3</zipkin.version>
+    <license-maven-plugin.version>3.0</license-maven-plugin.version>
   </properties>
 
   <name>Zipkin Reporter (Parent)</name>
@@ -126,12 +126,12 @@
       <dependency>
         <groupId>com.squareup.okhttp3</groupId>
         <artifactId>okhttp</artifactId>
-        <version>3.12.1</version>
+        <version>3.13.1</version>
       </dependency>
       <dependency>
         <groupId>com.squareup.okhttp3</groupId>
         <artifactId>mockwebserver</artifactId>
-        <version>3.12.1</version>
+        <version>3.13.1</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
@@ -152,7 +152,7 @@
     <dependency>
       <groupId>org.assertj</groupId>
       <artifactId>assertj-core</artifactId>
-      <version>3.11.1</version>
+      <version>3.12.0</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -166,12 +166,16 @@
   <build>
     <pluginManagement>
       <plugins>
-        <!-- mvn -N io.takari:maven:wrapper -Dmaven=3.6.0 -->
+        <!-- mvn -N io.takari:maven:wrapper generates the ./mvnw script -->
         <plugin>
           <groupId>io.takari</groupId>
           <artifactId>maven</artifactId>
-          <version>0.6.1</version>
+          <version>0.7.1</version>
+          <configuration>
+            <maven>3.6.0</maven>
+          </configuration>
         </plugin>
+
         <plugin>
           <artifactId>maven-compiler-plugin</artifactId>
           <version>3.8.0</version>
@@ -331,6 +335,8 @@
           </mapping>
           <excludes>
             <exclude>.travis.yml</exclude>
+            <exclude>.editorconfig</exclude>
+            <exclude>.gitattributes</exclude>
             <exclude>.gitignore</exclude>
             <exclude>.mvn/**</exclude>
             <exclude>mvnw*</exclude>
@@ -338,6 +344,7 @@
             <exclude>**/.idea/**</exclude>
             <exclude>LICENSE</exclude>
             <exclude>**/*.md</exclude>
+            <exclude>bnd.bnd</exclude>
             <exclude>src/test/resources/**</exclude>
             <exclude>src/main/resources/**</exclude>
           </excludes>

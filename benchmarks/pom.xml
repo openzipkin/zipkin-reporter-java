@@ -101,8 +101,8 @@
     <dependency>
       <groupId>com.github.charithe</groupId>
       <artifactId>kafka-junit</artifactId>
-      <!-- pinned to 1.1.0 -->
-      <version>4.1.1</version>
+      <!-- pinned to 2.1.1 -->
+      <version>4.1.4</version>
     </dependency>
     <dependency>
       <groupId>junit</groupId>
