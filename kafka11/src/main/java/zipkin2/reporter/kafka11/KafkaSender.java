@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2018 The OpenZipkin Authors
+ * Copyright 2016-2019 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -54,6 +54,8 @@ public final class KafkaSender extends Sender {
     properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class.getName());
     properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
         ByteArraySerializer.class.getName());
+    properties.put(ProducerConfig.BATCH_SIZE_CONFIG, "0"); // don't batch
+    properties.put(ProducerConfig.MAX_REQUEST_SIZE_CONFIG, 1000000);
     properties.put(ProducerConfig.ACKS_CONFIG, "0");
     return new Builder(properties);
   }
@@ -102,6 +104,7 @@ public final class KafkaSender extends Sender {
      */
     public Builder messageMaxBytes(int messageMaxBytes) {
       this.messageMaxBytes = messageMaxBytes;
+      properties.put(ProducerConfig.MAX_REQUEST_SIZE_CONFIG, messageMaxBytes);
       return this;
     }
 
