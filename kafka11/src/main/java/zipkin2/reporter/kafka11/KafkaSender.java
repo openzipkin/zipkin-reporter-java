@@ -54,6 +54,9 @@ public final class KafkaSender extends Sender {
     properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class.getName());
     properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
         ByteArraySerializer.class.getName());
+    // disabling batching as duplicates effort covered by sender buffering.
+    properties.put(ProducerConfig.BATCH_SIZE_CONFIG, 0);
+    // 1MB, aligned with default kafka max.message.bytes config.
     properties.put(ProducerConfig.MAX_REQUEST_SIZE_CONFIG, 1000000);
     properties.put(ProducerConfig.ACKS_CONFIG, "0");
     return new Builder(properties);
@@ -98,7 +101,8 @@ public final class KafkaSender extends Sender {
     }
 
     /**
-     * Maximum size of a message. Must be equal to or less than the server's "message.max.bytes".
+     * Maximum size of a message. Must be equal to or less than the server's "message.max.bytes" and
+     * "replica.fetch.max.bytes" to avoid rejected records on the broker side.
      * Default 1000000.
      */
     public Builder messageMaxBytes(int messageMaxBytes) {
@@ -112,6 +116,9 @@ public final class KafkaSender extends Sender {
      * required {@link ProducerConfig#ACKS_CONFIG acks}. Any properties set here will affect the
      * producer config.
      *
+     * Consider not overriding batching properties ("batch.size" and "linger.ms") as those will
+     * duplicate buffering effort that is already handled by Sender.
+     *
      * <p>For example: Reduce the timeout blocking from one minute to 5 seconds.
      * <pre>{@code
      * Map<String, String> overrides = new LinkedHashMap<>();
@@ -122,6 +129,29 @@ public final class KafkaSender extends Sender {
      * @see ProducerConfig
      */
     public final Builder overrides(Map<String, ?> overrides) {
+      if (overrides == null) throw new NullPointerException("overrides == null");
+      properties.putAll(overrides);
+      return this;
+    }
+
+    /**
+     * By default, a producer will be created, targeted to {@link #bootstrapServers(String)} with 0
+     * required {@link ProducerConfig#ACKS_CONFIG acks}. Any properties set here will affect the
+     * producer config.
+     *
+     * Consider not overriding batching properties ("batch.size" and "linger.ms") as those will
+     * duplicate buffering effort that is already handled by Sender.
+     *
+     * <p>For example: Reduce the timeout blocking from one minute to 5 seconds.
+     * <pre>{@code
+     * Properties overrides = new Properties();
+     * overrides.put(ProducerConfig.MAX_BLOCK_MS_CONFIG, 5000);
+     * builder.overrides(overrides);
+     * }</pre>
+     *
+     * @see ProducerConfig
+     */
+    public final Builder overrides(Properties overrides) {
       if (overrides == null) throw new NullPointerException("overrides == null");
       properties.putAll(overrides);
       return this;
