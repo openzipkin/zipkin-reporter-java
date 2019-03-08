@@ -55,7 +55,7 @@
     <errorprone.args />
 
     <!-- use the same value in bom/pom.xml -->
-    <zipkin.version>2.12.3</zipkin.version>
+    <zipkin.version>2.12.5</zipkin.version>
     <license-maven-plugin.version>3.0</license-maven-plugin.version>
   </properties>
 
