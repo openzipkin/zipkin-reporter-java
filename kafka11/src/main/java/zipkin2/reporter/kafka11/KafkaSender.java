@@ -54,7 +54,6 @@ public final class KafkaSender extends Sender {
     properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class.getName());
     properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
         ByteArraySerializer.class.getName());
-    properties.put(ProducerConfig.BATCH_SIZE_CONFIG, "0"); // don't batch
     properties.put(ProducerConfig.MAX_REQUEST_SIZE_CONFIG, 1000000);
     properties.put(ProducerConfig.ACKS_CONFIG, "0");
     return new Builder(properties);
