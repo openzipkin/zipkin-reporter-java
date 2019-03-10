@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2018 The OpenZipkin Authors
+ * Copyright 2016-2019 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -25,6 +25,7 @@ import javax.management.ObjectName;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.errors.RecordTooLargeException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -136,6 +137,15 @@ public class KafkaSenderTest {
     final Set<ObjectName> withNoProducers = ManagementFactory.getPlatformMBeanServer().queryNames(
         kafkaProducerMXBeanName, null);
     assertThat(withNoProducers).isEmpty();
+  }
+
+  @Test
+  public void shouldFailWhenMessageIsBiggerThanMaxSize() throws Exception {
+    thrown.expect(RecordTooLargeException.class);
+    sender.close();
+    sender = sender.toBuilder().messageMaxBytes(1).build();
+
+    send(CLIENT_SPAN, CLIENT_SPAN).execute();
   }
 
   /**
