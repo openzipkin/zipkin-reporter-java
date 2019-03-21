@@ -43,7 +43,7 @@ public class ActiveMQSenderTest {
   @Before
   public void open() throws Exception {
     sender = ActiveMQSender.newBuilder()
-      .queue("zipkin-test1").username("system").password("manager").connectionTimeout(10)
+      .queue("zipkin").username("system").password("manager").connectionTimeout(10)
       .addresses("tcp://localhost:61616").build();
 
     CheckResult check = sender.check();

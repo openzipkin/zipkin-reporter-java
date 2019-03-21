@@ -52,7 +52,7 @@ public final class ActiveMQSender extends Sender {
     this.addresses = builder.addresses;
   }
 
-  public MessageProducer getProducer(){
+  public MessageProducer getProducer() throws IOException{
 
     if(producer == null) {
       synchronized (syncLock) {
@@ -66,6 +66,7 @@ public final class ActiveMQSender extends Sender {
             producer = session.createProducer(destination);
             closeCalled = false;
           } catch (Exception e) {
+            throw new IOException(e);
           }
         }
 
