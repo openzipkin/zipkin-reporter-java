@@ -60,8 +60,8 @@ public final class ActiveMQSender extends Sender {
           try {
             connectionFactory.setBrokerURL("failover:("+addresses+")?initialReconnectDelay=100");
             QueueConnection connection = connectionFactory.createQueueConnection();
-            connection.start();
             session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+            connection.start();
             Destination destination = session.createQueue(queue);
             producer = session.createProducer(destination);
             closeCalled = false;
