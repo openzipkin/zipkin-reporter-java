@@ -26,8 +26,7 @@ import java.lang.IllegalStateException;
 import java.util.List;
 
 /**
- * @author tianjunwei
- * @date 2019/3/20 17:15
+ * This sends (usually json v2) encoded spans to a ActiveMQ queue.
  */
 
 public final class ActiveMQSender extends Sender {
