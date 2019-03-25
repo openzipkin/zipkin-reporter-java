@@ -24,7 +24,7 @@
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
-  <artifactId>zipkin-sender-jms-client</artifactId>
+  <artifactId>zipkin-sender-activemq-client</artifactId>
   <name>Zipkin Sender: ActiveMQ Client 5.15.x</name>
 
   <properties>
@@ -61,7 +61,7 @@
         <configuration>
           <archive>
             <manifestEntries>
-              <Automatic-Module-Name>zipkin2.reporter.jms</Automatic-Module-Name>
+              <Automatic-Module-Name>zipkin2.reporter.activemq</Automatic-Module-Name>
             </manifestEntries>
           </archive>
         </configuration>

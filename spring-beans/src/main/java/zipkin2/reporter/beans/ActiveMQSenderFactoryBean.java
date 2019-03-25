@@ -15,7 +15,7 @@ package zipkin2.reporter.beans;
 
 import org.springframework.beans.factory.config.AbstractFactoryBean;
 import zipkin2.codec.Encoding;
-import zipkin2.reporter.jms.ActiveMQSender;
+import zipkin2.reporter.activemq.ActiveMQSender;
 
 /** Spring XML config does not support chained builders. This converts accordingly */
 public class ActiveMQSenderFactoryBean extends AbstractFactoryBean {

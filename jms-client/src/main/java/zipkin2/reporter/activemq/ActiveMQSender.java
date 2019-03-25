@@ -11,7 +11,7 @@
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
  */
-package zipkin2.reporter.jms;
+package zipkin2.reporter.activemq;
 
 import org.apache.activemq.ActiveMQConnectionFactory;
 import zipkin2.Call;
@@ -197,20 +197,20 @@ public final class ActiveMQSender extends Sender {
 
     /** Connection TCP establishment timeout in milliseconds. Defaults to 60 seconds */
     public Builder connectionTimeout(int connectionTimeout) {
-      ((ActiveMQConnectionFactory)connectionFactory).setConnectResponseTimeout(connectionTimeout);
+      connectionFactory.setConnectResponseTimeout(connectionTimeout);
       return this;
     }
 
 
     /** The AMQP user name to use when connecting to the broker. Defaults to "guest" */
     public Builder username(String username) {
-      ((ActiveMQConnectionFactory)connectionFactory).setUserName(username);
+      connectionFactory.setUserName(username);
       return this;
     }
 
     /** The password to use when connecting to the broker. Defaults to "guest" */
     public Builder password(String password) {
-      ((ActiveMQConnectionFactory)connectionFactory).setPassword(password);
+      connectionFactory.setPassword(password);
       return this;
     }
 
