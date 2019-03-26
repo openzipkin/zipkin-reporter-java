@@ -13,9 +13,11 @@
  */
 package zipkin2.reporter.activemq;
 
+import org.apache.activemq.ActiveMQConnection;
 import org.apache.activemq.ActiveMQConnectionFactory;
 import zipkin2.Call;
 import zipkin2.Callback;
+import zipkin2.CheckResult;
 import zipkin2.codec.Encoding;
 import zipkin2.reporter.BytesMessageEncoder;
 import zipkin2.reporter.Sender;
@@ -51,16 +53,33 @@ public final class ActiveMQSender extends Sender {
     this.addresses = builder.addresses;
   }
 
-  public MessageProducer getProducer() throws IOException{
+  ActiveMQConnection connection;
 
+  public ActiveMQConnection get() throws IOException{
+    if(connection == null) {
+      synchronized (syncLock) {
+        if (connection == null) {
+          try {
+            connectionFactory.setBrokerURL("failover:("+addresses+")?initialReconnectDelay=100");
+            connection = (ActiveMQConnection) connectionFactory.createQueueConnection();
+            connection.start();
+            closeCalled = false;
+          } catch (Exception e) {
+            throw new IOException(e);
+          }
+        }
+
+      }
+    }
+    return connection;
+  }
+
+  public MessageProducer getProducer() throws IOException{
     if(producer == null) {
       synchronized (syncLock) {
         if (producer == null) {
           try {
-            connectionFactory.setBrokerURL("failover:("+addresses+")?initialReconnectDelay=100");
-            QueueConnection connection = connectionFactory.createQueueConnection();
-            session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
-            connection.start();
+            session = get().createSession(false, Session.AUTO_ACKNOWLEDGE);
             Destination destination = session.createQueue(queue);
             producer = session.createProducer(destination);
             closeCalled = false;
@@ -117,14 +136,28 @@ public final class ActiveMQSender extends Sender {
       return;
     }
     try {
+
+      if(connection != null){
+        connection.close();
+      }
+
       if (session != null) {
         session.close();
       }
       closeCalled = true;
-    }catch (Exception e){
+    }catch (JMSException e){
       throw new IOException(e);
     }
 
+  }
+
+  @Override public CheckResult check() {
+    try {
+      if (!get().isClosed()) return CheckResult.OK;
+      throw new IllegalStateException("Not Open");
+    } catch (IOException e) {
+      return CheckResult.failed(new RuntimeException(e));
+    }
   }
 
 
@@ -227,8 +260,6 @@ public final class ActiveMQSender extends Sender {
     Builder() {
     }
   }
-
-
 
   class ActiveMQCall extends Call.Base<Void> { // RabbitMQFuture is not cancelable
 
