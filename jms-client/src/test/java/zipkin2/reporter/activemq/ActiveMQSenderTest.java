@@ -154,7 +154,7 @@ public class ActiveMQSenderTest {
         connection  = connectionFactory.createConnection();
         connection.start();
         session=connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
-        destination = session.createQueue("zipkin"); //创建消息队列 用于接收发布的消息
+        destination = session.createQueue("zipkin");
         messageConsumer = session.createConsumer(destination);
         messageConsumer.setMessageListener(new MessageListener() {
           @Override
