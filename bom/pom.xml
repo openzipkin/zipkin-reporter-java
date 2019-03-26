@@ -118,7 +118,7 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>zipkin-sender-jms-client</artifactId>
+        <artifactId>zipkin-sender-activemq-client</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
