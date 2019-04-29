@@ -1,7 +1,13 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>io.zipkin.reporter2</groupId>
+  <parent>
+    <groupId>org.apache</groupId>
+    <artifactId>apache</artifactId>
+    <version>21</version>
+  </parent>
+
+  <groupId>org.apache.zipkin.reporter2</groupId>
   <artifactId>zipkin-reporter-bom</artifactId>
   <name>Zipkin Reporter BOM</name>
   <version>2.8.3-SNAPSHOT</version>
@@ -14,12 +20,12 @@
     <zipkin.version>2.12.7</zipkin.version>
   </properties>
 
-  <url>https://github.com/openzipkin/zipkin-reporter-java</url>
+  <url>https://github.com/apache/incubator-zipkin-reporter-java</url>
   <inceptionYear>2016</inceptionYear>
 
   <organization>
-    <name>OpenZipkin</name>
-    <url>http://zipkin.io/</url>
+    <name>The Apache Software Foundation</name>
+    <url>http://www.apache.org/</url>
   </organization>
 
   <licenses>
@@ -31,9 +37,9 @@
   </licenses>
 
   <scm>
-    <url>https://github.com/openzipkin/zipkin-reporter-java</url>
-    <connection>scm:git:https://github.com/openzipkin/zipkin-reporter-java.git</connection>
-    <developerConnection>scm:git:https://github.com/openzipkin/zipkin-reporter-java.git</developerConnection>
+    <url>https://github.com/apache/incubator-zipkin-reporter-java</url>
+    <connection>scm:git:https://github.com/apache/incubator-zipkin-reporter-java.git</connection>
+    <developerConnection>scm:git:https://github.com/apache/incubator-zipkin-reporter-java.git</developerConnection>
     <tag>HEAD</tag>
   </scm>
 
@@ -59,7 +65,7 @@
 
   <issueManagement>
     <system>Github</system>
-    <url>https://github.com/openzipkin/zipkin-reporter-java/issues</url>
+    <url>https://github.com/apache/incubator-zipkin-reporter-java/issues</url>
   </issueManagement>
 
   <dependencyManagement>
