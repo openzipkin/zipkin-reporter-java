@@ -18,11 +18,13 @@ package zipkin2.reporter;
 
 import java.nio.charset.Charset;
 import java.util.Calendar;
+import java.util.Random;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 import zipkin2.Endpoint;
 import zipkin2.Span;
 
+// TODO: replace with zipkin-tests jar!
 public final class TestObjects {
   public static final Charset UTF_8 = Charset.forName("UTF-8");
   /** Notably, the cassandra implementation has day granularity */
@@ -67,4 +69,28 @@ public final class TestObjects {
     .putTag("http.path", "/api")
     .putTag("clnt/finagle.version", "6.45.0")
     .build();
+
+  static final Span.Builder spanBuilder = spanBuilder();
+
+  /** Reuse a builder as it is significantly slows tests to create 100000 of these! */
+  static Span.Builder spanBuilder() {
+    return Span.newBuilder()
+        .name("get /foo")
+        .timestamp(System.currentTimeMillis() * 1000)
+        .duration(1000)
+        .kind(Span.Kind.SERVER)
+        .localEndpoint(BACKEND)
+        .putTag("http.method", "GET");
+  }
+
+  /**
+   * Zipkin trace ids are random 64bit numbers. This creates a relatively large input to avoid
+   * flaking out due to PRNG nuance.
+   */
+  public static final Span[] LOTS_OF_SPANS =
+      new Random().longs(100_000).mapToObj(TestObjects::span).toArray(Span[]::new);
+
+  public static Span span(long traceId) {
+    return spanBuilder.traceId(Long.toHexString(traceId)).id(traceId).build();
+  }
 }
