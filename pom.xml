@@ -64,7 +64,7 @@
     <errorprone.args />
 
     <!-- use the same value in bom/pom.xml -->
-    <zipkin.version>2.12.7</zipkin.version>
+    <zipkin.version>2.13.0</zipkin.version>
     <license-maven-plugin.version>3.0</license-maven-plugin.version>
   </properties>
 
@@ -162,7 +162,7 @@
 
   <dependencies>
     <dependency>
-      <groupId>io.zipkin.zipkin2</groupId>
+      <groupId>org.apache.zipkin.zipkin2</groupId>
       <artifactId>zipkin</artifactId>
       <version>${zipkin.version}</version>
     </dependency>
@@ -228,13 +228,13 @@
                 <createDependencyReducedPom>false</createDependencyReducedPom>
                 <artifactSet>
                   <includes>
-                    <include>io.zipkin.zipkin2:zipkin</include>
+                    <include>org.apache.zipkin.zipkin2:zipkin</include>
                   </includes>
                 </artifactSet>
                 <filters>
                   <filter>
                     <!-- Shade references to classes packages -->
-                    <artifact>io.zipkin.zipkin2:zipkin</artifact>
+                    <artifact>org.apache.zipkin.zipkin2:zipkin</artifact>
                     <includes>
                       <include>zipkin2/internal/Platform*.class</include>
                     </includes>

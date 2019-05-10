@@ -41,7 +41,7 @@ import zipkin2.reporter.Sender;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 /**
- * Reports spans to Zipkin, using its <a href="http://zipkin.io/zipkin-api/#/">POST</a> endpoint.
+ * Reports spans to Zipkin, using its <a href="https://zipkin.apache.org/zipkin-api/#/">POST</a> endpoint.
  *
  * <p>This sender is thread-safe.
  */
@@ -78,7 +78,7 @@ public final class OkHttpSender extends Sender {
     }
 
     /**
-     * No default. The POST URL for zipkin's <a href="http://zipkin.io/zipkin-api/#/">v2 api</a>,
+     * No default. The POST URL for zipkin's <a href="https://zipkin.apache.org/zipkin-api/#/">v2 api</a>,
      * usually "http://zipkinhost:9411/api/v2/spans"
      */
     // customizable so that users can re-map /api/v2/spans ex for browser-originated traces
