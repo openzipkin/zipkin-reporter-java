@@ -17,6 +17,7 @@
 package zipkin2.reporter.libthrift;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;
 import org.junit.After;
@@ -35,6 +36,7 @@ import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.failBecauseExceptionWasNotThrown;
 import static zipkin2.reporter.TestObjects.CLIENT_SPAN;
+import static zipkin2.reporter.TestObjects.LOTS_OF_SPANS;
 
 public class LibthriftSenderTest {
   @Rule public ExpectedException thrown = ExpectedException.none();
@@ -66,6 +68,17 @@ public class LibthriftSenderTest {
     send(CLIENT_SPAN);
 
     assertThat(storage.spanStore().getTraces()).containsExactly(asList(CLIENT_SPAN));
+  }
+
+  /** This will help verify sequence ID and response parsing logic works */
+  @Test
+  public void sendsSpans_multipleTimes() throws Exception {
+    for (int i = 0; i < 5; i++) { // Have client send 5 messages
+      send(Arrays.copyOfRange(LOTS_OF_SPANS, i, (i * 10) + 10));
+    }
+
+    assertThat(storage.getTraces()).flatExtracting(l -> l)
+        .contains(Arrays.copyOfRange(LOTS_OF_SPANS, 0, 50));
   }
 
   @Test

@@ -78,15 +78,18 @@ public final class InternalScribeCodec { // public for zipkin-finagle
   }
 
   static boolean parseResponse(TBinaryProtocol iprot) throws TException {
+    Boolean result = null;
     iprot.readStructBegin();
     TField schemeField;
     while ((schemeField = iprot.readFieldBegin()).type != TType.STOP) {
       if (schemeField.id == 0 /* SUCCESS */ && schemeField.type == TType.I32) {
-        return iprot.readI32() == 0;
+        result = iprot.readI32() == 0;
       } else {
         TProtocolUtil.skip(iprot, schemeField.type);
       }
     }
+    iprot.readStructEnd();
+    if (result != null) return result;
     throw new TApplicationException(MISSING_RESULT, "Log failed: unknown result");
   }
 
