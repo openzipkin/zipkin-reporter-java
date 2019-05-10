@@ -52,7 +52,7 @@ import static java.util.logging.Level.FINE;
  */
 public abstract class AsyncReporter<S> extends Component implements Reporter<S>, Flushable {
   /**
-   * Builds a json reporter for <a href="http://zipkin.io/zipkin-api/#/">Zipkin V2</a>. If http,
+   * Builds a json reporter for <a href="https://zipkin.apache.org/zipkin-api/#/">Zipkin V2</a>. If http,
    * the endpoint of the sender is usually "http://zipkinhost:9411/api/v2/spans".
    *
    * <p>After a certain threshold, spans are drained and {@link Sender#sendSpans(List) sent} to
