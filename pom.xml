@@ -34,8 +34,8 @@
   <modules>
     <module>bom</module>
     <module>core</module>
+    <module>kafka</module>
     <module>kafka08</module>
-    <module>kafka11</module>
     <module>amqp-client</module>
     <module>urlconnection</module>
     <module>okhttp3</module>

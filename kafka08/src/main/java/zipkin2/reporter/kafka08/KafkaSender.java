@@ -37,8 +37,9 @@ import zipkin2.reporter.Sender;
  *
  * <p>This sender is thread-safe.
  *
- * <p>This sender remains a Kafka 0.8.x consumer, while Zipkin systems update to 0.9+.
+ * @deprecated Please use org.apache.zipkin.reporter2:zipkin-sender-kafka
  */
+@Deprecated
 public final class KafkaSender extends Sender {
 
   /** Creates a sender that sends {@link Encoding#JSON} messages. */

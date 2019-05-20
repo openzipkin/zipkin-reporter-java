@@ -20,7 +20,7 @@ import java.util.Arrays;
 import org.junit.After;
 import org.junit.Test;
 import zipkin2.codec.Encoding;
-import zipkin2.reporter.kafka11.KafkaSender;
+import zipkin2.reporter.kafka.KafkaSender;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

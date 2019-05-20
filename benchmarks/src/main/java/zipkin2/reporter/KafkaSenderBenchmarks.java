@@ -26,7 +26,7 @@ import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
-import zipkin2.reporter.kafka11.KafkaSender;
+import zipkin2.reporter.kafka.KafkaSender;
 
 public class KafkaSenderBenchmarks extends SenderBenchmarks {
   EphemeralKafkaBroker broker = EphemeralKafkaBroker.create();

@@ -26,7 +26,7 @@
     <version>2.8.4-SNAPSHOT</version>
   </parent>
 
-  <artifactId>zipkin-sender-kafka11</artifactId>
+  <artifactId>zipkin-sender-kafka</artifactId>
   <name>Zipkin Sender: Kafka 0.11+</name>
 
   <properties>
@@ -73,7 +73,7 @@
         <configuration>
           <archive>
             <manifestEntries>
-              <Automatic-Module-Name>zipkin2.reporter.kafka11</Automatic-Module-Name>
+              <Automatic-Module-Name>zipkin2.reporter.kafka</Automatic-Module-Name>
             </manifestEntries>
           </archive>
         </configuration>

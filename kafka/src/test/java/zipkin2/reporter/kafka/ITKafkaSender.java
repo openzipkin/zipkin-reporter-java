@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package zipkin2.reporter.kafka11;
+package zipkin2.reporter.kafka;
 
 import com.github.charithe.kafka.EphemeralKafkaBroker;
 import com.github.charithe.kafka.KafkaJunitRule;
