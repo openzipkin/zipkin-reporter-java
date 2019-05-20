@@ -167,8 +167,9 @@ public class OkHttpSenderTest {
 
       AwaitableCallback callback = new AwaitableCallback();
 
+      Call<Void> call = sender.sendSpans(asList(SpanBytesEncoder.JSON_V2.encode(CLIENT_SPAN)));
       new Thread(() ->
-          sender.sendSpans(asList(SpanBytesEncoder.JSON_V2.encode(CLIENT_SPAN))).enqueue(callback)
+        call.enqueue(callback)
       ).start();
       Thread.sleep(100); // make sure the thread starts
 
@@ -242,8 +243,9 @@ public class OkHttpSenderTest {
 
       AwaitableCallback callback = new AwaitableCallback();
 
+      Call<Void> call = sender.sendSpans(asList(SpanBytesEncoder.JSON_V2.encode(CLIENT_SPAN)));
       new Thread(() ->
-          sender.sendSpans(asList(SpanBytesEncoder.JSON_V2.encode(CLIENT_SPAN))).enqueue(callback)
+        call.enqueue(callback)
       ).start();
       Thread.sleep(100); // make sure the thread starts
 
