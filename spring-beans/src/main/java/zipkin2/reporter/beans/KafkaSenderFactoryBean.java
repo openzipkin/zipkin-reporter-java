@@ -18,7 +18,7 @@ package zipkin2.reporter.beans;
 
 import org.springframework.beans.factory.config.AbstractFactoryBean;
 import zipkin2.codec.Encoding;
-import zipkin2.reporter.kafka11.KafkaSender;
+import zipkin2.reporter.kafka.KafkaSender;
 
 /** Spring XML config does not support chained builders. This converts accordingly */
 public class KafkaSenderFactoryBean extends AbstractFactoryBean {

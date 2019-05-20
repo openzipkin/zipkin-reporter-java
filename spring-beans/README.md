@@ -6,7 +6,7 @@ tracing with only XML. Notably, this requires minimally Spring version 2.5.
 Bean Factories exist for the following types:
 * AsyncReporterFactoryBean - for configuring how often spans are sent to Zipkin
 * OkHttpSenderFactoryBean - for [zipkin-sender-okhttp3](../okhttp3)
-* KafkaSenderFactoryBean - for [zipkin-sender-kafka11](../kafka11)
+* KafkaSenderFactoryBean - for [zipkin-sender-kafka](../kafka)
 * RabbitMQSenderFactoryBean - for [zipkin-sender-amqp-client](../amqp-client)
 * URLConnectionSenderFactoryBean - for [zipkin-sender-urlconnection](../urlconnection)
 
