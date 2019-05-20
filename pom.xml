@@ -352,6 +352,9 @@
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
         <version>${maven-failsafe-plugin.version}</version>
+        <configuration>
+          <reuseForks>false</reuseForks>
+        </configuration>
       </plugin>
 
       <plugin>
