@@ -31,7 +31,7 @@
 
   <properties>
     <main.basedir>${project.basedir}/..</main.basedir>
-    <amqp-client.version>4.10.0</amqp-client.version>
+    <amqp-client.version>4.11.0</amqp-client.version>
   </properties>
 
   <dependencies>
@@ -44,13 +44,6 @@
       <groupId>com.rabbitmq</groupId>
       <artifactId>amqp-client</artifactId>
       <version>${amqp-client.version}</version>
-    </dependency>
-
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>zipkin-reporter</artifactId>
-      <type>test-jar</type>
-      <scope>test</scope>
     </dependency>
   </dependencies>
 
