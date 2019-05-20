@@ -47,14 +47,7 @@
       <artifactId>kafka-clients</artifactId>
       <!-- recent clients can talk to old 0.10 brokers -->
       <!-- when changing this, a change to the version of kafka-junit is likely needed, too -->
-      <version>2.1.1</version>
-    </dependency>
-
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>zipkin-reporter</artifactId>
-      <type>test-jar</type>
-      <scope>test</scope>
+      <version>2.2.0</version>
     </dependency>
 
     <dependency>
@@ -62,7 +55,7 @@
       <artifactId>kafka-junit</artifactId>
       <!-- This version is tightly coupled to the version of kafka-clients being used.
        https://github.com/charithe/kafka-junit -->
-      <version>4.1.4</version>
+      <version>4.1.5</version>
       <scope>test</scope>
     </dependency>
   </dependencies>

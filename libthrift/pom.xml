@@ -46,13 +46,6 @@
     </dependency>
 
     <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>zipkin-reporter</artifactId>
-      <type>test-jar</type>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
       <groupId>org.apache.zipkin.zipkin2</groupId>
       <artifactId>zipkin-collector-scribe</artifactId>
       <version>${zipkin.version}</version>

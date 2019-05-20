@@ -29,9 +29,9 @@ import zipkin2.codec.SpanBytesEncoder;
 
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
-import static zipkin2.reporter.TestObjects.CLIENT_SPAN;
-import static zipkin2.reporter.TestObjects.TODAY;
-import static zipkin2.reporter.TestObjects.UTF_8;
+import static zipkin2.TestObjects.CLIENT_SPAN;
+import static zipkin2.TestObjects.TODAY;
+import static zipkin2.TestObjects.UTF_8;
 
 public class InternalScribeCodecTest {
 

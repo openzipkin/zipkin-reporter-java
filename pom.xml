@@ -64,8 +64,9 @@
     <errorprone.args />
 
     <!-- use the same value in bom/pom.xml -->
-    <zipkin.version>2.13.0</zipkin.version>
+    <zipkin.version>2.14.0</zipkin.version>
     <license-maven-plugin.version>3.0</license-maven-plugin.version>
+    <maven-failsafe-plugin.version>3.0.0-M3</maven-failsafe-plugin.version>
   </properties>
 
   <name>Zipkin Reporter (Parent)</name>
@@ -89,8 +90,7 @@
   <scm>
     <url>https://github.com/apache/incubator-zipkin-reporter-java</url>
     <connection>scm:git:https://github.com/apache/incubator-zipkin-reporter-java.git</connection>
-    <developerConnection>scm:git:https://github.com/apache/incubator-zipkin-reporter-java.git
-    </developerConnection>
+    <developerConnection>scm:git:https://github.com/apache/incubator-zipkin-reporter-java.git</developerConnection>
     <tag>HEAD</tag>
   </scm>
 
@@ -142,20 +142,14 @@
         <version>${project.version}</version>
       </dependency>
       <dependency>
-        <groupId>${project.groupId}</groupId>
-        <artifactId>zipkin-reporter</artifactId>
-        <type>test-jar</type>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
         <groupId>com.squareup.okhttp3</groupId>
         <artifactId>okhttp</artifactId>
-        <version>3.14.0</version>
+        <version>3.14.1</version>
       </dependency>
       <dependency>
         <groupId>com.squareup.okhttp3</groupId>
         <artifactId>mockwebserver</artifactId>
-        <version>3.14.0</version>
+        <version>3.14.1</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
@@ -171,6 +165,12 @@
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
       <version>4.12</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.zipkin.zipkin2</groupId>
+      <artifactId>zipkin-tests</artifactId>
+      <version>${zipkin.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -194,7 +194,7 @@
         <plugin>
           <groupId>io.takari</groupId>
           <artifactId>maven</artifactId>
-          <version>0.7.5</version>
+          <version>0.7.6</version>
           <configuration>
             <maven>3.6.1</maven>
           </configuration>
@@ -202,7 +202,7 @@
 
         <plugin>
           <artifactId>maven-compiler-plugin</artifactId>
-          <version>3.8.0</version>
+          <version>3.8.1</version>
           <inherited>true</inherited>
           <configuration>
             <!-- Retrolambda will rewrite lambdas as Java 6 bytecode -->
@@ -250,7 +250,7 @@
 
         <plugin>
           <artifactId>maven-javadoc-plugin</artifactId>
-          <version>3.0.1</version>
+          <version>3.1.0</version>
           <configuration>
             <failOnError>false</failOnError>
             <excludePackageNames>zipkin2.reporter.internal,zipkin2.reporter.internal.*
@@ -350,6 +350,36 @@
       </plugin>
 
       <plugin>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>${maven-failsafe-plugin.version}</version>
+        <configuration>
+          <reuseForks>false</reuseForks>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <version>${maven-failsafe-plugin.version}</version>
+        <configuration>
+          <reuseForks>false</reuseForks>
+        </configuration>
+        <executions>
+          <execution>
+            <id>integration-test</id>
+            <goals>
+              <goal>integration-test</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>verify</id>
+            <goals>
+              <goal>verify</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
         <artifactId>maven-install-plugin</artifactId>
         <version>3.0.0-M1</version>
       </plugin>
@@ -402,11 +432,6 @@
             <phase>compile</phase>
           </execution>
         </executions>
-      </plugin>
-
-      <plugin>
-        <artifactId>maven-surefire-plugin</artifactId>
-        <version>3.0.0-M3</version>
       </plugin>
 
       <plugin>

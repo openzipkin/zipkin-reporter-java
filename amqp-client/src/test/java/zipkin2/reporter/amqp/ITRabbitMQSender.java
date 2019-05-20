@@ -42,9 +42,10 @@ import zipkin2.reporter.Sender;
 
 import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
-import static zipkin2.reporter.TestObjects.CLIENT_SPAN;
+import static zipkin2.TestObjects.CLIENT_SPAN;
 
-public class RabbitMQSenderTest {
+/** This works against a running RabbitMQ server on localhost */
+public class ITRabbitMQSender {
   @Rule public ExpectedException thrown = ExpectedException.none();
 
   RabbitMQSender sender;

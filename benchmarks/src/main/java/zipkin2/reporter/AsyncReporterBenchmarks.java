@@ -36,6 +36,7 @@ import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Warmup;
 import zipkin2.Span;
+import zipkin2.TestObjects;
 import zipkin2.codec.Encoding;
 
 @Measurement(iterations = 5, time = 1)

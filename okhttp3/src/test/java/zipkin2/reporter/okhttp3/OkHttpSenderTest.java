@@ -45,7 +45,7 @@ import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.failBecauseExceptionWasNotThrown;
-import static zipkin2.reporter.TestObjects.CLIENT_SPAN;
+import static zipkin2.TestObjects.CLIENT_SPAN;
 
 public class OkHttpSenderTest {
 
@@ -167,8 +167,9 @@ public class OkHttpSenderTest {
 
       AwaitableCallback callback = new AwaitableCallback();
 
+      Call<Void> call = sender.sendSpans(asList(SpanBytesEncoder.JSON_V2.encode(CLIENT_SPAN)));
       new Thread(() ->
-          sender.sendSpans(asList(SpanBytesEncoder.JSON_V2.encode(CLIENT_SPAN))).enqueue(callback)
+        call.enqueue(callback)
       ).start();
       Thread.sleep(100); // make sure the thread starts
 
@@ -242,8 +243,9 @@ public class OkHttpSenderTest {
 
       AwaitableCallback callback = new AwaitableCallback();
 
+      Call<Void> call = sender.sendSpans(asList(SpanBytesEncoder.JSON_V2.encode(CLIENT_SPAN)));
       new Thread(() ->
-          sender.sendSpans(asList(SpanBytesEncoder.JSON_V2.encode(CLIENT_SPAN))).enqueue(callback)
+        call.enqueue(callback)
       ).start();
       Thread.sleep(100); // make sure the thread starts
 
