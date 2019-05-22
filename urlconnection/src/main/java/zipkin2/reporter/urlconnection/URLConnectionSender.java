@@ -23,6 +23,7 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.List;
+import java.util.Map;
 import java.util.zip.GZIPOutputStream;
 import zipkin2.Call;
 import zipkin2.Callback;
@@ -49,6 +50,7 @@ public final class URLConnectionSender extends Sender {
   public static final class Builder {
     URL endpoint;
     Encoding encoding = Encoding.JSON;
+    Map<String, String> customRequestProperties;
     int messageMaxBytes = 5 * 1024 * 1024;
     int connectTimeout = 10 * 1000, readTimeout = 60 * 1000;
     boolean compressionEnabled = true;
@@ -60,6 +62,7 @@ public final class URLConnectionSender extends Sender {
       this.connectTimeout = sender.connectTimeout;
       this.readTimeout = sender.readTimeout;
       this.compressionEnabled = sender.compressionEnabled;
+      this.customRequestProperties = sender.customRequestProperties;
     }
 
     /**
@@ -119,6 +122,14 @@ public final class URLConnectionSender extends Sender {
       return this;
     }
 
+    /**
+     * Use this to add custom custom request properties in the headers when sending spans.
+     */
+    public Builder addCustomRequestProperties(Map<String, String> customRequestProperties) {
+      this.customRequestProperties = customRequestProperties;
+      return this;
+    }
+
     public final URLConnectionSender build() {
       return new URLConnectionSender(this);
     }
@@ -129,6 +140,7 @@ public final class URLConnectionSender extends Sender {
 
   final URL endpoint;
   final Encoding encoding;
+  final Map<String, String> customRequestProperties;
   final String mediaType;
   final BytesMessageEncoder encoder;
   final int messageMaxBytes;
@@ -139,6 +151,7 @@ public final class URLConnectionSender extends Sender {
     if (builder.endpoint == null) throw new NullPointerException("endpoint == null");
     this.endpoint = builder.endpoint;
     this.encoding = builder.encoding;
+    this.customRequestProperties = builder.customRequestProperties;
     switch (builder.encoding) {
       case JSON:
         this.mediaType = "application/json";
@@ -212,6 +225,13 @@ public final class URLConnectionSender extends Sender {
     connection.setReadTimeout(readTimeout);
     connection.setRequestMethod("POST");
     connection.addRequestProperty("Content-Type", mediaType);
+
+    if (customRequestProperties != null) {
+      for(Map.Entry<String, String> key : customRequestProperties.entrySet()) {
+        connection.addRequestProperty(key.getKey(), key.getValue());
+      }
+    }
+    
     if (compressionEnabled) {
       connection.addRequestProperty("Content-Encoding", "gzip");
       ByteArrayOutputStream gzipped = new ByteArrayOutputStream();

@@ -17,6 +17,7 @@
 package zipkin2.reporter.urlconnection;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Stream;
 import okhttp3.mockwebserver.MockResponse;
@@ -124,7 +125,36 @@ public class URLConnectionSenderTest {
         .isLessThan(requests.get(1).getBodySize());
   }
 
-  @Test public void mediaTypeBasedOnSpanEncoding() throws Exception {
+  @Test public void customRequestProperties() throws Exception {
+    HashMap<String, String> customRequestProperties = new HashMap<>();
+    customRequestProperties.put("foo", "bar");
+    customRequestProperties.put("baz", "biz");
+    List<RecordedRequest> requests = new ArrayList<>();
+    for (HashMap<String, String> requestProperties : asList(null, customRequestProperties)) {
+      sender = sender.toBuilder().addCustomRequestProperties(requestProperties).build();
+
+      server.enqueue(new MockResponse());
+
+      send(CLIENT_SPAN, CLIENT_SPAN).execute();
+
+      // block until the request arrived
+      requests.add(server.takeRequest());
+    }
+
+    // we expect the first request to have fewer headers than the second
+    assertThat(requests.get(0).getHeaders().size())
+      .isLessThan(requests.get(1).getHeaders().size());
+
+    // we expect all custom headers to be sent
+    assertThat(requests.get(1).getHeaders().get("foo"))
+      .isEqualTo("bar");
+    assertThat(requests.get(1).getHeaders().get("baz"))
+      .isEqualTo("biz");
+
+  }
+
+  @Test
+  public void mediaTypeBasedOnSpanEncoding() throws Exception {
     server.enqueue(new MockResponse());
 
     send(CLIENT_SPAN, CLIENT_SPAN).execute();

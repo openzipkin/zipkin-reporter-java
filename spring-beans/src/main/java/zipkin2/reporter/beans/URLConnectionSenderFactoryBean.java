@@ -20,7 +20,11 @@ import org.springframework.beans.factory.config.AbstractFactoryBean;
 import zipkin2.codec.Encoding;
 import zipkin2.reporter.urlconnection.URLConnectionSender;
 
-/** Spring XML config does not support chained builders. This converts accordingly */
+import java.util.Map;
+
+/**
+ * Spring XML config does not support chained builders. This converts accordingly
+ */
 public class URLConnectionSenderFactoryBean extends AbstractFactoryBean {
 
   String endpoint;
@@ -28,11 +32,13 @@ public class URLConnectionSenderFactoryBean extends AbstractFactoryBean {
   Integer connectTimeout, readTimeout;
   Boolean compressionEnabled;
   Integer messageMaxBytes;
+  Map<String, String> customRequestProperties;
 
   @Override protected URLConnectionSender createInstance() throws Exception {
     URLConnectionSender.Builder builder = URLConnectionSender.newBuilder();
     if (endpoint != null) builder.endpoint(endpoint);
     if (encoding != null) builder.encoding(encoding);
+    if (customRequestProperties != null) builder.addCustomRequestProperties(customRequestProperties);
     if (connectTimeout != null) builder.connectTimeout(connectTimeout);
     if (readTimeout != null) builder.readTimeout(readTimeout);
     if (compressionEnabled != null) builder.compressionEnabled(compressionEnabled);
@@ -54,6 +60,10 @@ public class URLConnectionSenderFactoryBean extends AbstractFactoryBean {
 
   public void setEndpoint(String endpoint) {
     this.endpoint = endpoint;
+  }
+
+  public void setCustomRequestProperties(Map<String, String> customRequestProperties) {
+    this.customRequestProperties = customRequestProperties;
   }
 
   public void setEncoding(Encoding encoding) {
