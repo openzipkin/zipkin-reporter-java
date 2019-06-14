@@ -1,18 +1,15 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Copyright 2016-2019 The OpenZipkin Authors
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License. You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
  */
 package zipkin2.reporter.okhttp3;
 
@@ -41,7 +38,7 @@ import zipkin2.reporter.Sender;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 /**
- * Reports spans to Zipkin, using its <a href="https://zipkin.apache.org/zipkin-api/#/">POST</a> endpoint.
+ * Reports spans to Zipkin, using its <a href="https://zipkin.io/zipkin-api/#/">POST</a> endpoint.
  *
  * <p>This sender is thread-safe.
  */
@@ -78,7 +75,7 @@ public final class OkHttpSender extends Sender {
     }
 
     /**
-     * No default. The POST URL for zipkin's <a href="https://zipkin.apache.org/zipkin-api/#/">v2 api</a>,
+     * No default. The POST URL for zipkin's <a href="https://zipkin.io/zipkin-api/#/">v2 api</a>,
      * usually "http://zipkinhost:9411/api/v2/spans"
      */
     // customizable so that users can re-map /api/v2/spans ex for browser-originated traces

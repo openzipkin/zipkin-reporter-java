@@ -1,13 +1,7 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <parent>
-    <groupId>org.apache</groupId>
-    <artifactId>apache</artifactId>
-    <version>21</version>
-  </parent>
-
-  <groupId>org.apache.zipkin.reporter2</groupId>
+  <groupId>io.zipkin.reporter2</groupId>
   <artifactId>zipkin-reporter-bom</artifactId>
   <name>Zipkin Reporter BOM</name>
   <version>2.8.4-SNAPSHOT</version>
@@ -17,29 +11,29 @@
   <properties>
     <main.basedir>${project.basedir}/..</main.basedir>
     <!-- use the same value in ../pom.xml -->
-    <zipkin.version>2.14.0</zipkin.version>
+    <zipkin.version>2.14.1</zipkin.version>
   </properties>
 
-  <url>https://github.com/apache/incubator-zipkin-reporter-java</url>
+  <url>https://github.com/openzipkin/zipkin-reporter-java</url>
   <inceptionYear>2016</inceptionYear>
 
   <organization>
-    <name>The Apache Software Foundation</name>
-    <url>http://www.apache.org/</url>
+    <name>OpenZipkin</name>
+    <url>https://zipkin.io/</url>
   </organization>
 
   <licenses>
     <license>
       <name>The Apache Software License, Version 2.0</name>
-      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
       <distribution>repo</distribution>
     </license>
   </licenses>
 
   <scm>
-    <url>https://github.com/apache/incubator-zipkin-reporter-java</url>
-    <connection>scm:git:https://github.com/apache/incubator-zipkin-reporter-java.git</connection>
-    <developerConnection>scm:git:https://github.com/apache/incubator-zipkin-reporter-java.git</developerConnection>
+    <url>https://github.com/openzipkin/zipkin-reporter-java</url>
+    <connection>scm:git:https://github.com/openzipkin/zipkin-reporter-java.git</connection>
+    <developerConnection>scm:git:https://github.com/openzipkin/zipkin-reporter-java.git</developerConnection>
     <tag>HEAD</tag>
   </scm>
 
@@ -52,52 +46,37 @@
     </developer>
   </developers>
 
-  <issueManagement>
-    <system>Github</system>
-    <url>https://github.com/apache/incubator-zipkin-reporter-java/issues</url>
-  </issueManagement>
-
-  <mailingLists>
-    <mailingList>
-      <name>Zipkin Developer List</name>
-      <post>dev@zipkin.apache.org</post>
-      <subscribe>dev-subscribe@zipkin.apache.org</subscribe>
-      <unsubscribe>dev-unsubscribe@zipkin.apache.org</unsubscribe>
-    </mailingList>
-    <mailingList>
-      <name>Zipkin Commits</name>
-      <post>commits@zipkin.apache.org</post>
-      <subscribe>commits-subscribe@zipkin.apache.org</subscribe>
-      <unsubscribe>commits-unsubscribe@zipkin.apache.org</unsubscribe>
-    </mailingList>
-  </mailingLists>
-
   <distributionManagement>
     <repository>
-      <id>apache.releases.https</id>
-      <url>https://repository.apache.org/service/local/staging/deploy/maven2</url>
+      <id>bintray</id>
+      <url>https://api.bintray.com/maven/openzipkin/maven/zipkin-reporter-java/;publish=1</url>
     </repository>
     <snapshotRepository>
-      <id>apache.snapshots.https</id>
-      <url>https://repository.apache.org/content/repositories/snapshots/</url>
+      <id>jfrog-snapshots</id>
+      <url>https://oss.jfrog.org/artifactory/oss-snapshot-local</url>
     </snapshotRepository>
   </distributionManagement>
+
+  <issueManagement>
+    <system>Github</system>
+    <url>https://github.com/openzipkin/zipkin-reporter-java/issues</url>
+  </issueManagement>
 
   <dependencyManagement>
     <dependencies>
       <dependency>
-        <groupId>org.apache.zipkin.zipkin2</groupId>
+        <groupId>io.zipkin.zipkin2</groupId>
         <artifactId>zipkin</artifactId>
         <version>${zipkin.version}</version>
       </dependency>
       <dependency>
-        <groupId>org.apache.zipkin.zipkin2</groupId>
+        <groupId>io.zipkin.zipkin2</groupId>
         <artifactId>zipkin-tests</artifactId>
         <version>${zipkin.version}</version>
       </dependency>
       <!-- Also set version of the JUnit rule that tests reporters -->
       <dependency>
-        <groupId>org.apache.zipkin.zipkin2</groupId>
+        <groupId>io.zipkin.zipkin2</groupId>
         <artifactId>zipkin-junit</artifactId>
         <version>${zipkin.version}</version>
       </dependency>

@@ -1,9 +1,6 @@
 [![Gitter chat](http://img.shields.io/badge/gitter-join%20chat%20%E2%86%92-brightgreen.svg)](https://gitter.im/openzipkin/zipkin)
-[![Build Status](https://img.shields.io/jenkins/s/https/builds.apache.org/job/incubator-zipkin-reporter-java.svg)](https://builds.apache.org/blue/organizations/jenkins/incubator-zipkin-reporter-java)
-[![Maven Central](https://img.shields.io/maven-central/v/org.apache.zipkin.reporter2/zipkin-reporter.svg)](https://search.maven.org/search?q=g:org.apache.zipkin.reporter2%20AND%20a:zipkin-reporter)
-
-
-[![Gitter chat](http://img.shields.io/badge/gitter-join%20chat%20%E2%86%92-brightgreen.svg)](https://gitter.im/openzipkin/zipkin) [![Build Status](https://travis-ci.org/apache/incubator-zipkin-reporter-java.svg?branch=master)](https://travis-ci.org/apache/incubator-zipkin-reporter-java) [![Download](https://api.bintray.com/packages/openzipkin/maven/zipkin-reporter-java/images/download.svg) ](https://bintray.com/openzipkin/maven/zipkin-reporter-java/_latestVersion)
+[![Build Status](https://travis-ci.org/openzipkin/zipkin-reporter-java.svg?branch=master)](https://travis-ci.org/openzipkin/zipkin-reporter-java)
+[![Maven Central](https://img.shields.io/maven-central/v/io.zipkin.reporter2/zipkin-reporter.svg)](https://search.maven.org/search?q=g:io.zipkin.reporter2%20AND%20a:zipkin-reporter)
 
 # zipkin-reporter-java
 Shared library for reporting zipkin spans onto transports including http, kafka and rabbitmq.
@@ -133,14 +130,11 @@ reporter = AsyncReporter.builder(URLConnectionSender.create("http://localhost:94
 
 
 ## Artifacts
-All artifacts publish to the group ID "org.apache.zipkin.reporter2". We use a
+All artifacts publish to the group ID "io.zipkin.reporter2". We use a
 common release version for all components.
-### Source Releases
-Source Releases are uploaded to [Apache](https://dist.apache.org/repos/dist/release/incubator/zipkin/zipkin-reporter-java)
-### Binary Releases
-Binary Releases are uploaded to [Apache](https://repository.apache.org/service/local/staging/deploy/maven2) and synchronized to [Maven Central](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22org.apache.zipkin%22)
-### Binary Snapshots
-Binary Snapshots are uploaded to [Apache](https://repository.apache.org/content/repositories/snapshots/) after commits to master.
+Releases are uploaded to [Bintray](https://bintray.com/openzipkin/maven/zipkin) and synchronized to [Maven Central](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22io.zipkin.reporter2%22)
+### Library Snapshots
+Snapshots are uploaded to [JFrog](http://oss.jfrog.org/artifactory/oss-snapshot-local) after commits to master.
 ### Version alignments
 When using multiple reporter components, you'll want to align versions
 in one place. This allows you to more safely upgrade, with less worry
@@ -153,7 +147,7 @@ Ex. in your dependencies section, import the BOM like this:
   <dependencyManagement>
     <dependencies>
       <dependency>
-        <groupId>org.apache.zipkin.reporter2</groupId>
+        <groupId>io.zipkin.reporter2</groupId>
         <artifactId>zipkin-reporter-bom</artifactId>
         <version>${zipkin-reporter.version}</version>
         <type>pom</type>
@@ -167,7 +161,7 @@ Now, you can leave off the version when choosing any supported
 instrumentation. Also any indirect use will have versions aligned:
 ```xml
 <dependency>
-  <groupId>org.apache.zipkin.reporter2</groupId>
+  <groupId>io.zipkin.reporter2</groupId>
   <artifactId>zipkin-sender-okhttp3</artifactId>
 </dependency>
 ```
