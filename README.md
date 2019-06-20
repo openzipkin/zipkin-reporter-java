@@ -3,8 +3,11 @@
 [![Maven Central](https://img.shields.io/maven-central/v/io.zipkin.reporter2/zipkin-reporter.svg)](https://search.maven.org/search?q=g:io.zipkin.reporter2%20AND%20a:zipkin-reporter)
 
 # zipkin-reporter-java
-Shared library for reporting zipkin spans onto transports including http, kafka and rabbitmq.
-Requires JRE 6 or later.
+Zipkin Reporter buffers and sends trace data collected from tracer libraries to a Zipkin compatible backend.
+
+This repository includes a Java reporting library with transport-specific senders.
+Transport options include HTTP, Scribe (Apache Thrift), RabbitMQ and Apache
+Kafka. Requires JRE 6 or later.
 
 # Usage
 These components can be called when spans have been recorded and ready to send to zipkin.
