@@ -28,13 +28,13 @@
     <module>kafka</module>
     <module>kafka08</module>
     <module>amqp-client</module>
+    <module>activemq-client</module>
     <module>urlconnection</module>
     <module>okhttp3</module>
     <module>libthrift</module>
     <module>spring-beans</module>
     <module>benchmarks</module>
     <module>metrics-micrometer</module>
-    <module>jms-client</module>
   </modules>
 
   <properties>
