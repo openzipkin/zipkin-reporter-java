@@ -13,6 +13,7 @@
  */
 package zipkin2.reporter.beans;
 
+import org.apache.activemq.ActiveMQConnectionFactory;
 import org.springframework.beans.factory.config.AbstractFactoryBean;
 import zipkin2.codec.Encoding;
 import zipkin2.reporter.activemq.ActiveMQSender;
@@ -20,20 +21,26 @@ import zipkin2.reporter.activemq.ActiveMQSender;
 /** Spring XML config does not support chained builders. This converts accordingly */
 public class ActiveMQSenderFactoryBean extends AbstractFactoryBean {
 
-  String addresses, queue;
+  String url, queue, username, password;
+  String clientIdPrefix = "zipkin-reporter", connectionIdPrefix = "zipkin-reporter";
   Encoding encoding;
-  Integer connectionTimeout;
-  String username, password;
   Integer messageMaxBytes;
 
   @Override protected ActiveMQSender createInstance() throws Exception {
     ActiveMQSender.Builder builder = ActiveMQSender.newBuilder();
-    if (addresses != null) builder.addresses(addresses);
-    if (encoding != null) builder.encoding(encoding);
+    if (url == null) throw new IllegalArgumentException("url is required");
     if (queue != null) builder.queue(queue);
-    if (connectionTimeout != null) builder.connectionTimeout(connectionTimeout);
-    if (username != null) builder.username(username);
-    if (password != null) builder.password(password);
+
+    ActiveMQConnectionFactory connectionFactory;
+    if (username != null) {
+      connectionFactory = new ActiveMQConnectionFactory(username, password, url);
+    } else {
+      connectionFactory = new ActiveMQConnectionFactory(url);
+    }
+    connectionFactory.setClientIDPrefix(clientIdPrefix);
+    connectionFactory.setConnectionIDPrefix(connectionIdPrefix);
+    builder.connectionFactory(connectionFactory);
+    if (encoding != null) builder.encoding(encoding);
     if (messageMaxBytes != null) builder.messageMaxBytes(messageMaxBytes);
     return builder.build();
   }
@@ -50,20 +57,24 @@ public class ActiveMQSenderFactoryBean extends AbstractFactoryBean {
     ((ActiveMQSender) instance).close();
   }
 
-  public void setAddresses(String addresses) {
-    this.addresses = addresses;
+  public void setUrl(String url) {
+    this.url = url;
   }
 
   public void setQueue(String queue) {
     this.queue = queue;
   }
 
-  public void setEncoding(Encoding encoding) {
-    this.encoding = encoding;
+  public void setClientIdPrefix(String clientIdPrefix) {
+    this.clientIdPrefix = clientIdPrefix;
   }
 
-  public void setConnectionTimeout(Integer connectionTimeout) {
-    this.connectionTimeout = connectionTimeout;
+  public String getConnectionIdPrefix() {
+    return connectionIdPrefix;
+  }
+
+  public void setConnectionIdPrefix(String connectionIdPrefix) {
+    this.connectionIdPrefix = connectionIdPrefix;
   }
 
   public void setUsername(String username) {
@@ -72,6 +83,10 @@ public class ActiveMQSenderFactoryBean extends AbstractFactoryBean {
 
   public void setPassword(String password) {
     this.password = password;
+  }
+
+  public void setEncoding(Encoding encoding) {
+    this.encoding = encoding;
   }
 
   public void setMessageMaxBytes(Integer messageMaxBytes) {
