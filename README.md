@@ -6,8 +6,8 @@
 Zipkin Reporter buffers and sends trace data collected from tracer libraries to a Zipkin compatible backend.
 
 This repository includes a Java reporting library with transport-specific senders.
-Transport options include HTTP, Scribe (Apache Thrift), RabbitMQ and Apache
-Kafka. Requires JRE 6 or later.
+Transport options include HTTP, Apache ActiveMQ, Apache Kafka, gRPC, RabbitMQ
+and Scribe (Apache Thrift). Requires JRE 6 or later.
 
 # Usage
 These components can be called when spans have been recorded and ready to send to zipkin.

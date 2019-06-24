@@ -28,6 +28,7 @@
     <module>kafka</module>
     <module>kafka08</module>
     <module>amqp-client</module>
+    <module>activemq-client</module>
     <module>urlconnection</module>
     <module>okhttp3</module>
     <module>libthrift</module>
