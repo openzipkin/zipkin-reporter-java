@@ -22,7 +22,7 @@ import zipkin2.reporter.activemq.ActiveMQSender;
 public class ActiveMQSenderFactoryBean extends AbstractFactoryBean {
 
   String url, queue, username, password;
-  String clientIdPrefix = "zipkin-reporter", connectionIdPrefix = "zipkin-reporter";
+  String clientIdPrefix = "zipkin", connectionIdPrefix = "zipkin";
   Encoding encoding;
   Integer messageMaxBytes;
 
