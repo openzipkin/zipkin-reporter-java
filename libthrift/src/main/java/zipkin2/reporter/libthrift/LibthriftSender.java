@@ -159,15 +159,14 @@ public final class LibthriftSender extends Sender {
     }
   }
 
-  @Override
-  public void close() throws IOException {
+  @Override public void close() {
     if (closeCalled) return;
     closeCalled = true;
-    super.close();
+    ScribeClient client = this.client;
+    if (client != null) client.close();
   }
 
-  @Override
-  public final String toString() {
+  @Override public final String toString() {
     return "LibthriftSender(" + host + ":" + port + ")";
   }
 

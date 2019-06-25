@@ -35,7 +35,7 @@ public class AsyncReporterFactoryBean extends AbstractFactoryBean {
     return AsyncReporter.class;
   }
 
-  @Override protected AsyncReporter createInstance() throws Exception {
+  @Override protected AsyncReporter createInstance() {
     AsyncReporter.Builder builder = AsyncReporter.builder(sender);
     if (metrics != null) builder.metrics(metrics);
     if (messageMaxBytes != null) builder.messageMaxBytes(messageMaxBytes);
@@ -46,7 +46,7 @@ public class AsyncReporterFactoryBean extends AbstractFactoryBean {
     return encoder != null ? builder.build(encoder) : builder.build();
   }
 
-  @Override protected void destroyInstance(Object instance) throws Exception {
+  @Override protected void destroyInstance(Object instance) {
     ((AsyncReporter) instance).close();
   }
 

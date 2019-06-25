@@ -27,7 +27,7 @@ public class OkHttpSenderFactoryBean extends AbstractFactoryBean {
   Boolean compressionEnabled;
   Integer messageMaxBytes;
 
-  @Override protected OkHttpSender createInstance() throws Exception {
+  @Override protected OkHttpSender createInstance() {
     OkHttpSender.Builder builder = OkHttpSender.newBuilder();
     if (endpoint != null) builder.endpoint(endpoint);
     if (encoding != null) builder.encoding(encoding);
@@ -48,7 +48,7 @@ public class OkHttpSenderFactoryBean extends AbstractFactoryBean {
     return true;
   }
 
-  @Override protected void destroyInstance(Object instance) throws Exception {
+  @Override protected void destroyInstance(Object instance) {
     ((OkHttpSender) instance).close();
   }
 

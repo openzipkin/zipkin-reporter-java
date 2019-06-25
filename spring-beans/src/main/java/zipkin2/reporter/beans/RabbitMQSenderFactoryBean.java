@@ -13,6 +13,7 @@
  */
 package zipkin2.reporter.beans;
 
+import java.io.IOException;
 import org.springframework.beans.factory.config.AbstractFactoryBean;
 import zipkin2.codec.Encoding;
 import zipkin2.reporter.amqp.RabbitMQSender;
@@ -27,7 +28,7 @@ public class RabbitMQSenderFactoryBean extends AbstractFactoryBean {
   String username, password;
   Integer messageMaxBytes;
 
-  @Override protected RabbitMQSender createInstance() throws Exception {
+  @Override protected RabbitMQSender createInstance() {
     RabbitMQSender.Builder builder = RabbitMQSender.newBuilder();
     if (addresses != null) builder.addresses(addresses);
     if (encoding != null) builder.encoding(encoding);
@@ -48,7 +49,7 @@ public class RabbitMQSenderFactoryBean extends AbstractFactoryBean {
     return true;
   }
 
-  @Override protected void destroyInstance(Object instance) throws Exception {
+  @Override protected void destroyInstance(Object instance) throws IOException {
     ((RabbitMQSender) instance).close();
   }
 

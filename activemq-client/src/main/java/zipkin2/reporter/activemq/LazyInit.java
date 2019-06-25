@@ -48,7 +48,7 @@ final class LazyInit {
     return result;
   }
 
-  void close() throws IOException {
+  void close() {
     ActiveMQConn maybe = result;
     if (maybe != null) result.close();
   }

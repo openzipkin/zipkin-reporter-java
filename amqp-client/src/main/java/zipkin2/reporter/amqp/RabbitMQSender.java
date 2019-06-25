@@ -33,11 +33,41 @@ import zipkin2.reporter.Sender;
 /**
  * This sends (usually json v2) encoded spans to a RabbitMQ queue.
  *
+ * <h3>Usage</h3>
+ *
+ * This type is designed for {@link AsyncReporter.Builder#builder(Sender) the async reporter}.
+ *
+ * <p>Here's a simple configuration, configured for json:
+ *
+ * <pre>{@code
+ * sender = RabbitMQSender.create("localhost:5672");
+ * }</pre>
+ *
+ * <p>Here's an example with an explicit SSL connection factory and protocol buffers encoding:
+ *
+ * <pre>{@code
+ * connectionFactory = new ConnectionFactory();
+ * connectionFactory.setHost("localhost");
+ * connectionFactory.setPort(5671);
+ * connectionFactory.useSslProtocol();
+ * sender = RabbitMQSender.newBuilder()
+ *   .connectionFactory(connectionFactory)
+ *   .encoding(Encoding.PROTO3)
+ *   .build();
+ * }</pre>
+ *
+ * <h3>Compatibility with Zipkin Server</h3>
+ *
+ * <a href="https://github.com/openzipkin/zipkin">Zipkin server</a> should be v2.1 or higher.
+ *
+ * <h3>Implementation Notes</h3>
+ *
  * <p>The sender does not use <a href="https://www.rabbitmq.com/confirms.html">RabbitMQ Publisher
  * Confirms</a>, so messages considered sent may not necessarily be received by consumers in case of
  * RabbitMQ failure.
  *
- * <p>For thread safety, a channel is created for each thread that calls {@link #sendSpans(List)}.
+ * <p>This sender is thread-safe: a channel is created for each thread that calls
+ * {@link #sendSpans(List)}.
  */
 public final class RabbitMQSender extends Sender {
   /** Creates a sender that sends {@link Encoding#JSON} messages. */

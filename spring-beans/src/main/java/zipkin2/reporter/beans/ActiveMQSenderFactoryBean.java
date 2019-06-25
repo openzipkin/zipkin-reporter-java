@@ -26,7 +26,7 @@ public class ActiveMQSenderFactoryBean extends AbstractFactoryBean {
   Encoding encoding;
   Integer messageMaxBytes;
 
-  @Override protected ActiveMQSender createInstance() throws Exception {
+  @Override protected ActiveMQSender createInstance() {
     ActiveMQSender.Builder builder = ActiveMQSender.newBuilder();
     if (url == null) throw new IllegalArgumentException("url is required");
     if (queue != null) builder.queue(queue);
@@ -53,7 +53,7 @@ public class ActiveMQSenderFactoryBean extends AbstractFactoryBean {
     return true;
   }
 
-  @Override protected void destroyInstance(Object instance) throws Exception {
+  @Override protected void destroyInstance(Object instance) {
     ((ActiveMQSender) instance).close();
   }
 
