@@ -13,27 +13,39 @@
  */
 package zipkin2.reporter;
 
-import io.undertow.Undertow;
-import java.io.IOException;
-import java.net.InetSocketAddress;
+import com.linecorp.armeria.common.HttpResponse;
+import com.linecorp.armeria.common.SessionProtocol;
+import com.linecorp.armeria.server.Route;
+import com.linecorp.armeria.server.Server;
+import com.linecorp.armeria.server.ServerBuilder;
+
+import static com.linecorp.armeria.common.HttpMethod.POST;
+import static com.linecorp.armeria.common.MediaType.JSON;
 
 public abstract class HttpSenderBenchmarks extends SenderBenchmarks {
-  Undertow server;
+  Server server;
 
-  @Override protected Sender createSender() throws Exception {
-    server = Undertow.builder()
-        .addHttpListener(0, "127.0.0.1")
-        .setHandler(exchange -> exchange.setStatusCode(202).endExchange()).build();
+  @Override protected Sender createSender() {
+    Route v2JsonSpans = Route.builder().methods(POST).consumes(JSON).path("/api/v2/spans").build();
+    server = new ServerBuilder()
+      .http(0)
+      .gracefulShutdownTimeout(0, 0)
+      .service(v2JsonSpans, (ctx, res) -> HttpResponse.of(202)).build();
 
-    server.start();
-    return newHttpSender("http://127.0.0.1:" +
-        ((InetSocketAddress) server.getListenerInfo().get(0).getAddress()).getPort()
-        + "/api/v1/spans");
+    server.start().join();
+    return newHttpSender(url("/api/v2/spans"));
   }
 
   abstract Sender newHttpSender(String endpoint);
 
-  @Override protected void afterSenderClose() throws IOException {
-    server.stop();
+  @Override protected void afterSenderClose() {
+    server.stop().join();
+  }
+
+  String url(String path) {
+    return server.activePorts().values().stream()
+      .filter(p -> p.hasProtocol(SessionProtocol.HTTP)).findAny()
+      .map(p -> "http://127.0.0.1:" + p.localAddress().getPort() + path)
+      .orElseThrow(() -> new AssertionError("http port not open"));
   }
 }
