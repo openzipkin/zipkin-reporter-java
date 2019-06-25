@@ -24,7 +24,7 @@ public class KafkaSenderFactoryBean extends AbstractFactoryBean {
   Encoding encoding;
   Integer messageMaxBytes;
 
-  @Override protected KafkaSender createInstance() throws Exception {
+  @Override protected KafkaSender createInstance() {
     KafkaSender.Builder builder = KafkaSender.newBuilder();
     if (bootstrapServers != null) builder.bootstrapServers(bootstrapServers);
     if (encoding != null) builder.encoding(encoding);
@@ -41,7 +41,7 @@ public class KafkaSenderFactoryBean extends AbstractFactoryBean {
     return true;
   }
 
-  @Override protected void destroyInstance(Object instance) throws Exception {
+  @Override protected void destroyInstance(Object instance) {
     ((KafkaSender) instance).close();
   }
 

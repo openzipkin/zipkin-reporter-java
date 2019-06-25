@@ -32,7 +32,7 @@ import okio.GzipSink;
 import okio.Okio;
 import zipkin2.CheckResult;
 import zipkin2.codec.Encoding;
-import zipkin2.reporter.BytesMessageEncoder;
+import zipkin2.reporter.AsyncReporter;
 import zipkin2.reporter.Sender;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -40,13 +40,46 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 /**
  * Reports spans to Zipkin, using its <a href="https://zipkin.io/zipkin-api/#/">POST</a> endpoint.
  *
+ * <h3>Usage</h3>
+ *
+ * This type is designed for {@link AsyncReporter.Builder#builder(Sender) the async reporter}.
+ *
+ * <p>Here's a simple configuration, configured for json:
+ *
+ * <pre>{@code
+ * sender = OkHttpSender.create("http://127.0.0.1:9411/api/v2/spans");
+ * }</pre>
+ *
+ * <p>Here's an example that adds <a href="https://github.com/square/okhttp/blob/master/samples/guide/src/main/java/okhttp3/recipes/Authenticate.java">basic
+ * auth</a> (assuming you have an authenticating proxy):
+ *
+ * <pre>{@code
+ * credential = Credentials.basic("me", "secure");
+ * sender = OkHttpSender.newBuilder()
+ *   .endpoint("https://authenticated-proxy/api/v2/spans")
+ *   .clientBuilder().authenticator(new Authenticator() {
+ *     @Override
+ *     public Request authenticate(Route route, Response response) throws IOException {
+ *       if (response.request().header("Authorization") != null) {
+ *         return null; // Give up, we've already attempted to authenticate.
+ *       }
+ *       return response.request().newBuilder()
+ *         .header("Authorization", credential)
+ *         .build();
+ *     }
+ *   })
+ *   .build();
+ * }</pre>
+ *
+ * <h3>Implementation Notes</h3>
+ *
  * <p>This sender is thread-safe.
  */
 public final class OkHttpSender extends Sender {
 
   /** Creates a sender that posts {@link Encoding#JSON} messages. */
   public static OkHttpSender create(String endpoint) {
-    return newBuilder().encoding(Encoding.JSON).endpoint(endpoint).build();
+    return newBuilder().endpoint(endpoint).build();
   }
 
   public static Builder newBuilder() {

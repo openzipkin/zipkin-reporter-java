@@ -23,10 +23,43 @@ import zipkin2.Call;
 import zipkin2.Callback;
 import zipkin2.CheckResult;
 import zipkin2.codec.Encoding;
+import zipkin2.reporter.AsyncReporter;
 import zipkin2.reporter.BytesMessageEncoder;
 import zipkin2.reporter.Sender;
 
-/** This sends (usually json v2) encoded spans to an ActiveMQ queue. */
+/**
+ * This sends (usually json v2) encoded spans to an ActiveMQ queue.
+ *
+ * <h3>Usage</h3>
+ *
+ * This type is designed for {@link AsyncReporter.Builder#builder(Sender) the async reporter}.
+ *
+ * <p>Here's a simple configuration, configured for json:
+ *
+ * <pre>{@code
+ * sender = ActiveMQSender.create("failover:tcp://localhost:61616");
+ * }</pre>
+ *
+ * <p>Here's an example with an explicit connection factory and protocol buffers encoding:
+ *
+ * <pre>{@code
+ * connectionFactory = new ActiveMQConnectionFactory(username, password, brokerUrl);
+ * connectionFactory.setClientIDPrefix("zipkin");
+ * connectionFactory.setConnectionIDPrefix("zipkin");
+ * sender = ActiveMQSender.newBuilder()
+ *   .connectionFactory(connectionFactory)
+ *   .encoding(Encoding.PROTO3)
+ *   .build();
+ * }</pre>
+ *
+ * <h3>Compatibility with Zipkin Server</h3>
+ *
+ * <a href="https://github.com/openzipkin/zipkin">Zipkin server</a> should be v2.15 or higher.
+ *
+ * <h3>Implementation Notes</h3>
+ *
+ * <p>This sender is thread-safe.
+ */
 public final class ActiveMQSender extends Sender {
 
   public static ActiveMQSender create(String brokerUrl) {
@@ -133,7 +166,7 @@ public final class ActiveMQSender extends Sender {
     return lazyInit.result.checkResult;
   }
 
-  @Override public void close() throws IOException {
+  @Override public void close() {
     closeCalled = true;
     lazyInit.close();
   }

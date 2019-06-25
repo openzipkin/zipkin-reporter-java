@@ -25,7 +25,7 @@ public class LibthriftSenderFactoryBean extends AbstractFactoryBean {
   Integer messageMaxBytes;
 
   @Override
-  protected LibthriftSender createInstance() throws Exception {
+  protected LibthriftSender createInstance() {
     LibthriftSender.Builder builder = LibthriftSender.newBuilder();
     if (host != null) builder.host(host);
     if (port != null) builder.port(port);
@@ -46,7 +46,7 @@ public class LibthriftSenderFactoryBean extends AbstractFactoryBean {
   }
 
   @Override
-  protected void destroyInstance(Object instance) throws Exception {
+  protected void destroyInstance(Object instance) {
     ((LibthriftSender) instance).close();
   }
 

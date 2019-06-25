@@ -30,6 +30,7 @@ import zipkin2.Call;
 import zipkin2.Callback;
 import zipkin2.CheckResult;
 import zipkin2.codec.Encoding;
+import zipkin2.reporter.AsyncReporter;
 import zipkin2.reporter.AwaitableCallback;
 import zipkin2.reporter.BytesMessageEncoder;
 import zipkin2.reporter.Sender;
@@ -37,9 +38,36 @@ import zipkin2.reporter.Sender;
 /**
  * This sends (usually json v2) encoded spans to a Kafka topic.
  *
- * <p>This sender is thread-safe.
+ * <h3>Usage</h3>
  *
- * <p>This sender is linked against Kafka 0.10.2+, which allows it to work with Kafka 0.10+ brokers
+ * This type is designed for {@link AsyncReporter.Builder#builder(Sender) the async reporter}.
+ *
+ * <p>Here's a simple configuration, configured for json:
+ *
+ * <pre>{@code
+ * sender = KafkaSender.create("localhost:9092");
+ * }</pre>
+ *
+ * <p>Here's an example that overrides properties and protocol buffers encoding:
+ *
+ * <pre>{@code
+ * Properties overrides = new Properties();
+ * overrides.put(ProducerConfig.MAX_BLOCK_MS_CONFIG, 5000);
+ * sender = KafkaSender.newBuilder()
+ *   .bootstrapServers("host1:9092,host2:9092")
+ *   .overrides(overrides)
+ *   .encoding(Encoding.PROTO3)
+ *   .build();
+ * }</pre>
+ *
+ * <h3>Compatibility with Zipkin Server</h3>
+ *
+ * <a href="https://github.com/openzipkin/zipkin">Zipkin server</a> should be v1.26 or higher.
+ *
+ * <h3>Implementation Notes</h3>
+ *
+ * <p>This sender is thread-safe. This sender is linked against Kafka 0.10.2+, which allows it to
+ * work with Kafka 0.10+ brokers
  */
 public final class KafkaSender extends Sender {
   /** Creates a sender that sends {@link Encoding#JSON} messages. */

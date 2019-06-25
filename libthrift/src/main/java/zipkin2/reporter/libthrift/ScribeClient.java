@@ -59,8 +59,7 @@ final class ScribeClient implements Closeable {
     }
   }
 
-  @Override
-  public void close() {
+  @Override public void close() {
     socket.close();
   }
 }

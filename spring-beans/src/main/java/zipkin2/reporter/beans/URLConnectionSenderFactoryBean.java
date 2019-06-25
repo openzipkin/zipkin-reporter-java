@@ -26,7 +26,7 @@ public class URLConnectionSenderFactoryBean extends AbstractFactoryBean {
   Boolean compressionEnabled;
   Integer messageMaxBytes;
 
-  @Override protected URLConnectionSender createInstance() throws Exception {
+  @Override protected URLConnectionSender createInstance() {
     URLConnectionSender.Builder builder = URLConnectionSender.newBuilder();
     if (endpoint != null) builder.endpoint(endpoint);
     if (encoding != null) builder.encoding(encoding);
@@ -45,7 +45,7 @@ public class URLConnectionSenderFactoryBean extends AbstractFactoryBean {
     return true;
   }
 
-  @Override protected void destroyInstance(Object instance) throws Exception {
+  @Override protected void destroyInstance(Object instance) {
     ((URLConnectionSender) instance).close();
   }
 
