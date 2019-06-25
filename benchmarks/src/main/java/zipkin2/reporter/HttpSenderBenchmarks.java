@@ -15,17 +15,22 @@ package zipkin2.reporter;
 
 import com.linecorp.armeria.common.HttpResponse;
 import com.linecorp.armeria.common.SessionProtocol;
+import com.linecorp.armeria.server.Route;
 import com.linecorp.armeria.server.Server;
 import com.linecorp.armeria.server.ServerBuilder;
+
+import static com.linecorp.armeria.common.HttpMethod.POST;
+import static com.linecorp.armeria.common.MediaType.JSON;
 
 public abstract class HttpSenderBenchmarks extends SenderBenchmarks {
   Server server;
 
   @Override protected Sender createSender() {
+    Route v2JsonSpans = Route.builder().methods(POST).consumes(JSON).path("/api/v2/spans").build();
     server = new ServerBuilder()
       .http(0)
       .gracefulShutdownTimeout(0, 0)
-      .service("/api/v2/spans", (ctx, res) -> HttpResponse.of(202)).build();
+      .service(v2JsonSpans, (ctx, res) -> HttpResponse.of(202)).build();
 
     server.start().join();
     return newHttpSender(url("/api/v2/spans"));
