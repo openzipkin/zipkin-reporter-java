@@ -399,10 +399,24 @@ public class AsyncReporterTest {
     }
   }
 
+  @Test public void build_threadFactory() {
+    Thread thread = new Thread();
+    AsyncReporter.builder(FakeSender.create())
+      .threadFactory(r -> thread)
+      .build();
+
+    assertThat(thread.isAlive()).isTrue();
+    assertThat(thread.getName()).isEqualTo("AsyncReporter{FakeSender}");
+    assertThat(thread.toString()).contains("AsyncReporter{FakeSender}");
+    assertThat(thread.isDaemon()).isTrue();
+
+    thread.interrupt();
+  }
+
   @Test public void build_proto3() {
     AsyncReporter.builder(FakeSender.create().encoding(Encoding.PROTO3))
-        .messageTimeout(0, TimeUnit.MILLISECONDS)
-        .build();
+      .messageTimeout(0, TimeUnit.MILLISECONDS)
+      .build();
   }
 
   @Test public void build_proto3_withCustomBytesEncoder() {

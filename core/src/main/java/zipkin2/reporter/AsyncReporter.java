@@ -18,6 +18,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
@@ -79,6 +81,7 @@ public abstract class AsyncReporter<S> extends Component implements Reporter<S>,
 
   public static final class Builder {
     final Sender sender;
+    ThreadFactory threadFactory = Executors.defaultThreadFactory();
     ReporterMetrics metrics = ReporterMetrics.NOOP_METRICS;
     int messageMaxBytes;
     long messageTimeoutNanos = TimeUnit.SECONDS.toNanos(1);
@@ -96,6 +99,15 @@ public abstract class AsyncReporter<S> extends Component implements Reporter<S>,
       if (sender == null) throw new NullPointerException("sender == null");
       this.sender = sender;
       this.messageMaxBytes = sender.messageMaxBytes();
+    }
+
+    /**
+     * Launches the flush thread when {@link #messageTimeoutNanos} is greater than zero.
+     */
+    public Builder threadFactory(ThreadFactory threadFactory) {
+      if (threadFactory == null) throw new NullPointerException("threadFactory == null");
+      this.threadFactory = threadFactory;
+      return this;
     }
 
     /**
@@ -182,26 +194,9 @@ public abstract class AsyncReporter<S> extends Component implements Reporter<S>,
 
       if (messageTimeoutNanos > 0) { // Start a thread that flushes the queue in a loop.
         final BufferNextMessage<S> consumer =
-            BufferNextMessage.create(encoder.encoding(), messageMaxBytes, messageTimeoutNanos);
-        final Thread flushThread = new Thread("AsyncReporter{" + sender + "}") {
-          @Override public void run() {
-            try {
-              while (!result.closed.get()) {
-                result.flush(consumer);
-              }
-            } catch (RuntimeException | Error e) {
-              BoundedAsyncReporter.logger.log(Level.WARNING, "Unexpected error flushing spans", e);
-              throw e;
-            } finally {
-              int count = consumer.count();
-              if (count > 0) {
-                metrics.incrementSpansDropped(count);
-                BoundedAsyncReporter.logger.warning("Dropped " + count + " spans due to AsyncReporter.close()");
-              }
-              result.close.countDown();
-            }
-          }
-        };
+          BufferNextMessage.create(encoder.encoding(), messageMaxBytes, messageTimeoutNanos);
+        Thread flushThread = threadFactory.newThread(new Flusher<>(result, consumer));
+        flushThread.setName("AsyncReporter{" + sender + "}");
         flushThread.setDaemon(true);
         flushThread.start();
       }
@@ -292,8 +287,8 @@ public abstract class AsyncReporter<S> extends Component implements Reporter<S>,
         metrics.incrementSpansDropped(count);
         if (logger.isLoggable(FINE)) {
           logger.log(FINE,
-              format("Dropped %s spans due to %s(%s)", count, t.getClass().getSimpleName(),
-                  t.getMessage() == null ? "" : t.getMessage()), t);
+            format("Dropped %s spans due to %s(%s)", count, t.getClass().getSimpleName(),
+              t.getMessage() == null ? "" : t.getMessage()), t);
         }
         // Raise in case the sender was closed out-of-band.
         if (t instanceof IllegalStateException) throw (IllegalStateException) t;
@@ -324,6 +319,40 @@ public abstract class AsyncReporter<S> extends Component implements Reporter<S>,
 
     @Override public String toString() {
       return "AsyncReporter{" + sender + "}";
+    }
+  }
+
+  static final class Flusher<S> implements Runnable {
+    static final Logger logger = Logger.getLogger(Flusher.class.getName());
+
+    final BoundedAsyncReporter<S> result;
+    final BufferNextMessage<S> consumer;
+
+    Flusher(BoundedAsyncReporter<S> result, BufferNextMessage<S> consumer) {
+      this.result = result;
+      this.consumer = consumer;
+    }
+
+    @Override public void run() {
+      try {
+        while (!result.closed.get()) {
+          result.flush(consumer);
+        }
+      } catch (RuntimeException | Error e) {
+        logger.log(Level.WARNING, "Unexpected error flushing spans", e);
+        throw e;
+      } finally {
+        int count = consumer.count();
+        if (count > 0) {
+          result.metrics.incrementSpansDropped(count);
+          logger.warning("Dropped " + count + " spans due to AsyncReporter.close()");
+        }
+        result.close.countDown();
+      }
+    }
+
+    @Override public String toString() {
+      return "AsyncReporter{" + result.sender + "}";
     }
   }
 }
