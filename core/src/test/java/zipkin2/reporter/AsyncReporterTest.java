@@ -415,8 +415,8 @@ public class AsyncReporterTest {
 
   @Test public void build_proto3() {
     AsyncReporter.builder(FakeSender.create().encoding(Encoding.PROTO3))
-      .messageTimeout(0, TimeUnit.MILLISECONDS)
-      .build();
+        .messageTimeout(0, TimeUnit.MILLISECONDS)
+        .build();
   }
 
   @Test public void build_proto3_withCustomBytesEncoder() {

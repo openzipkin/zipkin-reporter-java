@@ -194,7 +194,7 @@ public abstract class AsyncReporter<S> extends Component implements Reporter<S>,
 
       if (messageTimeoutNanos > 0) { // Start a thread that flushes the queue in a loop.
         final BufferNextMessage<S> consumer =
-          BufferNextMessage.create(encoder.encoding(), messageMaxBytes, messageTimeoutNanos);
+            BufferNextMessage.create(encoder.encoding(), messageMaxBytes, messageTimeoutNanos);
         Thread flushThread = threadFactory.newThread(new Flusher<>(result, consumer));
         flushThread.setName("AsyncReporter{" + sender + "}");
         flushThread.setDaemon(true);
@@ -287,8 +287,8 @@ public abstract class AsyncReporter<S> extends Component implements Reporter<S>,
         metrics.incrementSpansDropped(count);
         if (logger.isLoggable(FINE)) {
           logger.log(FINE,
-            format("Dropped %s spans due to %s(%s)", count, t.getClass().getSimpleName(),
-              t.getMessage() == null ? "" : t.getMessage()), t);
+              format("Dropped %s spans due to %s(%s)", count, t.getClass().getSimpleName(),
+                  t.getMessage() == null ? "" : t.getMessage()), t);
         }
         // Raise in case the sender was closed out-of-band.
         if (t instanceof IllegalStateException) throw (IllegalStateException) t;
