@@ -33,6 +33,7 @@ import zipkin2.codec.SpanBytesEncoder;
 
 import static java.lang.String.format;
 import static java.util.logging.Level.FINE;
+import static java.util.logging.Level.WARNING;
 
 /**
  * As spans are reported, they are encoded and added to a pending queue. The task of sending spans
@@ -216,6 +217,9 @@ public abstract class AsyncReporter<S> extends Component implements Reporter<S>,
     final CountDownLatch close;
     final ReporterMetrics metrics;
 
+    /** Tracks if we should log the first instance of an exception in flush(). */
+    private boolean shouldWarnException = true;
+
     BoundedAsyncReporter(Builder builder, BytesEncoder<S> encoder) {
       this.pending = new ByteBoundedQueue<>(builder.queuedMaxSpans, builder.queuedMaxBytes);
       this.sender = builder.sender;
@@ -285,11 +289,22 @@ public abstract class AsyncReporter<S> extends Component implements Reporter<S>,
         Call.propagateIfFatal(t);
         metrics.incrementMessagesDropped(t);
         metrics.incrementSpansDropped(count);
-        if (logger.isLoggable(FINE)) {
-          logger.log(FINE,
-              format("Dropped %s spans due to %s(%s)", count, t.getClass().getSimpleName(),
-                  t.getMessage() == null ? "" : t.getMessage()), t);
+
+        Level logLevel = FINE;
+
+        if (shouldWarnException) {
+          logger.log(WARNING, "Spans were dropped due to exceptions. "
+            + "All subsequent errors will be logged at FINE level.");
+          logLevel = WARNING;
+          shouldWarnException = false;
         }
+
+        logger.log(logLevel, t, () ->
+          format("Dropped %s spans due to %s(%s)",
+            count,
+            t.getClass().getSimpleName(),
+            t.getMessage() == null ? "" : t.getMessage()));
+
         // Raise in case the sender was closed out-of-band.
         if (t instanceof IllegalStateException) throw (IllegalStateException) t;
       }
