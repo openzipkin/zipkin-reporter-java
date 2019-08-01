@@ -299,11 +299,11 @@ public abstract class AsyncReporter<S> extends Component implements Reporter<S>,
           shouldWarnException = false;
         }
 
-        logger.log(logLevel, t, () ->
-          format("Dropped %s spans due to %s(%s)",
-            count,
-            t.getClass().getSimpleName(),
-            t.getMessage() == null ? "" : t.getMessage()));
+        if (logger.isLoggable(logLevel)) {
+          logger.log(logLevel,
+            format("Dropped %s spans due to %s(%s)", count, t.getClass().getSimpleName(),
+              t.getMessage() == null ? "" : t.getMessage()), t);
+        }
 
         // Raise in case the sender was closed out-of-band.
         if (t instanceof IllegalStateException) throw (IllegalStateException) t;
