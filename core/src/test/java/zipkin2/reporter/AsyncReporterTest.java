@@ -13,6 +13,7 @@
  */
 package zipkin2.reporter;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
@@ -20,6 +21,10 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
 import org.junit.After;
 import org.junit.Test;
 import zipkin2.Span;
@@ -177,6 +182,48 @@ public class AsyncReporterTest {
 
     reporter.flush();
     assertThat(metrics.messagesDropped()).isEqualTo(1);
+  }
+
+  @Test
+  public void flush_logsFirstErrorAsWarn() {
+    List<LogRecord> logRecords = new ArrayList<>();
+    Handler testHandler = new Handler() {
+      @Override
+      public void publish(LogRecord record) {
+        logRecords.add(record);
+      }
+
+      @Override
+      public void flush() {}
+
+      @Override
+      public void close() throws SecurityException {}
+    };
+
+    Logger logger = Logger.getLogger(BoundedAsyncReporter.class.getName());
+    logger.addHandler(testHandler);
+    logger.setLevel(Level.FINE);
+
+    reporter = AsyncReporter.builder(FakeSender.create()
+      .onSpans(spans -> {
+        throw new RuntimeException();
+      }))
+      .build();
+
+    reporter.report(span);
+    reporter.flush();
+
+    reporter.report(span);
+    reporter.flush();
+
+    assertThat(logRecords).hasSize(3);
+    assertThat(logRecords.get(0).getLevel()).isEqualTo(Level.WARNING);
+
+    assertThat(logRecords.get(1).getLevel()).isEqualTo(Level.WARNING);
+    assertThat(logRecords.get(1).getMessage()).contains("RuntimeException");
+
+    assertThat(logRecords.get(2).getLevel()).isEqualTo(Level.FINE);
+    assertThat(logRecords.get(2).getMessage()).contains("RuntimeException");
   }
 
   /** It can take up to the messageTimeout past the first span to send */
