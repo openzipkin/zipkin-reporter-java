@@ -14,7 +14,6 @@
 package zipkin2.reporter;
 
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicReference;
 import zipkin2.Callback;
 
 /**
@@ -22,7 +21,7 @@ import zipkin2.Callback;
  */
 public final class AwaitableCallback implements Callback<Void> {
   final CountDownLatch countDown = new CountDownLatch(1);
-  final AtomicReference<Throwable> throwable = new AtomicReference<>();
+  Throwable throwable; // thread visibility guaranteed by the countdown latch
 
   /**
    * Blocks until {@link Callback#onSuccess(Object)} or {@link Callback#onError(Throwable)}.
@@ -31,27 +30,16 @@ public final class AwaitableCallback implements Callback<Void> {
    * {@link Callback#onError(Throwable)} was called.
    */
   public void await() {
-    boolean interrupted = false;
     try {
-      while (true) {
-        try {
-          countDown.await();
-          Object result = throwable.get();
-          if (result == null) return;
-          if (result instanceof Throwable) {
-            if (result instanceof Error) throw (Error) result;
-            if (result instanceof RuntimeException) throw (RuntimeException) result;
-            // Don't set interrupted status when the callback received InterruptedException
-            throw new RuntimeException((Throwable) result);
-          }
-        } catch (InterruptedException e) {
-          interrupted = true;
-        }
-      }
-    } finally {
-      if (interrupted) {
-        Thread.currentThread().interrupt();
-      }
+      countDown.await();
+      Throwable result = throwable;
+      if (result == null) return; // void return
+      if (result instanceof Error) throw (Error) result;
+      if (result instanceof RuntimeException) throw (RuntimeException) result;
+      // Don't set interrupted status when the callback received InterruptedException
+      throw new RuntimeException(result);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
     }
   }
 
@@ -60,7 +48,7 @@ public final class AwaitableCallback implements Callback<Void> {
   }
 
   @Override public void onError(Throwable t) {
-    throwable.set(t);
+    throwable = t;
     countDown.countDown();
   }
 }
