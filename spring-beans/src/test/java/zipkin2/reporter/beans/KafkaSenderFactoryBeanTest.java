@@ -65,7 +65,7 @@ public class KafkaSenderFactoryBeanTest {
 
     assertThat(context.getBean("sender", KafkaSender.class))
         .extracting("messageMaxBytes")
-        .containsExactly(1024);
+        .isEqualTo(1024);
   }
 
   @Test public void encoding() {
@@ -78,7 +78,7 @@ public class KafkaSenderFactoryBeanTest {
 
     assertThat(context.getBean("sender", KafkaSender.class))
         .extracting("encoding")
-        .containsExactly(Encoding.PROTO3);
+        .isEqualTo(Encoding.PROTO3);
   }
 
   @Test(expected = IllegalStateException.class) public void close_closesSender() {

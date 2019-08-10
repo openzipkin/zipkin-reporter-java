@@ -39,7 +39,7 @@ public class URLConnectionSenderFactoryBeanTest {
 
     assertThat(context.getBean("sender", URLConnectionSender.class))
         .extracting("endpoint")
-        .containsExactly(URI.create("http://localhost:9411/api/v2/spans").toURL());
+        .isEqualTo(URI.create("http://localhost:9411/api/v2/spans").toURL());
   }
 
   @Test public void connectTimeout() {
@@ -81,7 +81,7 @@ public class URLConnectionSenderFactoryBeanTest {
 
     assertThat(context.getBean("sender", URLConnectionSender.class))
         .extracting("compressionEnabled")
-        .containsExactly(false);
+        .isEqualTo(false);
   }
 
   @Test public void messageMaxBytes() {
@@ -94,7 +94,7 @@ public class URLConnectionSenderFactoryBeanTest {
 
     assertThat(context.getBean("sender", URLConnectionSender.class))
         .extracting("messageMaxBytes")
-        .containsExactly(1024);
+        .isEqualTo(1024);
   }
 
   @Test public void encoding() {
@@ -107,7 +107,7 @@ public class URLConnectionSenderFactoryBeanTest {
 
     assertThat(context.getBean("sender", URLConnectionSender.class))
         .extracting("encoding")
-        .containsExactly(Encoding.PROTO3);
+        .isEqualTo(Encoding.PROTO3);
   }
 
   @Test(expected = IllegalStateException.class) public void close_closesSender() {

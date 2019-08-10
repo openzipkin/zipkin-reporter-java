@@ -51,7 +51,7 @@ public class AsyncReporterFactoryBeanTest {
 
     assertThat(context.getBean("asyncReporter", AsyncReporter.class))
         .extracting("sender")
-        .containsExactly(SENDER);
+        .isEqualTo(SENDER);
   }
 
   @Test public void metrics() {
@@ -68,7 +68,7 @@ public class AsyncReporterFactoryBeanTest {
 
     assertThat(context.getBean("asyncReporter", AsyncReporter.class))
         .extracting("metrics")
-        .containsExactly(METRICS);
+        .isEqualTo(METRICS);
   }
 
   @Test public void messageMaxBytes() {
@@ -83,7 +83,7 @@ public class AsyncReporterFactoryBeanTest {
 
     assertThat(context.getBean("asyncReporter", AsyncReporter.class))
         .extracting("messageMaxBytes")
-        .containsExactly(512);
+        .isEqualTo(512);
   }
 
   @Test public void messageTimeout() {
@@ -98,7 +98,7 @@ public class AsyncReporterFactoryBeanTest {
 
     assertThat(context.getBean("asyncReporter", AsyncReporter.class))
         .extracting("messageTimeoutNanos")
-        .containsExactly(TimeUnit.MILLISECONDS.toNanos(500));
+        .isEqualTo(TimeUnit.MILLISECONDS.toNanos(500));
   }
 
   @Test public void closeTimeout() {
@@ -113,7 +113,7 @@ public class AsyncReporterFactoryBeanTest {
 
     assertThat(context.getBean("asyncReporter", AsyncReporter.class))
         .extracting("closeTimeoutNanos")
-        .containsExactly(TimeUnit.MILLISECONDS.toNanos(500));
+        .isEqualTo(TimeUnit.MILLISECONDS.toNanos(500));
   }
 
   @Test public void queuedMaxSpans() {
@@ -128,7 +128,7 @@ public class AsyncReporterFactoryBeanTest {
 
     assertThat(context.getBean("asyncReporter", AsyncReporter.class))
         .extracting("pending.maxSize")
-        .containsExactly(10);
+        .isEqualTo(10);
   }
 
   @Test public void queuedMaxBytes() {
@@ -143,7 +143,7 @@ public class AsyncReporterFactoryBeanTest {
 
     assertThat(context.getBean("asyncReporter", AsyncReporter.class))
         .extracting("pending.maxBytes")
-        .containsExactly(512);
+        .isEqualTo(512);
   }
 
   @Test public void sender_proto3() {
@@ -157,7 +157,7 @@ public class AsyncReporterFactoryBeanTest {
 
     assertThat(context.getBean("asyncReporter", AsyncReporter.class))
         .extracting("encoder")
-        .containsExactly(SpanBytesEncoder.PROTO3);
+        .isEqualTo(SpanBytesEncoder.PROTO3);
   }
 
   @Test public void encoder() {
@@ -172,6 +172,6 @@ public class AsyncReporterFactoryBeanTest {
 
     assertThat(context.getBean("asyncReporter", AsyncReporter.class))
         .extracting("encoder")
-        .containsExactly(SpanBytesEncoder.PROTO3);
+        .isEqualTo(SpanBytesEncoder.PROTO3);
   }
 }

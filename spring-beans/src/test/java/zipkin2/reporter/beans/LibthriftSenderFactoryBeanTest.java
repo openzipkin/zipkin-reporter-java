@@ -40,7 +40,7 @@ public class LibthriftSenderFactoryBeanTest {
 
     assertThat(context.getBean("sender", LibthriftSender.class))
         .extracting("host")
-        .containsExactly("myhost");
+        .isEqualTo("myhost");
   }
 
   @Test
@@ -85,7 +85,7 @@ public class LibthriftSenderFactoryBeanTest {
 
     assertThat(context.getBean("sender", LibthriftSender.class))
         .extracting("port")
-        .containsExactly(1000);
+        .isEqualTo(1000);
   }
 
   @Test
@@ -100,7 +100,7 @@ public class LibthriftSenderFactoryBeanTest {
 
     assertThat(context.getBean("sender", LibthriftSender.class))
         .extracting("messageMaxBytes")
-        .containsExactly(1024);
+        .isEqualTo(1024);
   }
 
   @Test(expected = IllegalStateException.class)
