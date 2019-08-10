@@ -30,25 +30,16 @@ public final class AwaitableCallback implements Callback<Void> {
    * {@link Callback#onError(Throwable)} was called.
    */
   public void await() {
-    boolean interrupted = false;
     try {
-      while (true) {
-        try {
-          countDown.await();
-          Throwable result = throwable;
-          if (result == null) return; // void return
-          if (result instanceof Error) throw (Error) result;
-          if (result instanceof RuntimeException) throw (RuntimeException) result;
-          // Don't set interrupted status when the callback received InterruptedException
-          throw new RuntimeException(result);
-        } catch (InterruptedException e) {
-          interrupted = true;
-        }
-      }
-    } finally {
-      if (interrupted) {
-        Thread.currentThread().interrupt();
-      }
+      countDown.await();
+      Throwable result = throwable;
+      if (result == null) return; // void return
+      if (result instanceof Error) throw (Error) result;
+      if (result instanceof RuntimeException) throw (RuntimeException) result;
+      // Don't set interrupted status when the callback received InterruptedException
+      throw new RuntimeException(result);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
     }
   }
 
