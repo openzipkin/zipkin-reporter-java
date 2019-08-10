@@ -94,14 +94,15 @@
     <dependency>
       <groupId>com.linecorp.armeria</groupId>
       <artifactId>armeria</artifactId>
-      <version>0.87.0</version>
+      <version>0.90.0</version>
     </dependency>
 
     <dependency>
       <groupId>com.github.charithe</groupId>
       <artifactId>kafka-junit</artifactId>
-      <!-- pinned to 2.2.0 -->
-      <version>4.1.5</version>
+      <!-- This version is tightly coupled to the version of kafka-clients being used.
+       https://github.com/charithe/kafka-junit -->
+      <version>4.1.6</version>
     </dependency>
     <dependency>
       <groupId>junit</groupId>

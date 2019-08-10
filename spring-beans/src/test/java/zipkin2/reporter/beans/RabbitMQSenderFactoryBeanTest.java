@@ -20,6 +20,7 @@ import org.junit.Test;
 import zipkin2.codec.Encoding;
 import zipkin2.reporter.amqp.RabbitMQSender;
 
+import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class RabbitMQSenderFactoryBeanTest {
@@ -38,7 +39,7 @@ public class RabbitMQSenderFactoryBeanTest {
 
     assertThat(context.getBean("sender", RabbitMQSender.class))
         .extracting("addresses")
-        .containsExactly(Arrays.asList(new Address("localhost")));
+        .isEqualTo(asList(new Address("localhost")));
   }
 
   @Test public void queue() {
@@ -51,7 +52,7 @@ public class RabbitMQSenderFactoryBeanTest {
 
     assertThat(context.getBean("sender", RabbitMQSender.class))
         .extracting("queue")
-        .containsExactly("zipkin2");
+        .isEqualTo("zipkin2");
   }
 
   @Test public void connectionTimeout() {
@@ -64,7 +65,7 @@ public class RabbitMQSenderFactoryBeanTest {
 
     assertThat(context.getBean("sender", RabbitMQSender.class))
         .extracting("connectionFactory.connectionTimeout")
-        .containsExactly(0);
+        .isEqualTo(0);
   }
 
   @Test public void virtualHost() {
@@ -77,7 +78,7 @@ public class RabbitMQSenderFactoryBeanTest {
 
     assertThat(context.getBean("sender", RabbitMQSender.class))
         .extracting("connectionFactory.virtualHost")
-        .containsExactly("zipkin3");
+        .isEqualTo("zipkin3");
   }
 
   @Test public void usernamePassword() {
@@ -91,7 +92,7 @@ public class RabbitMQSenderFactoryBeanTest {
 
     assertThat(context.getBean("sender", RabbitMQSender.class))
         .extracting("connectionFactory.username", "connectionFactory.password")
-        .containsExactly("foo", "bar");
+        .isEqualTo(asList("foo", "bar"));
   }
 
   @Test public void messageMaxBytes() {
@@ -104,7 +105,7 @@ public class RabbitMQSenderFactoryBeanTest {
 
     assertThat(context.getBean("sender", RabbitMQSender.class))
         .extracting("messageMaxBytes")
-        .containsExactly(1024);
+        .isEqualTo(1024);
   }
 
   @Test public void encoding() {
@@ -117,7 +118,7 @@ public class RabbitMQSenderFactoryBeanTest {
 
     assertThat(context.getBean("sender", RabbitMQSender.class))
         .extracting("encoding")
-        .containsExactly(Encoding.PROTO3);
+        .isEqualTo(Encoding.PROTO3);
   }
 
   @Test(expected = IllegalStateException.class) public void close_closesSender() {
@@ -130,6 +131,6 @@ public class RabbitMQSenderFactoryBeanTest {
     RabbitMQSender sender = context.getBean("sender", RabbitMQSender.class);
     context.close();
 
-    sender.sendSpans(Arrays.asList(new byte[] {'{', '}'}));
+    sender.sendSpans(asList(new byte[] {'{', '}'}));
   }
 }

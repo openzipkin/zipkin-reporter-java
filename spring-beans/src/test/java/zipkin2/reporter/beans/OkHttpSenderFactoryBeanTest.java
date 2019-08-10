@@ -38,7 +38,7 @@ public class OkHttpSenderFactoryBeanTest {
 
     assertThat(context.getBean("sender", OkHttpSender.class))
         .extracting("endpoint")
-        .containsExactly(HttpUrl.parse("http://localhost:9411/api/v2/spans"));
+        .isEqualTo(HttpUrl.parse("http://localhost:9411/api/v2/spans"));
   }
 
   @Test public void connectTimeout() {
@@ -51,7 +51,7 @@ public class OkHttpSenderFactoryBeanTest {
 
     assertThat(context.getBean("sender", OkHttpSender.class))
         .extracting("client.connectTimeout")
-        .containsExactly(1000);
+        .isEqualTo(1000);
   }
 
   @Test public void writeTimeout() {
@@ -64,7 +64,7 @@ public class OkHttpSenderFactoryBeanTest {
 
     assertThat(context.getBean("sender", OkHttpSender.class))
         .extracting("client.writeTimeout")
-        .containsExactly(1000);
+        .isEqualTo(1000);
   }
 
   @Test public void readTimeout() {
@@ -77,7 +77,7 @@ public class OkHttpSenderFactoryBeanTest {
 
     assertThat(context.getBean("sender", OkHttpSender.class))
         .extracting("client.readTimeout")
-        .containsExactly(1000);
+        .isEqualTo(1000);
   }
 
   @Test public void maxRequests() {
@@ -90,7 +90,7 @@ public class OkHttpSenderFactoryBeanTest {
 
     assertThat(context.getBean("sender", OkHttpSender.class))
         .extracting("client.dispatcher.maxRequests")
-        .containsExactly(4);
+        .isEqualTo(4);
   }
 
   @Test public void compressionEnabled() {
@@ -103,7 +103,7 @@ public class OkHttpSenderFactoryBeanTest {
 
     assertThat(context.getBean("sender", OkHttpSender.class))
         .extracting("compressionEnabled")
-        .containsExactly(false);
+        .isEqualTo(false);
   }
 
   @Test public void messageMaxBytes() {
@@ -116,7 +116,7 @@ public class OkHttpSenderFactoryBeanTest {
 
     assertThat(context.getBean("sender", OkHttpSender.class))
         .extracting("messageMaxBytes")
-        .containsExactly(1024);
+        .isEqualTo(1024);
   }
 
   @Test public void encoding() {
@@ -129,7 +129,7 @@ public class OkHttpSenderFactoryBeanTest {
 
     assertThat(context.getBean("sender", OkHttpSender.class))
         .extracting("encoding")
-        .containsExactly(Encoding.PROTO3);
+        .isEqualTo(Encoding.PROTO3);
   }
 
   @Test(expected = IllegalStateException.class) public void close_closesSender() {

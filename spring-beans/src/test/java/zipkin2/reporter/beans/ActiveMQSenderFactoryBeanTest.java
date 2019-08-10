@@ -38,7 +38,7 @@ public class ActiveMQSenderFactoryBeanTest {
 
     assertThat(context.getBean("sender", ActiveMQSender.class))
       .extracting("lazyInit.connectionFactory.brokerURL")
-      .containsExactly(brokerUrl);
+      .isEqualTo(brokerUrl);
   }
 
   @Test public void connectionIdPrefix() {
@@ -52,7 +52,7 @@ public class ActiveMQSenderFactoryBeanTest {
 
     assertThat(context.getBean("sender", ActiveMQSender.class))
       .extracting("lazyInit.connectionFactory.connectionIDPrefix")
-      .containsExactly(connectionIdPrefix);
+      .isEqualTo(connectionIdPrefix);
   }
 
   @Test public void clientIdPrefix() {
@@ -66,7 +66,7 @@ public class ActiveMQSenderFactoryBeanTest {
 
     assertThat(context.getBean("sender", ActiveMQSender.class))
       .extracting("lazyInit.connectionFactory.clientIDPrefix")
-      .containsExactly(clientIdPrefix);
+      .isEqualTo(clientIdPrefix);
   }
 
   @Test public void queue() {
@@ -79,7 +79,7 @@ public class ActiveMQSenderFactoryBeanTest {
 
     assertThat(context.getBean("sender", ActiveMQSender.class))
       .extracting("lazyInit.queue")
-      .containsExactly("zipkin2");
+      .isEqualTo("zipkin2");
   }
 
   @Test public void usernamePassword() {
@@ -106,7 +106,7 @@ public class ActiveMQSenderFactoryBeanTest {
 
     assertThat(context.getBean("sender", ActiveMQSender.class))
       .extracting("messageMaxBytes")
-      .containsExactly(1024);
+      .isEqualTo(1024);
   }
 
   @Test public void encoding() {
@@ -119,7 +119,7 @@ public class ActiveMQSenderFactoryBeanTest {
 
     assertThat(context.getBean("sender", ActiveMQSender.class))
       .extracting("encoding")
-      .containsExactly(Encoding.PROTO3);
+      .isEqualTo(Encoding.PROTO3);
   }
 
   @Test(expected = IllegalStateException.class) public void close_closesSender() {
