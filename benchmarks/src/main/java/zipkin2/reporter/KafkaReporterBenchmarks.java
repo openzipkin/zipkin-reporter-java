@@ -13,14 +13,20 @@
  */
 package zipkin2.reporter;
 
+import com.github.charithe.kafka.EphemeralKafkaBroker;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Properties;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import okio.Okio;
+import org.apache.kafka.clients.producer.ProducerConfig;
 import org.openjdk.jmh.annotations.AuxCounters;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
+import org.openjdk.jmh.annotations.Group;
+import org.openjdk.jmh.annotations.GroupThreads;
 import org.openjdk.jmh.annotations.Level;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Mode;
@@ -32,43 +38,48 @@ import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
+import org.openjdk.jmh.runner.Runner;
+import org.openjdk.jmh.runner.RunnerException;
+import org.openjdk.jmh.runner.options.Options;
+import org.openjdk.jmh.runner.options.OptionsBuilder;
 import zipkin2.Span;
+import zipkin2.TestObjects;
+import zipkin2.codec.Encoding;
 import zipkin2.codec.SpanBytesDecoder;
+import zipkin2.reporter.kafka.KafkaReporter;
 
-/**
- * This benchmark reports spans as fast as possible. The sender clears the queue as fast as
- * possible using different max message sizes.
- */
 @Measurement(iterations = 5, time = 1)
 @Warmup(iterations = 10, time = 1)
 @Fork(3)
 @BenchmarkMode(Mode.Throughput)
 @OutputTimeUnit(TimeUnit.SECONDS)
 @State(Scope.Benchmark)
-@Threads(-1)
-public abstract class SenderBenchmarks {
-  /**
-   * How many spans to keep in the backlog at one time. This number is high to ensure senders aren't
-   * limited by span production speed.
-   */
-  static final int TARGET_BACKLOG = 1_000_000;
+public class KafkaReporterBenchmarks {
 
-  // 64KiB, 1MB (default for Kafka), 5MiB, 16MiB (default for Scribe)
-  @Param({"65536", "1000000", "5242880", "16777216"})
-
-  public int messageMaxBytes;
+  EphemeralKafkaBroker broker = EphemeralKafkaBroker.create();
 
   static final byte[] clientSpanBytes = spanFromResource("/zipkin2-client.json");
   static final Span clientSpan = SpanBytesDecoder.JSON_V2.decodeOne(clientSpanBytes);
 
   static final InMemoryReporterMetrics metrics = new InMemoryReporterMetrics();
+  static final AtomicLong spanBacklog = new AtomicLong();
+
+  @Param({"65536", "1000000"})
+  public int messageMaxBytes;
+
+  @Param
+  public Encoding encoding;
 
   @AuxCounters
   @State(Scope.Thread)
   public static class InMemoryReporterMetricsAsCounters {
 
     public long spans() {
-      return metrics.spans() - metrics.spansDropped();
+      return metrics.spans();
+    }
+
+    public long spansDropped() {
+      return metrics.spansDropped();
     }
 
     public long messages() {
@@ -79,58 +90,66 @@ public abstract class SenderBenchmarks {
       return metrics.messagesDropped();
     }
 
+    public long spanBacklog() {
+      return spanBacklog.get();
+    }
+
     @Setup(Level.Iteration)
     public void clean() {
       metrics.clear();
+      spanBacklog.set(0);
     }
   }
 
-  Sender sender;
-  AsyncReporter.BoundedAsyncReporter<Span> reporter;
+  KafkaReporter reporter;
 
   @Setup(Level.Trial)
-  public void setup() throws Throwable {
-    sender = createSender();
+  public void setup() throws Exception {
+    broker.start();
 
-    //CheckResult senderCheck = sender.check();
-    //if (!senderCheck.ok()) throw senderCheck.error();
-
-    reporter = (AsyncReporter.BoundedAsyncReporter<Span>) AsyncReporter.builder(sender)
-        .messageMaxBytes(messageMaxBytes)
-        .queuedMaxSpans(TARGET_BACKLOG)
-        .metrics(metrics).build();
+    Properties overrides = broker.producerConfig();
+    //overrides.put(ProducerConfig.LINGER_MS_CONFIG, 5);
+    reporter = KafkaReporter.newBuilder()
+      .overrides(overrides)
+      .encoding(encoding)
+      .messageMaxBytes(messageMaxBytes)
+      .metrics(metrics)
+      .build();
   }
 
-  protected abstract Sender createSender() throws Exception;
+  @Benchmark @Group("no_contention") @GroupThreads(1)
+  public void no_contention_report(InMemoryReporterMetricsAsCounters counters) {
+    reporter.report(clientSpan);
+  }
 
-  @Setup(Level.Iteration)
-  public void fillQueue() throws IOException {
-    while (reporter.pending.offer(clientSpan, clientSpanBytes.length));
+  @Benchmark @Group("mild_contention") @GroupThreads(2)
+  public void mild_contention_report(InMemoryReporterMetricsAsCounters counters) {
+    reporter.report(clientSpan);
+  }
+
+  @Benchmark @Group("high_contention") @GroupThreads(8)
+  public void high_contention_report(InMemoryReporterMetricsAsCounters counters) {
+    reporter.report(clientSpan);
   }
 
   @TearDown(Level.Iteration)
-  public void clearQueue() throws IOException {
-    reporter.pending.clear();
-  }
-
-  @Benchmark
-  public void report(InMemoryReporterMetricsAsCounters counters) throws InterruptedException {
-    // if we were able to add more to the queue, that means the sender sent spans
-    if (reporter.pending.offer(clientSpan, clientSpanBytes.length)) {
-      metrics.incrementSpans(1);
-    } else {
-      Thread.sleep(10);
-    }
+  public void clear() throws Exception {
+    reporter.flush();
   }
 
   @TearDown(Level.Trial)
   public void close() throws Exception {
     reporter.close();
-    sender.close();
-    afterSenderClose();
+    broker.stop();
   }
 
-  protected abstract void afterSenderClose() throws Exception;
+  public static void main(String[] args) throws RunnerException {
+    Options opt = new OptionsBuilder()
+      .include(".*" + KafkaReporterBenchmarks.class.getSimpleName() + ".*")
+      .build();
+
+    new Runner(opt).run();
+  }
 
   static byte[] spanFromResource(String jsonResource) {
     InputStream stream = SenderBenchmarks.class.getResourceAsStream(jsonResource);
@@ -141,4 +160,3 @@ public abstract class SenderBenchmarks {
     }
   }
 }
-
