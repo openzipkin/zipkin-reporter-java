@@ -5,11 +5,14 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.KafkaFuture;
+import org.apache.kafka.common.errors.RecordTooLargeException;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import zipkin2.CheckResult;
 import zipkin2.Component;
@@ -19,7 +22,12 @@ import zipkin2.codec.SpanBytesEncoder;
 import zipkin2.reporter.Reporter;
 import zipkin2.reporter.ReporterMetrics;
 
+import static java.lang.String.format;
+import static java.util.logging.Level.FINE;
+import static java.util.logging.Level.WARNING;
+
 public class KafkaReporter extends Component implements Reporter<Span>, Flushable {
+  static final Logger logger = Logger.getLogger(KafkaReporter.class.getName());
 
   /**
    * Configuration including defaults needed to send spans to a Kafka topic.
@@ -172,6 +180,9 @@ public class KafkaReporter extends Component implements Reporter<Span>, Flushabl
   final int messageMaxBytes;
   final ReporterMetrics metrics;
 
+  /** Tracks if we should log the first instance of an exception in flush(). */
+  private boolean shouldWarnException = true;
+
   public static KafkaReporter create(String bootstrapServers) {
     return newBuilder().bootstrapServers(bootstrapServers).build();
   }
@@ -183,10 +194,8 @@ public class KafkaReporter extends Component implements Reporter<Span>, Flushabl
     properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class.getName());
     properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
       ByteArraySerializer.class.getName());
-    // disabling batching as duplicates effort covered by sender buffering.
-    properties.put(ProducerConfig.BATCH_SIZE_CONFIG, 0);
     // 1MB, aligned with default kafka max.message.bytes config.
-    properties.put(ProducerConfig.MAX_REQUEST_SIZE_CONFIG, 1000000);
+    properties.put(ProducerConfig.MAX_REQUEST_SIZE_CONFIG, 500000);
     properties.put(ProducerConfig.ACKS_CONFIG, "0");
     return new KafkaReporter.Builder(properties);
   }
@@ -225,6 +234,7 @@ public class KafkaReporter extends Component implements Reporter<Span>, Flushabl
   volatile AdminClient adminClient;
 
   @Override public void report(Span span) {
+    if (closeCalled) throw new IllegalStateException("closed");
     metrics.incrementSpans(1);
     int spanSizeInBytes = encoder.sizeInBytes(span);
     metrics.incrementSpanBytes(spanSizeInBytes);
@@ -234,6 +244,24 @@ public class KafkaReporter extends Component implements Reporter<Span>, Flushabl
        if (exception != null) {
          metrics.incrementMessagesDropped(exception);
          metrics.incrementSpansDropped(1);
+
+         Level logLevel = FINE;
+
+         if (shouldWarnException) {
+           logger.log(WARNING, "Spans were dropped due to exceptions. "
+             + "All subsequent errors will be logged at FINE level.");
+           logLevel = WARNING;
+           shouldWarnException = false;
+         }
+
+         if (logger.isLoggable(logLevel)) {
+           logger.log(logLevel,
+             format("Dropped span due to %s(%s)", exception.getClass().getSimpleName(),
+               exception.getMessage() == null ? "" : exception.getMessage()), exception);
+         }
+
+         if (exception instanceof IllegalStateException) throw (IllegalStateException) exception;
+         if (exception instanceof RecordTooLargeException) throw (RecordTooLargeException) exception;
        }
     });
   }
