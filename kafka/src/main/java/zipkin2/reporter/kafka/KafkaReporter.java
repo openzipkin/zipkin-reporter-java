@@ -2,6 +2,7 @@ package zipkin2.reporter.kafka;
 
 import java.io.Flushable;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
@@ -239,7 +240,10 @@ public class KafkaReporter extends Component implements Reporter<Span>, Flushabl
     int spanSizeInBytes = encoder.sizeInBytes(span);
     metrics.incrementSpanBytes(spanSizeInBytes);
     ProducerRecord<byte[], byte[]> record =
-      new ProducerRecord<>(topic, span.traceId().getBytes(), encoder.encode(span));
+      new ProducerRecord<>(
+        topic,
+        span.traceId().getBytes(),
+        encoder.encodeList(Collections.singletonList(span)));
     getProducer().send(record, (metadata, exception) -> {
        if (exception != null) {
          metrics.incrementMessagesDropped(exception);
