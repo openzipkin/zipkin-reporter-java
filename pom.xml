@@ -56,7 +56,7 @@
     <errorprone.args />
 
     <!-- use the same value in bom/pom.xml -->
-    <zipkin.version>2.16.0</zipkin.version>
+    <zipkin.version>2.17.0</zipkin.version>
     <license-maven-plugin.version>3.0</license-maven-plugin.version>
     <maven-failsafe-plugin.version>3.0.0-M3</maven-failsafe-plugin.version>
   </properties>
@@ -122,12 +122,12 @@
       <dependency>
         <groupId>com.squareup.okhttp3</groupId>
         <artifactId>okhttp</artifactId>
-        <version>3.14.2</version>
+        <version>3.14.3</version>
       </dependency>
       <dependency>
         <groupId>com.squareup.okhttp3</groupId>
         <artifactId>mockwebserver</artifactId>
-        <version>3.14.2</version>
+        <version>3.14.3</version>
       </dependency>
       <dependency>
         <groupId>ch.qos.logback</groupId>
@@ -159,7 +159,7 @@
     <dependency>
       <groupId>org.assertj</groupId>
       <artifactId>assertj-core</artifactId>
-      <version>3.13.1</version>
+      <version>3.13.2</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -178,7 +178,7 @@
           <artifactId>maven</artifactId>
           <version>0.7.6</version>
           <configuration>
-            <maven>3.6.1</maven>
+            <maven>3.6.2</maven>
           </configuration>
         </plugin>
 
@@ -282,7 +282,7 @@
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>animal-sniffer-maven-plugin</artifactId>
-        <version>1.17</version>
+        <version>1.18</version>
         <configuration>
           <signature>
             <groupId>org.codehaus.mojo.signature</groupId>
@@ -426,7 +426,7 @@
       <plugin>
         <groupId>org.apache.felix</groupId>
         <artifactId>maven-bundle-plugin</artifactId>
-        <version>4.2.0</version>
+        <version>4.2.1</version>
         <configuration>
           <obrRepository>NONE</obrRepository>
           <instructions>
