@@ -59,6 +59,10 @@
     <zipkin.version>2.17.0</zipkin.version>
     <license-maven-plugin.version>3.0</license-maven-plugin.version>
     <maven-failsafe-plugin.version>3.0.0-M3</maven-failsafe-plugin.version>
+    <maven-jar-plugin.version>3.1.2</maven-jar-plugin.version>
+    <maven-bundle-plugin.version>4.2.1</maven-bundle-plugin.version>
+    <maven-source-plugin.version>3.1.0</maven-source-plugin.version>
+    <maven-javadoc-plugin.version>3.1.1</maven-javadoc-plugin.version>
   </properties>
 
   <name>Zipkin Reporter (Parent)</name>
@@ -183,6 +187,17 @@
         </plugin>
 
         <plugin>
+          <artifactId>maven-jar-plugin</artifactId>
+          <version>${maven-jar-plugin.version}</version>
+          <configuration>
+            <archive>
+              <!-- prevents huge pom file from also being added to the jar under META-INF/maven -->
+              <addMavenDescriptor>false</addMavenDescriptor>
+            </archive>
+          </configuration>
+        </plugin>
+
+        <plugin>
           <artifactId>maven-compiler-plugin</artifactId>
           <version>3.8.1</version>
           <inherited>true</inherited>
@@ -190,46 +205,12 @@
             <!-- Retrolambda will rewrite lambdas as Java 6 bytecode -->
             <source>1.8</source>
             <target>1.8</target>
+            <compilerVersion>1.8</compilerVersion>
             <!-- or die! com.sun.tools.javac.api.JavacTool -->
             <fork>true</fork>
             <showWarnings>true</showWarnings>
           </configuration>
         </plugin>
-        <!-- unhook direct dependence on internal classes -->
-        <plugin>
-          <artifactId>maven-shade-plugin</artifactId>
-          <version>3.2.1</version>
-          <executions>
-            <execution>
-              <phase>package</phase>
-              <goals>
-                <goal>shade</goal>
-              </goals>
-              <configuration>
-                <minimizeJar>true</minimizeJar>
-                <createDependencyReducedPom>false</createDependencyReducedPom>
-                <artifactSet>
-                  <includes>
-                    <include>io.zipkin.zipkin2:zipkin</include>
-                  </includes>
-                </artifactSet>
-                <filters>
-                  <filter>
-                    <!-- Shade references to classes packages -->
-                    <artifact>io.zipkin.zipkin2:zipkin</artifact>
-                    <includes>
-                      <include>zipkin2/internal/Platform*.class</include>
-                    </includes>
-                    <excludes>
-                      <exclude>*</exclude>
-                    </excludes>
-                  </filter>
-                </filters>
-              </configuration>
-            </execution>
-          </executions>
-        </plugin>
-
         <plugin>
           <groupId>org.eclipse.m2e</groupId>
           <artifactId>lifecycle-mapping</artifactId>
@@ -311,7 +292,7 @@
             <configuration>
               <rules>
                 <requireJavaVersion>
-                  <version>[1.8,12)</version>
+                  <version>[1.8,14)</version>
                 </requireJavaVersion>
               </rules>
             </configuration>
@@ -423,34 +404,6 @@
           <packageName>zipkin-reporter-java</packageName>
         </configuration>
       </plugin>
-      <plugin>
-        <groupId>org.apache.felix</groupId>
-        <artifactId>maven-bundle-plugin</artifactId>
-        <version>4.2.1</version>
-        <configuration>
-          <obrRepository>NONE</obrRepository>
-          <instructions>
-            <_include>-bnd.bnd</_include>
-          </instructions>
-        </configuration>
-        <executions>
-          <execution>
-            <phase>process-classes</phase>
-            <goals>
-              <goal>manifest</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <artifactId>maven-jar-plugin</artifactId>
-        <version>3.1.2</version>
-        <configuration>
-          <archive>
-            <manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
-          </archive>
-        </configuration>
-      </plugin>
     </plugins>
   </build>
 
@@ -499,9 +452,10 @@
       </build>
     </profile>
     <profile>
+      <!-- don't JDK 13 until https://github.com/google/error-prone/issues/1106 -->
       <id>error-prone-9+</id>
       <activation>
-        <jdk>[9,)</jdk>
+        <jdk>[9,12)</jdk>
         <activeByDefault>false</activeByDefault>
       </activation>
       <build>
@@ -543,7 +497,7 @@
           <!-- Creates source jar -->
           <plugin>
             <artifactId>maven-source-plugin</artifactId>
-            <version>3.1.0</version>
+            <version>${maven-source-plugin.version}</version>
             <executions>
               <execution>
                 <id>attach-sources</id>
@@ -554,15 +508,21 @@
             </executions>
           </plugin>
 
+          <!-- Creates javadoc jar, skipping internal classes -->
           <plugin>
             <artifactId>maven-javadoc-plugin</artifactId>
-            <version>3.1.1</version>
+            <version>${maven-javadoc-plugin.version}</version>
             <configuration>
+              <sourceFileExcludes>
+                <exclude>**/internal/*.java</exclude>
+                <exclude>**/Internal*.java</exclude>
+              </sourceFileExcludes>
+              <excludePackageNames>*.internal.*</excludePackageNames>
               <failOnError>false</failOnError>
-              <excludePackageNames>zipkin2.reporter.internal,zipkin2.reporter.internal.*
-              </excludePackageNames>
               <!-- hush pedantic warnings: we don't put param and return on everything! -->
               <doclint>none</doclint>
+              <!-- While we publish modules, our source is pre-Java9 so tell javadoc that. -->
+              <source>8</source>
             </configuration>
             <executions>
               <execution>
@@ -571,6 +531,62 @@
                   <goal>jar</goal>
                 </goals>
                 <phase>package</phase>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
+      <id>module-info</id>
+      <!-- Build profiles can only consider static properties, such as files or ENV variables.
+           To conditionally add module information, we use existence of bnd.bnd. This allows
+           irrelevant packages such as tests and benchmarks to quietly opt-out.
+           http://maven.apache.org/guides/introduction/introduction-to-profiles.html -->
+      <activation>
+        <file>
+          <exists>bnd.bnd</exists>
+        </file>
+      </activation>
+      <build>
+        <plugins>
+          <!-- OSGi and Java Modules configuration -->
+          <plugin>
+            <groupId>org.apache.felix</groupId>
+            <artifactId>maven-bundle-plugin</artifactId>
+            <version>${maven-bundle-plugin.version}</version>
+            <configuration>
+              <obrRepository>NONE</obrRepository>
+              <instructions>
+                <_include>-bnd.bnd</_include>
+              </instructions>
+            </configuration>
+            <executions>
+              <execution>
+                <phase>process-classes</phase>
+                <goals>
+                  <goal>manifest</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <artifactId>maven-jar-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>default-jar</id>
+                <configuration>
+                  <archive>
+                    <!-- Include the MANIFEST.MF maven-bundle-plugin generates from bnd.bnd -->
+                    <manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
+                    <manifestEntries>
+                      <Automatic-Module-Name>${module.name}</Automatic-Module-Name>
+                    </manifestEntries>
+                  </archive>
+                </configuration>
+                <goals>
+                  <goal>jar</goal>
+                </goals>
               </execution>
             </executions>
           </plugin>

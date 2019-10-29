@@ -27,6 +27,9 @@
   <name>Zipkin Sender: RabbitMQ AMQP Client 4.x</name>
 
   <properties>
+    <!-- Matches Export-Package in bnd.bnd -->
+    <module.name>zipkin2.reporter.amqp</module.name>
+
     <main.basedir>${project.basedir}/..</main.basedir>
     <amqp-client.version>4.11.3</amqp-client.version>
   </properties>
@@ -43,19 +46,4 @@
       <version>${amqp-client.version}</version>
     </dependency>
   </dependencies>
-
-  <build>
-    <plugins>
-      <plugin>
-        <artifactId>maven-jar-plugin</artifactId>
-        <configuration>
-          <archive>
-            <manifestEntries>
-              <Automatic-Module-Name>zipkin2.reporter.amqp</Automatic-Module-Name>
-            </manifestEntries>
-          </archive>
-        </configuration>
-      </plugin>
-    </plugins>
-  </build>
 </project>

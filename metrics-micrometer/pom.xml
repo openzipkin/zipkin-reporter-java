@@ -28,6 +28,9 @@
   <name>Zipkin Reporter Metrics by Micrometer</name>
 
   <properties>
+    <!-- Matches Export-Package in bnd.bnd -->
+    <module.name>zipkin2.reporter.metrics.micrometer</module.name>
+
     <main.basedir>${project.basedir}/..</main.basedir>
     <!-- Micrometer is Java 1.8 bytecode -->
     <main.java.version>1.8</main.java.version>
@@ -45,12 +48,13 @@
       <groupId>io.micrometer</groupId>
       <artifactId>micrometer-core</artifactId>
       <version>${micrometer.version}</version>
+      <scope>provided</scope>
     </dependency>
   </dependencies>
 
   <build>
     <plugins>
-      <!-- disable retrolambda as we allow language level 1.8 benchmark classes -->
+      <!-- disable retrolambda as micrometer requires 1.8+ -->
       <plugin>
         <groupId>net.orfjackal.retrolambda</groupId>
         <artifactId>retrolambda-maven-plugin</artifactId>
@@ -59,16 +63,6 @@
             <phase>none</phase>
           </execution>
         </executions>
-      </plugin>
-      <plugin>
-        <artifactId>maven-jar-plugin</artifactId>
-        <configuration>
-          <archive>
-            <manifestEntries>
-              <Automatic-Module-Name>zipkin2.reporter.metrics.micrometer</Automatic-Module-Name>
-            </manifestEntries>
-          </archive>
-        </configuration>
       </plugin>
     </plugins>
   </build>

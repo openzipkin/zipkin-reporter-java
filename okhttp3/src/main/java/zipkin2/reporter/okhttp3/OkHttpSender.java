@@ -16,6 +16,7 @@ package zipkin2.reporter.okhttp3;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import okhttp3.Dispatcher;
@@ -25,7 +26,6 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
-import okhttp3.internal.Util;
 import okio.Buffer;
 import okio.BufferedSink;
 import okio.GzipSink;
@@ -144,8 +144,8 @@ public final class OkHttpSender extends Sender {
     }
 
     /**
-     * Use this to change the encoding used in messages. Default is {@linkplain Encoding#JSON}
-     * This also controls the "Content-Type" header when sending spans.
+     * Use this to change the encoding used in messages. Default is {@linkplain Encoding#JSON} This
+     * also controls the "Content-Type" header when sending spans.
      *
      * <p>Note: If ultimately sending to Zipkin, version 2.8+ is required to process protobuf.
      */
@@ -218,13 +218,13 @@ public final class OkHttpSender extends Sender {
   static Dispatcher newDispatcher(int maxRequests) {
     // bound the executor so that we get consistent performance
     ThreadPoolExecutor dispatchExecutor =
-        new ThreadPoolExecutor(0, maxRequests, 60, TimeUnit.SECONDS,
-            // Using a synchronous queue means messages will send immediately until we hit max
-            // in-flight requests. Once max requests are hit, send will block the caller, which is
-            // the AsyncReporter flush thread. This is ok, as the AsyncReporter has a buffer of
-            // unsent spans for this purpose.
-            new SynchronousQueue<>(),
-            Util.threadFactory("OkHttpSender Dispatcher", false));
+      new ThreadPoolExecutor(0, maxRequests, 60, TimeUnit.SECONDS,
+        // Using a synchronous queue means messages will send immediately until we hit max
+        // in-flight requests. Once max requests are hit, send will block the caller, which is
+        // the AsyncReporter flush thread. This is ok, as the AsyncReporter has a buffer of
+        // unsent spans for this purpose.
+        new SynchronousQueue<>(),
+        r -> new Thread(r, "OkHttpSender Dispatcher"));
 
     Dispatcher dispatcher = new Dispatcher(dispatchExecutor);
     dispatcher.setMaxRequests(maxRequests);
@@ -266,7 +266,7 @@ public final class OkHttpSender extends Sender {
     try {
       request = newRequest(encoder.encode(encodedSpans));
     } catch (IOException e) {
-      throw zipkin2.internal.Platform.get().uncheckedIOException(e);
+      throw Platform.get().uncheckedIOException(e);
     }
     return new HttpCall(client.newCall(request));
   }
@@ -275,7 +275,7 @@ public final class OkHttpSender extends Sender {
   @Override public CheckResult check() {
     try {
       Request request = new Request.Builder().url(endpoint)
-          .post(RequestBody.create(MediaType.parse("application/json"), "[]")).build();
+        .post(RequestBody.create(MediaType.parse("application/json"), "[]")).build();
       try (Response response = client.newCall(request).execute()) {
         if (!response.isSuccessful()) {
           return CheckResult.failed(new RuntimeException("check response failed: " + response));

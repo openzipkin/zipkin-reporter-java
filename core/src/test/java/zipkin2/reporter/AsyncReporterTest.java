@@ -452,7 +452,6 @@ public class AsyncReporterTest {
       .threadFactory(r -> thread)
       .build();
 
-    assertThat(thread.isAlive()).isTrue();
     assertThat(thread.getName()).isEqualTo("AsyncReporter{FakeSender}");
     assertThat(thread.toString()).contains("AsyncReporter{FakeSender}");
     assertThat(thread.isDaemon()).isTrue();

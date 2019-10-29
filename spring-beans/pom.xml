@@ -27,6 +27,9 @@
   <description>Allows you to configure Zipkin Reporter using XML</description>
 
   <properties>
+    <!-- Matches Export-Package in bnd.bnd -->
+    <module.name>zipkin2.reporter.beans</module.name>
+
     <main.basedir>${project.basedir}/..</main.basedir>
   </properties>
 
@@ -90,19 +93,4 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
-
-  <build>
-    <plugins>
-      <plugin>
-        <artifactId>maven-jar-plugin</artifactId>
-        <configuration>
-          <archive>
-            <manifestEntries>
-              <Automatic-Module-Name>zipkin2.reporter.beans</Automatic-Module-Name>
-            </manifestEntries>
-          </archive>
-        </configuration>
-      </plugin>
-    </plugins>
-  </build>
 </project>

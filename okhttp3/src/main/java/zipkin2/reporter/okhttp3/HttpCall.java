@@ -16,7 +16,6 @@ package zipkin2.reporter.okhttp3;
 import java.io.IOException;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
-import okhttp3.internal.http.HttpHeaders;
 import okio.BufferedSource;
 import okio.GzipSource;
 import okio.Okio;
@@ -76,22 +75,25 @@ final class HttpCall extends Call<Void> {
   }
 
   static void parseResponse(Response response) throws IOException {
-    if (!HttpHeaders.hasBody(response)) {
+    ResponseBody responseBody = response.body();
+    if (responseBody == null) {
       if (response.isSuccessful()) {
         return;
       } else {
         throw new RuntimeException("response failed: " + response);
       }
     }
-    try (ResponseBody responseBody = response.body()) {
+    try {
       BufferedSource content = responseBody.source();
       if ("gzip".equalsIgnoreCase(response.header("Content-Encoding"))) {
         content = Okio.buffer(new GzipSource(responseBody.source()));
       }
       if (!response.isSuccessful()) {
         throw new RuntimeException(
-            "response for " + response.request().tag() + " failed: " + content.readUtf8());
+          "response for " + response.request().tag() + " failed: " + content.readUtf8());
       }
+    } finally {
+      responseBody.close();
     }
   }
 }

@@ -26,6 +26,9 @@
   <name>Zipkin Sender: ActiveMQ Client 5.15.x</name>
 
   <properties>
+    <!-- Matches Export-Package in bnd.bnd -->
+    <module.name>zipkin2.reporter.activemq</module.name>
+
     <main.basedir>${project.basedir}/..</main.basedir>
     <activemq.version>5.15.10</activemq.version>
   </properties>
@@ -56,19 +59,4 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
-
-  <build>
-    <plugins>
-      <plugin>
-        <artifactId>maven-jar-plugin</artifactId>
-        <configuration>
-          <archive>
-            <manifestEntries>
-              <Automatic-Module-Name>zipkin2.reporter.activemq</Automatic-Module-Name>
-            </manifestEntries>
-          </archive>
-        </configuration>
-      </plugin>
-    </plugins>
-  </build>
 </project>
