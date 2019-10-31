@@ -25,7 +25,6 @@ import zipkin2.Call;
 import zipkin2.Callback;
 import zipkin2.CheckResult;
 import zipkin2.codec.Encoding;
-import zipkin2.internal.Platform;
 import zipkin2.reporter.AsyncReporter;
 import zipkin2.reporter.BytesMessageEncoder;
 import zipkin2.reporter.Sender;
@@ -258,21 +257,22 @@ public final class RabbitMQSender extends Sender {
     closeCalled = true;
   }
 
+  final ThreadLocal<Channel> CHANNEL_BUFFER = new ThreadLocal<>();
+
   /**
    * In most circumstances there will only be one thread calling {@link #sendSpans(List)}, the
    * {@link AsyncReporter}. Just in case someone is flushing manually, we use a thread-local. All of
    * this is to avoid recreating a channel for each publish, as that costs two additional network
    * roundtrips.
    */
-  final ThreadLocal<Channel> localChannel = new ThreadLocal<Channel>() {
-    @Override protected Channel initialValue() {
-      try {
-        return RabbitMQSender.this.get().createChannel();
-      } catch (IOException e) {
-        throw Platform.get().uncheckedIOException(e);
-      }
+  Channel localChannel() throws IOException {
+    Channel channel = CHANNEL_BUFFER.get();
+    if (channel == null) {
+      channel = get().createChannel();
+      CHANNEL_BUFFER.set(channel);
     }
-  };
+    return channel;
+  }
 
   class RabbitMQCall extends Call.Base<Void> { // RabbitMQFuture is not cancelable
     private final byte[] message;
@@ -287,7 +287,7 @@ public final class RabbitMQSender extends Sender {
     }
 
     void publish() throws IOException {
-      localChannel.get().basicPublish("", queue, null, message);
+      localChannel().basicPublish("", queue, null, message);
     }
 
     @Override protected void doEnqueue(Callback<Void> callback) {

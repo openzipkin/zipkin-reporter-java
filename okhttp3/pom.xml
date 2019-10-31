@@ -27,6 +27,9 @@
   <name>Zipkin Sender: OkHttp 3</name>
 
   <properties>
+    <!-- Matches Export-Package in bnd.bnd -->
+    <module.name>zipkin2.reporter.okhttp3</module.name>
+
     <main.basedir>${project.basedir}/..</main.basedir>
     <!-- OkHttp is Java 1.7 bytecode -->
     <main.java.version>1.7</main.java.version>
@@ -34,6 +37,14 @@
   </properties>
 
   <dependencies>
+    <dependency>
+      <groupId>org.jvnet</groupId>
+      <artifactId>animal-sniffer-annotation</artifactId>
+      <version>1.0</version>
+      <!-- annotations are not runtime retention, so don't need a runtime dep -->
+      <scope>provided</scope>
+    </dependency>
+
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>zipkin-reporter</artifactId>
@@ -50,19 +61,4 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
-
-  <build>
-    <plugins>
-      <plugin>
-        <artifactId>maven-jar-plugin</artifactId>
-        <configuration>
-          <archive>
-            <manifestEntries>
-              <Automatic-Module-Name>zipkin2.reporter.okhttp3</Automatic-Module-Name>
-            </manifestEntries>
-          </archive>
-        </configuration>
-      </plugin>
-    </plugins>
-  </build>
 </project>

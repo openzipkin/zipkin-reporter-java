@@ -27,21 +27,9 @@
   <name>Zipkin Reporter: Core</name>
 
   <properties>
+    <!-- Matches Export-Package in bnd.bnd -->
+    <module.name>zipkin2.reporter</module.name>
+
     <main.basedir>${project.basedir}/..</main.basedir>
   </properties>
-
-  <build>
-    <plugins>
-      <plugin>
-        <artifactId>maven-jar-plugin</artifactId>
-        <configuration>
-          <archive>
-            <manifestEntries>
-              <Automatic-Module-Name>zipkin2.reporter</Automatic-Module-Name>
-            </manifestEntries>
-          </archive>
-        </configuration>
-      </plugin>
-    </plugins>
-  </build>
 </project>
