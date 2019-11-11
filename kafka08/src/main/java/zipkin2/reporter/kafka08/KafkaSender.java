@@ -95,7 +95,7 @@ public final class KafkaSender extends Sender {
 
     /**
      * Maximum size of a message. Must be equal to or less than the server's "message.max.bytes".
-     * Default 500000.
+     * Default 500KB.
      */
     public Builder messageMaxBytes(int messageMaxBytes) {
       this.messageMaxBytes = messageMaxBytes;

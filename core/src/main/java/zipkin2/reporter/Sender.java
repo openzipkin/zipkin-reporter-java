@@ -51,6 +51,9 @@ public abstract class Sender extends Component {
   /**
    * Maximum bytes sendable per message including overhead. This can be calculated using {@link
    * #messageSizeInBytes(List)}
+   *
+   * Defaults to 500_000 bytes as conservative default given that Kafka default max.request.size is
+   * 1MB.
    */
   public abstract int messageMaxBytes();
 

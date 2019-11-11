@@ -131,7 +131,7 @@ public final class OkHttpSender extends Sender {
       return this;
     }
 
-    /** Maximum size of a message. Default 5MiB */
+    /** Maximum size of a message. Default 500KB */
     public Builder messageMaxBytes(int messageMaxBytes) {
       this.messageMaxBytes = messageMaxBytes;
       return this;
