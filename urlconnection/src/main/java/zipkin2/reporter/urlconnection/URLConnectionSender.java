@@ -46,7 +46,7 @@ public final class URLConnectionSender extends Sender {
   public static final class Builder {
     URL endpoint;
     Encoding encoding = Encoding.JSON;
-    int messageMaxBytes = 5 * 1024 * 1024;
+    int messageMaxBytes = 500_000;
     int connectTimeout = 10 * 1000, readTimeout = 60 * 1000;
     boolean compressionEnabled = true;
 
@@ -98,7 +98,7 @@ public final class URLConnectionSender extends Sender {
       return this;
     }
 
-    /** Maximum size of a message. Default 5MiB */
+    /** Maximum size of a message. Default 500KB */
     public Builder messageMaxBytes(int messageMaxBytes) {
       this.messageMaxBytes = messageMaxBytes;
       return this;

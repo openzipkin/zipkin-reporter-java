@@ -92,7 +92,7 @@ public final class OkHttpSender extends Sender {
     Encoding encoding = Encoding.JSON;
     boolean compressionEnabled = true;
     int maxRequests = 64;
-    int messageMaxBytes = 5 * 1024 * 1024;
+    int messageMaxBytes = 500_000;
 
     Builder(OkHttpClient.Builder clientBuilder) {
       this.clientBuilder = clientBuilder;
@@ -131,7 +131,7 @@ public final class OkHttpSender extends Sender {
       return this;
     }
 
-    /** Maximum size of a message. Default 5MiB */
+    /** Maximum size of a message. Default 500KB */
     public Builder messageMaxBytes(int messageMaxBytes) {
       this.messageMaxBytes = messageMaxBytes;
       return this;

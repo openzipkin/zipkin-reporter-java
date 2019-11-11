@@ -41,7 +41,7 @@ public final class LibthriftSender extends Sender {
   public static final class Builder {
     String host;
     int port = 9410;
-    int messageMaxBytes = 16384000; // TFramedTransport.DEFAULT_MAX_LENGTH
+    int messageMaxBytes = 500_000; // TFramedTransport.DEFAULT_MAX_LENGTH
     int connectTimeout = 10 * 1000, socketTimeout = 60 * 1000;
 
     Builder(LibthriftSender sender) {

@@ -51,6 +51,11 @@ public abstract class Sender extends Component {
   /**
    * Maximum bytes sendable per message including overhead. This can be calculated using {@link
    * #messageSizeInBytes(List)}
+   *
+   * Defaults to 500KB as a conservative default. You may get better or reduced performance
+   * by changing this value based on, e.g., machine size or network bandwidth in your
+   * infrastructure. Finding a perfect value will require trying out different values in production,
+   * but the default should work well enough in most cases.
    */
   public abstract int messageMaxBytes();
 

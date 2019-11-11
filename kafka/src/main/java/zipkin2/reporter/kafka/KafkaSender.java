@@ -84,8 +84,6 @@ public final class KafkaSender extends Sender {
         ByteArraySerializer.class.getName());
     // disabling batching as duplicates effort covered by sender buffering.
     properties.put(ProducerConfig.BATCH_SIZE_CONFIG, 0);
-    // 1MB, aligned with default kafka max.message.bytes config.
-    properties.put(ProducerConfig.MAX_REQUEST_SIZE_CONFIG, 1000000);
     properties.put(ProducerConfig.ACKS_CONFIG, "0");
     return new Builder(properties);
   }
@@ -95,7 +93,7 @@ public final class KafkaSender extends Sender {
     final Properties properties;
     Encoding encoding = Encoding.JSON;
     String topic = "zipkin";
-    int messageMaxBytes = 1000000;
+    int messageMaxBytes = 500_000;
 
     Builder(Properties properties) {
       this.properties = properties;
@@ -131,7 +129,7 @@ public final class KafkaSender extends Sender {
     /**
      * Maximum size of a message. Must be equal to or less than the server's "message.max.bytes" and
      * "replica.fetch.max.bytes" to avoid rejected records on the broker side.
-     * Default 1000000.
+     * Default 500KB.
      */
     public Builder messageMaxBytes(int messageMaxBytes) {
       this.messageMaxBytes = messageMaxBytes;
