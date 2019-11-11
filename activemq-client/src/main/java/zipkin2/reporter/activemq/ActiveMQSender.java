@@ -76,7 +76,7 @@ public final class ActiveMQSender extends Sender {
     ActiveMQConnectionFactory connectionFactory;
     String queue = "zipkin";
     Encoding encoding = Encoding.JSON;
-    int messageMaxBytes = 100000; // arbitrary to match kafka, messages theoretically can be 2GiB
+    int messageMaxBytes = 500_000; // arbitrary to match kafka, messages theoretically can be 2GiB
 
     public Builder connectionFactory(ActiveMQConnectionFactory connectionFactory) {
       if (connectionFactory == null) throw new NullPointerException("connectionFactory == null");
@@ -102,7 +102,7 @@ public final class ActiveMQSender extends Sender {
       return this;
     }
 
-    /** Maximum size of a message. Default 1000000. */
+    /** Maximum size of a message. Default 500000. */
     public Builder messageMaxBytes(int messageMaxBytes) {
       this.messageMaxBytes = messageMaxBytes;
       return this;

@@ -51,7 +51,6 @@ public final class KafkaSender extends Sender {
     properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class.getName());
     properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
         ByteArraySerializer.class.getName());
-    properties.put(ProducerConfig.MAX_REQUEST_SIZE_CONFIG, 1000000);
     properties.put(ProducerConfig.ACKS_CONFIG, "0");
     return new Builder(properties);
   }
@@ -61,7 +60,7 @@ public final class KafkaSender extends Sender {
     final Properties properties;
     Encoding encoding = Encoding.JSON;
     String topic = "zipkin";
-    int messageMaxBytes = 1000000;
+    int messageMaxBytes = 500_000;
 
     Builder(Properties properties) {
       this.properties = properties;
@@ -96,7 +95,7 @@ public final class KafkaSender extends Sender {
 
     /**
      * Maximum size of a message. Must be equal to or less than the server's "message.max.bytes".
-     * Default 1000000.
+     * Default 500000.
      */
     public Builder messageMaxBytes(int messageMaxBytes) {
       this.messageMaxBytes = messageMaxBytes;

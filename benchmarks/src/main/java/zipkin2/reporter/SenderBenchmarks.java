@@ -55,7 +55,7 @@ public abstract class SenderBenchmarks {
   static final int TARGET_BACKLOG = 1_000_000;
 
   // 64KiB, 1MB (default for Kafka), 5MiB, 16MiB (default for Scribe)
-  @Param({"65536", "1000000", "5242880", "16777216"})
+  @Param({"65536", "500000", "5242880", "16777216"})
 
   public int messageMaxBytes;
 

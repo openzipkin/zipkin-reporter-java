@@ -84,7 +84,7 @@ public final class RabbitMQSender extends Sender {
     List<Address> addresses;
     String queue = "zipkin";
     Encoding encoding = Encoding.JSON;
-    int messageMaxBytes = 100000; // arbitrary to match kafka, messages theoretically can be 2GiB
+    int messageMaxBytes = 500_000; // arbitrary to match kafka, messages theoretically can be 2GiB
 
     Builder(RabbitMQSender sender) {
       connectionFactory = sender.connectionFactory.clone();
@@ -155,7 +155,7 @@ public final class RabbitMQSender extends Sender {
       return this;
     }
 
-    /** Maximum size of a message. Default 1000000. */
+    /** Maximum size of a message. Default 500000. */
     public Builder messageMaxBytes(int messageMaxBytes) {
       this.messageMaxBytes = messageMaxBytes;
       return this;
