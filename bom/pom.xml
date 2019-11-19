@@ -4,7 +4,7 @@
   <groupId>io.zipkin.reporter2</groupId>
   <artifactId>zipkin-reporter-bom</artifactId>
   <name>Zipkin Reporter BOM</name>
-  <version>2.11.1</version>
+  <version>2.11.2-SNAPSHOT</version>
   <packaging>pom</packaging>
   <description>Bill Of Materials POM for all Zipkin reporter artifacts</description>
 
@@ -34,7 +34,7 @@
     <url>https://github.com/openzipkin/zipkin-reporter-java</url>
     <connection>scm:git:https://github.com/openzipkin/zipkin-reporter-java.git</connection>
     <developerConnection>scm:git:https://github.com/openzipkin/zipkin-reporter-java.git</developerConnection>
-    <tag>2.11.1</tag>
+    <tag>HEAD</tag>
   </scm>
 
   <!-- Developer section is needed for Maven Central, but doesn't need to include each person -->
