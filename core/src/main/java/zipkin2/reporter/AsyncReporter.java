@@ -231,7 +231,6 @@ public abstract class AsyncReporter<S> extends Component implements Reporter<S>,
       this.encoder = encoder;
     }
 
-    /** Returns true if the was encoded and accepted onto the queue. */
     @Override public void report(S next) {
       if (next == null) throw new NullPointerException("span == null");
       metrics.incrementSpans(1);
