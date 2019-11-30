@@ -207,7 +207,7 @@ public abstract class AsyncReporter<S> extends Component implements Reporter<S>,
 
   static final class BoundedAsyncReporter<S> extends AsyncReporter<S> {
     static final Logger logger = Logger.getLogger(BoundedAsyncReporter.class.getName());
-    final AtomicBoolean closed = new AtomicBoolean(false);
+    final AtomicBoolean closed;
     final BytesEncoder<S> encoder;
     final ByteBoundedQueue<S> pending;
     final Sender sender;
@@ -226,6 +226,7 @@ public abstract class AsyncReporter<S> extends Component implements Reporter<S>,
       this.messageMaxBytes = builder.messageMaxBytes;
       this.messageTimeoutNanos = builder.messageTimeoutNanos;
       this.closeTimeoutNanos = builder.closeTimeoutNanos;
+      this.closed = new AtomicBoolean(false);
       this.close = new CountDownLatch(builder.messageTimeoutNanos > 0 ? 1 : 0);
       this.metrics = builder.metrics;
       this.encoder = encoder;
@@ -246,12 +247,11 @@ public abstract class AsyncReporter<S> extends Component implements Reporter<S>,
     }
 
     @Override public final void flush() {
+      if (closed.get()) throw new IllegalStateException("closed");
       flush(BufferNextMessage.create(encoder.encoding(), messageMaxBytes, 0));
     }
 
     void flush(BufferNextMessage<S> bundler) {
-      if (closed.get()) throw new IllegalStateException("closed");
-
       pending.drainTo(bundler, bundler.remainingNanos());
 
       // record after flushing reduces the amount of gauge events vs on doing this on report
