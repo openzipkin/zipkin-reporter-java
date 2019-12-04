@@ -27,6 +27,7 @@ import zipkin2.CheckResult;
 import zipkin2.codec.Encoding;
 import zipkin2.reporter.AwaitableCallback;
 import zipkin2.reporter.BytesMessageEncoder;
+import zipkin2.reporter.ClosedSenderException;
 import zipkin2.reporter.Sender;
 
 /**
@@ -185,7 +186,7 @@ public final class KafkaSender extends Sender {
    * <p>NOTE: this blocks until the metadata server is available.
    */
   @Override public Call<Void> sendSpans(List<byte[]> encodedSpans) {
-    if (closeCalled) throw new IllegalStateException("closed");
+    if (closeCalled) throw new ClosedSenderException();
     byte[] message = encoder.encode(encodedSpans);
     return new KafkaCall(message);
   }

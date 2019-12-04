@@ -114,7 +114,7 @@ public final class FakeSender extends Sender {
   volatile boolean closeCalled;
 
   @Override public Call<Void> sendSpans(List<byte[]> encodedSpans) {
-    if (closeCalled) throw new IllegalStateException("closed");
+    if (closeCalled) throw new ClosedSenderException();
     List<Span> decoded = encodedSpans.stream()
         .map(s -> decoder.decodeOne(s))
         .collect(Collectors.toList());

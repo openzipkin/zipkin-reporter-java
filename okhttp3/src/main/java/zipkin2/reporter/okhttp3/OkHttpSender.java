@@ -13,12 +13,14 @@
  */
 package zipkin2.reporter.okhttp3;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+
 import okhttp3.Dispatcher;
 import okhttp3.HttpUrl;
 import okhttp3.MediaType;
@@ -33,9 +35,8 @@ import okio.Okio;
 import zipkin2.CheckResult;
 import zipkin2.codec.Encoding;
 import zipkin2.reporter.AsyncReporter;
+import zipkin2.reporter.ClosedSenderException;
 import zipkin2.reporter.Sender;
-
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 /**
  * Reports spans to Zipkin, using its <a href="https://zipkin.io/zipkin-api/#/">POST</a> endpoint.
@@ -261,7 +262,7 @@ public final class OkHttpSender extends Sender {
 
   /** The returned call sends spans as a POST to {@link Builder#endpoint(String)}. */
   @Override public zipkin2.Call<Void> sendSpans(List<byte[]> encodedSpans) {
-    if (closeCalled) throw new IllegalStateException("closed");
+    if (closeCalled) throw new ClosedSenderException();
     Request request;
     try {
       request = newRequest(encoder.encode(encodedSpans));

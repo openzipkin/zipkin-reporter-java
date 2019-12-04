@@ -26,6 +26,7 @@ import zipkin2.Callback;
 import zipkin2.CheckResult;
 import zipkin2.codec.Encoding;
 import zipkin2.reporter.BytesMessageEncoder;
+import zipkin2.reporter.ClosedSenderException;
 import zipkin2.reporter.Sender;
 
 /**
@@ -183,7 +184,7 @@ public final class URLConnectionSender extends Sender {
 
   /** The returned call sends spans as a POST to {@link Builder#endpoint}. */
   @Override public Call<Void> sendSpans(List<byte[]> encodedSpans) {
-    if (closeCalled) throw new IllegalStateException("close");
+    if (closeCalled) throw new ClosedSenderException();
     return new HttpPostCall(encoder.encode(encodedSpans));
   }
 
