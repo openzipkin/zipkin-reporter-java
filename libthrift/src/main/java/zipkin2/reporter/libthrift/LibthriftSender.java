@@ -21,6 +21,7 @@ import zipkin2.Call;
 import zipkin2.Callback;
 import zipkin2.CheckResult;
 import zipkin2.codec.Encoding;
+import zipkin2.reporter.ClosedSenderException;
 import zipkin2.reporter.Sender;
 
 /**
@@ -127,7 +128,7 @@ public final class LibthriftSender extends Sender {
   }
 
   @Override public Call<Void> sendSpans(List<byte[]> encodedSpans) {
-    if (closeCalled) throw new IllegalStateException("closed");
+    if (closeCalled) throw new ClosedSenderException();
     return new ScribeCall(encodedSpans);
   }
 

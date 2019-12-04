@@ -13,6 +13,9 @@
  */
 package zipkin2.reporter;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.failBecauseExceptionWasNotThrown;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -25,17 +28,16 @@ import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
+
 import org.junit.After;
 import org.junit.Test;
+
 import zipkin2.Span;
 import zipkin2.TestObjects;
 import zipkin2.codec.BytesEncoder;
 import zipkin2.codec.Encoding;
 import zipkin2.codec.SpanBytesEncoder;
 import zipkin2.reporter.AsyncReporter.BoundedAsyncReporter;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.failBecauseExceptionWasNotThrown;
 
 public class AsyncReporterTest {
 
@@ -337,7 +339,7 @@ public class AsyncReporterTest {
     assertThat(metrics.spansDropped()).isEqualTo(1);
     assertThat(metrics.messagesDropped()).isEqualTo(1);
     assertThat(metrics.messagesDroppedByCause().keySet().iterator().next())
-        .isEqualTo(IllegalStateException.class);
+        .isEqualTo(ClosedSenderException.class);
   }
 
   @Test

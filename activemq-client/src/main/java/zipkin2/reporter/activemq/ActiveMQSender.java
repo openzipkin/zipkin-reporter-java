@@ -25,6 +25,7 @@ import zipkin2.CheckResult;
 import zipkin2.codec.Encoding;
 import zipkin2.reporter.AsyncReporter;
 import zipkin2.reporter.BytesMessageEncoder;
+import zipkin2.reporter.ClosedSenderException;
 import zipkin2.reporter.Sender;
 
 /**
@@ -151,7 +152,7 @@ public final class ActiveMQSender extends Sender {
   }
 
   @Override public Call<Void> sendSpans(List<byte[]> encodedSpans) {
-    if (closeCalled) throw new IllegalStateException("closed");
+    if (closeCalled) throw new ClosedSenderException();
     byte[] message = encoder.encode(encodedSpans);
     return new ActiveMQCall(message);
   }

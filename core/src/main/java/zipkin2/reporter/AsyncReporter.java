@@ -13,8 +13,11 @@
  */
 package zipkin2.reporter;
 
+import static java.lang.String.format;
+import static java.util.logging.Level.FINE;
+import static java.util.logging.Level.WARNING;
+
 import java.io.Flushable;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -24,16 +27,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import zipkin2.Call;
 import zipkin2.CheckResult;
 import zipkin2.Component;
 import zipkin2.Span;
 import zipkin2.codec.BytesEncoder;
 import zipkin2.codec.SpanBytesEncoder;
-
-import static java.lang.String.format;
-import static java.util.logging.Level.FINE;
-import static java.util.logging.Level.WARNING;
 
 /**
  * As spans are reported, they are encoded and added to a pending queue. The task of sending spans
@@ -247,7 +247,7 @@ public abstract class AsyncReporter<S> extends Component implements Reporter<S>,
     }
 
     @Override public final void flush() {
-      if (closed.get()) throw new IllegalStateException("closed");
+      if (closed.get()) throw new ClosedSenderException();
       flush(BufferNextMessage.create(encoder.encoding(), messageMaxBytes, 0));
     }
 
@@ -282,7 +282,7 @@ public abstract class AsyncReporter<S> extends Component implements Reporter<S>,
 
       try {
         sender.sendSpans(nextMessage).execute();
-      } catch (IOException | RuntimeException | Error t) {
+      } catch (Throwable t) {
         // In failure case, we increment messages and spans dropped.
         int count = nextMessage.size();
         Call.propagateIfFatal(t);
@@ -305,7 +305,12 @@ public abstract class AsyncReporter<S> extends Component implements Reporter<S>,
         }
 
         // Raise in case the sender was closed out-of-band.
-        if (t instanceof IllegalStateException) throw (IllegalStateException) t;
+        if (t instanceof ClosedSenderException) throw (ClosedSenderException) t;
+
+        // Old senders in other artifacts may be using this less precise way of indicating they've been closed
+        // out-of-band.
+        if (t instanceof IllegalStateException && t.getMessage().equals("closed"))
+          throw (IllegalStateException) t;
       }
     }
 
@@ -369,4 +374,5 @@ public abstract class AsyncReporter<S> extends Component implements Reporter<S>,
       return "AsyncReporter{" + result.sender + "}";
     }
   }
+
 }
