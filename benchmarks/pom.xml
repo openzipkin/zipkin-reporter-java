@@ -94,7 +94,7 @@
     <dependency>
       <groupId>com.linecorp.armeria</groupId>
       <artifactId>armeria</artifactId>
-      <version>0.92.0</version>
+      <version>0.97.0</version>
     </dependency>
 
     <dependency>
