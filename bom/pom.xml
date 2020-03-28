@@ -27,7 +27,7 @@
   <properties>
     <main.basedir>${project.basedir}/..</main.basedir>
     <!-- use the same value in ../pom.xml -->
-    <zipkin.version>2.19.3</zipkin.version>
+    <zipkin.version>2.21.0</zipkin.version>
   </properties>
 
   <url>https://github.com/openzipkin/zipkin-reporter-java</url>

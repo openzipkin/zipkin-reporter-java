@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2019 The OpenZipkin Authors
+ * Copyright 2016-2020 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -17,7 +17,7 @@ import com.linecorp.armeria.common.HttpResponse;
 import com.linecorp.armeria.common.SessionProtocol;
 import com.linecorp.armeria.server.Route;
 import com.linecorp.armeria.server.Server;
-import com.linecorp.armeria.server.ServerBuilder;
+import java.time.Duration;
 
 import static com.linecorp.armeria.common.HttpMethod.POST;
 import static com.linecorp.armeria.common.MediaType.JSON;
@@ -27,9 +27,9 @@ public abstract class HttpSenderBenchmarks extends SenderBenchmarks {
 
   @Override protected Sender createSender() {
     Route v2JsonSpans = Route.builder().methods(POST).consumes(JSON).path("/api/v2/spans").build();
-    server = new ServerBuilder()
+    server = Server.builder()
       .http(0)
-      .gracefulShutdownTimeout(0, 0)
+      .gracefulShutdownTimeout(Duration.ZERO, Duration.ZERO)
       .service(v2JsonSpans, (ctx, res) -> HttpResponse.of(202)).build();
 
     server.start().join();

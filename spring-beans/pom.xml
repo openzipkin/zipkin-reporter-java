@@ -89,7 +89,7 @@
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>jcl-over-slf4j</artifactId>
-      <version>1.7.26</version>
+      <version>1.7.30</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
