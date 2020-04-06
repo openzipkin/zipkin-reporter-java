@@ -14,12 +14,15 @@
 package zipkin2.reporter.kafka;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -80,9 +83,10 @@ public final class KafkaSender extends Sender {
     // Settings below correspond to "Producer Configs"
     // http://kafka.apache.org/0102/documentation.html#producerconfigs
     Properties properties = new Properties();
+    Properties adminClientProperties = new Properties();
     properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class.getName());
     properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
-        ByteArraySerializer.class.getName());
+      ByteArraySerializer.class.getName());
     // disabling batching as duplicates effort covered by sender buffering.
     properties.put(ProducerConfig.BATCH_SIZE_CONFIG, 0);
     properties.put(ProducerConfig.ACKS_CONFIG, "0");
@@ -92,17 +96,20 @@ public final class KafkaSender extends Sender {
   /** Configuration including defaults needed to send spans to a Kafka topic. */
   public static final class Builder {
     final Properties properties;
+    Properties adminClientProperties;
     Encoding encoding = Encoding.JSON;
     String topic = "zipkin";
     int messageMaxBytes = 500_000;
 
     Builder(Properties properties) {
       this.properties = properties;
+      this.adminClientProperties = new Properties();
     }
 
     Builder(KafkaSender sender) {
       properties = new Properties();
       properties.putAll(sender.properties);
+      adminClientProperties = new Properties();
       encoding = sender.encoding;
       topic = sender.topic;
       messageMaxBytes = sender.messageMaxBytes;
@@ -162,6 +169,27 @@ public final class KafkaSender extends Sender {
     }
 
     /**
+     * Any properties set here will affect the admin client config.
+     *
+     * Consider not overriding batching properties ("batch.size" and "linger.ms") as those will
+     * duplicate buffering effort that is already handled by Sender.
+     *
+     * <p>For example: Configure de number of retries to 5.
+     * <pre>{@code
+     * Properties overridesAdminClient = new Properties();
+     * overridesAdminClient.put(AdminClientConfig.RETRIES_CONFIG, 5);
+     * builder.overridesAdminClient(overridesAdminClient);
+     * }</pre>
+     *
+     * @see AdminClientConfig
+     */
+    public final Builder overridesAdminClient(Map<String, ?> overrides) {
+      if (overrides == null) throw new NullPointerException("overrides == null");
+      properties.putAll(overrides);
+      return this;
+    }
+
+    /**
      * By default, a producer will be created, targeted to {@link #bootstrapServers(String)} with 0
      * required {@link ProducerConfig#ACKS_CONFIG acks}. Any properties set here will affect the
      * producer config.
@@ -185,6 +213,27 @@ public final class KafkaSender extends Sender {
     }
 
     /**
+     * Any properties set here will affect the admin client config.
+     *
+     * Consider not overriding batching properties ("batch.size" and "linger.ms") as those will
+     * duplicate buffering effort that is already handled by Sender.
+     *
+     * <p>For example: Configure de number of retries to 5.
+     * <pre>{@code
+     * Properties overridesAdminClient = new Properties();
+     * overridesAdminClient.put(AdminClientConfig.RETRIES_CONFIG, 5);
+     * builder.overridesAdminClient(overridesAdminClient);
+     * }</pre>
+     *
+     * @see AdminClientConfig
+     */
+    public final Builder overridesAdminClient(Properties overrides) {
+      if (overrides == null) throw new NullPointerException("overrides == null");
+      properties.putAll(overrides);
+      return this;
+    }
+
+    /**
      * Use this to change the encoding used in messages. Default is {@linkplain Encoding#JSON}
      *
      * <p>Note: If ultimately sending to Zipkin, version 2.8+ is required to process protobuf.
@@ -201,6 +250,7 @@ public final class KafkaSender extends Sender {
   }
 
   final Properties properties;
+  final Properties adminClientProperties;
   final String topic;
   final Encoding encoding;
   final BytesMessageEncoder encoder;
@@ -208,11 +258,29 @@ public final class KafkaSender extends Sender {
 
   KafkaSender(Builder builder) {
     properties = new Properties();
+    adminClientProperties = new Properties();
     properties.putAll(builder.properties);
+    adminClientProperties.putAll(filterPropertiesForAdminClient(properties));
+    adminClientProperties.putAll(builder.adminClientProperties);
     topic = builder.topic;
     encoding = builder.encoding;
     encoder = BytesMessageEncoder.forEncoding(builder.encoding);
     messageMaxBytes = builder.messageMaxBytes;
+  }
+
+  /**
+   * Filter the properties configured for the producer by removing those not used for the Admin Client.
+   *
+   * See @{@link AdminClientConfig} config properties
+   */
+  private Map<String, Object> filterPropertiesForAdminClient(Properties properties){
+    Map<String, Object> mapResult = new HashMap<>();
+    for (Entry property: properties.entrySet()) {
+      if (AdminClientConfig.configNames().contains(property.getKey())){
+        mapResult.put(property.getKey().toString(),property.getValue());
+      }
+    }
+    return mapResult;
   }
 
   public Builder toBuilder() {
@@ -278,7 +346,7 @@ public final class KafkaSender extends Sender {
     if (adminClient == null) {
       synchronized (this) {
         if (adminClient == null) {
-          adminClient = AdminClient.create(properties);
+          adminClient = AdminClient.create(adminClientProperties);
         }
       }
     }
@@ -296,9 +364,9 @@ public final class KafkaSender extends Sender {
 
   @Override public final String toString() {
     return "KafkaSender{"
-        + "bootstrapServers=" + properties.get(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG)
-        + ", topic=" + topic
-        + "}";
+      + "bootstrapServers=" + properties.get(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG)
+      + ", topic=" + topic
+      + "}";
   }
 
   class KafkaCall extends Call.Base<Void> { // KafkaFuture is not cancelable
