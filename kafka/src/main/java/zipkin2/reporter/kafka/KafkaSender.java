@@ -185,7 +185,7 @@ public final class KafkaSender extends Sender {
      */
     public final Builder overridesAdminClient(Map<String, ?> overrides) {
       if (overrides == null) throw new NullPointerException("overrides == null");
-      properties.putAll(overrides);
+      adminClientProperties.putAll(overrides);
       return this;
     }
 
@@ -229,7 +229,7 @@ public final class KafkaSender extends Sender {
      */
     public final Builder overridesAdminClient(Properties overrides) {
       if (overrides == null) throw new NullPointerException("overrides == null");
-      properties.putAll(overrides);
+      adminClientProperties.putAll(overrides);
       return this;
     }
 
