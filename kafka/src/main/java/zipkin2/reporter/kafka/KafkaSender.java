@@ -274,7 +274,7 @@ public final class KafkaSender extends Sender {
    * See @{@link AdminClientConfig} config properties
    */
   private Map<String, Object> filterPropertiesForAdminClient(Properties properties){
-    Map<String, Object> mapResult = new HashMap<>();
+    Map<String, Object> adminClientProperties = new HashMap<>();
     for (Entry property: properties.entrySet()) {
       if (AdminClientConfig.configNames().contains(property.getKey())){
         mapResult.put(property.getKey().toString(),property.getValue());
