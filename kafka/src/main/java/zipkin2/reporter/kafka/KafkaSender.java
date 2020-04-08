@@ -17,7 +17,6 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
@@ -43,7 +42,7 @@ import zipkin2.reporter.Sender;
  * This sends (usually json v2) encoded spans to a Kafka topic.
  *
  * <h3>Usage</h3>
- * <p>
+ *
  * This type is designed for {@link AsyncReporter.Builder#builder(Sender) the async reporter}.
  *
  * <p>Here's a simple configuration, configured for json:
@@ -74,9 +73,7 @@ import zipkin2.reporter.Sender;
  * work with Kafka 0.10+ brokers
  */
 public final class KafkaSender extends Sender {
-  /**
-   * Creates a sender that sends {@link Encoding#JSON} messages.
-   */
+  /** Creates a sender that sends {@link Encoding#JSON} messages. */
   public static KafkaSender create(String bootstrapServers) {
     return newBuilder().bootstrapServers(bootstrapServers).build();
   }
@@ -94,9 +91,7 @@ public final class KafkaSender extends Sender {
     return new Builder(properties);
   }
 
-  /**
-   * Configuration including defaults needed to send spans to a Kafka topic.
-   */
+  /** Configuration including defaults needed to send spans to a Kafka topic. */
   public static final class Builder {
     final Properties properties;
     Encoding encoding = Encoding.JSON;
@@ -115,9 +110,7 @@ public final class KafkaSender extends Sender {
       messageMaxBytes = sender.messageMaxBytes;
     }
 
-    /**
-     * Topic zipkin spans will be send to. Defaults to "zipkin"
-     */
+    /** Topic zipkin spans will be send to. Defaults to "zipkin" */
     public Builder topic(String topic) {
       if (topic == null) throw new NullPointerException("topic == null");
       this.topic = topic;
@@ -138,7 +131,8 @@ public final class KafkaSender extends Sender {
 
     /**
      * Maximum size of a message. Must be equal to or less than the server's "message.max.bytes" and
-     * "replica.fetch.max.bytes" to avoid rejected records on the broker side. Default 500KB.
+     * "replica.fetch.max.bytes" to avoid rejected records on the broker side.
+     * Default 500KB.
      */
     public Builder messageMaxBytes(int messageMaxBytes) {
       this.messageMaxBytes = messageMaxBytes;
@@ -150,7 +144,7 @@ public final class KafkaSender extends Sender {
      * By default, a producer will be created, targeted to {@link #bootstrapServers(String)} with 0
      * required {@link ProducerConfig#ACKS_CONFIG acks}. Any properties set here will affect the
      * producer config.
-     * <p>
+     *
      * Consider not overriding batching properties ("batch.size" and "linger.ms") as those will
      * duplicate buffering effort that is already handled by Sender.
      *
@@ -173,7 +167,7 @@ public final class KafkaSender extends Sender {
      * By default, a producer will be created, targeted to {@link #bootstrapServers(String)} with 0
      * required {@link ProducerConfig#ACKS_CONFIG acks}. Any properties set here will affect the
      * producer config.
-     * <p>
+     *
      * Consider not overriding batching properties ("batch.size" and "linger.ms") as those will
      * duplicate buffering effort that is already handled by Sender.
      *
@@ -231,7 +225,7 @@ public final class KafkaSender extends Sender {
    */
   private Map<String, Object> filterPropertiesForAdminClient(Properties properties) {
     Map<String, Object> adminClientProperties = new HashMap<>();
-    for (Entry property : properties.entrySet()) {
+    for (Map.Entry property : properties.entrySet()) {
       if (AdminClientConfig.configNames().contains(property.getKey())) {
         adminClientProperties.put(property.getKey().toString(), property.getValue());
       }
@@ -243,9 +237,7 @@ public final class KafkaSender extends Sender {
     return new Builder(this);
   }
 
-  /**
-   * get and close are typically called from different threads
-   */
+  /** get and close are typically called from different threads */
   volatile KafkaProducer<byte[], byte[]> producer;
   volatile boolean closeCalled;
   volatile AdminClient adminClient;
@@ -277,9 +269,7 @@ public final class KafkaSender extends Sender {
     return new KafkaCall(message);
   }
 
-  /**
-   * Ensures there are no problems reading metadata about the topic.
-   */
+  /** Ensures there are no problems reading metadata about the topic. */
   @Override public CheckResult check() {
     try {
       KafkaFuture<String> maybeClusterId = getAdminClient().describeCluster().clusterId();
@@ -301,6 +291,7 @@ public final class KafkaSender extends Sender {
     return producer;
   }
 
+
   AdminClient getAdminClient() {
     if (adminClient == null) {
       synchronized (this) {
@@ -314,7 +305,7 @@ public final class KafkaSender extends Sender {
 
   @Override public synchronized void close() {
     if (closeCalled) return;
-    KafkaProducer<byte[], byte[]> producer = this.producer;
+    KafkaProducer<byte[], byte[]>  producer = this.producer;
     if (producer != null) producer.close();
     AdminClient adminClient = this.adminClient;
     if (adminClient != null) adminClient.close(1, TimeUnit.SECONDS);
@@ -371,3 +362,4 @@ public final class KafkaSender extends Sender {
     }
   }
 }
+
