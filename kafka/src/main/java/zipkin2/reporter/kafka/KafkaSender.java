@@ -346,7 +346,7 @@ public final class KafkaSender extends Sender {
     if (adminClient == null) {
       synchronized (this) {
         if (adminClient == null) {
-          adminClient = AdminClient.create(adminClientProperties);
+          adminClient = AdminClient.create(filterPropertiesForAdminClient(properties));
         }
       }
     }
