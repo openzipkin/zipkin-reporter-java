@@ -14,6 +14,7 @@
 package zipkin2.reporter.kafka;
 
 import java.io.IOException;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -84,7 +85,7 @@ public final class KafkaSender extends Sender {
     Properties properties = new Properties();
     properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class.getName());
     properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
-      ByteArraySerializer.class.getName());
+        ByteArraySerializer.class.getName());
     // disabling batching as duplicates effort covered by sender buffering.
     properties.put(ProducerConfig.BATCH_SIZE_CONFIG, 0);
     properties.put(ProducerConfig.ACKS_CONFIG, "0");
@@ -314,9 +315,9 @@ public final class KafkaSender extends Sender {
 
   @Override public final String toString() {
     return "KafkaSender{"
-      + "bootstrapServers=" + properties.get(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG)
-      + ", topic=" + topic
-      + "}";
+        + "bootstrapServers=" + properties.get(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG)
+        + ", topic=" + topic
+        + "}";
   }
 
   class KafkaCall extends Call.Base<Void> { // KafkaFuture is not cancelable
@@ -362,4 +363,3 @@ public final class KafkaSender extends Sender {
     }
   }
 }
-
