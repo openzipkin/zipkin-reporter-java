@@ -14,8 +14,7 @@
 package zipkin2.reporter.kafka;
 
 import java.io.IOException;
-
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -225,7 +224,7 @@ public final class KafkaSender extends Sender {
    * See @{@link AdminClientConfig} config properties
    */
   private Map<String, Object> filterPropertiesForAdminClient(Properties properties) {
-    Map<String, Object> adminClientProperties = new HashMap<>();
+    Map<String, Object> adminClientProperties = new LinkedHashMap<>();
     for (Map.Entry property : properties.entrySet()) {
       if (AdminClientConfig.configNames().contains(property.getKey())) {
         adminClientProperties.put(property.getKey().toString(), property.getValue());
