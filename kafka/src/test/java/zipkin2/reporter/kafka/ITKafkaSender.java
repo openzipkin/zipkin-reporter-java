@@ -18,6 +18,7 @@ import com.github.charithe.kafka.KafkaJunitRule;
 import java.lang.management.ManagementFactory;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Stream;
@@ -26,6 +27,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.errors.RecordTooLargeException;
+import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -159,6 +161,27 @@ public class ITKafkaSender {
     assertThat(sender.toString()).isEqualTo(
         "KafkaSender{bootstrapServers=" + broker.getBrokerList().get() + ", topic=zipkin}"
     );
+  }
+
+  @Test
+  public void checkFilterPropertiesProducerToAdminClient() {
+    Properties overrides = new Properties();
+    overrides.put(ProducerConfig.MAX_BLOCK_MS_CONFIG, "100");
+    overrides.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class.getName());
+    overrides.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
+        ByteArraySerializer.class.getName());
+    overrides.put(ProducerConfig.BATCH_SIZE_CONFIG, "0");
+    overrides.put(ProducerConfig.ACKS_CONFIG, "0");
+    overrides.put(ProducerConfig.LINGER_MS_CONFIG, "500");
+    overrides.put(ProducerConfig.BUFFER_MEMORY_CONFIG, "33554432");
+    overrides.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "127.0.0.1:9092");
+    overrides.put(ProducerConfig.SECURITY_PROVIDERS_CONFIG, "sun.security.provider.Sun");
+
+    Map<String, Object> filteredProperties = sender.filterPropertiesForAdminClient(overrides);
+
+    assertThat(filteredProperties.size()).isEqualTo(2);
+    assertThat(filteredProperties.get(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG)).isNotNull();
+    assertThat(filteredProperties.get(ProducerConfig.SECURITY_PROVIDERS_CONFIG)).isNotNull();
   }
 
   Call<Void> send(Span... spans) {
