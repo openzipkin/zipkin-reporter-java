@@ -165,19 +165,21 @@ public class ITKafkaSender {
 
   @Test
   public void checkFilterPropertiesProducerToAdminClient() {
-    Properties overrides = new Properties();
-    overrides.put(ProducerConfig.MAX_BLOCK_MS_CONFIG, "100");
-    overrides.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class.getName());
-    overrides.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
+    Properties producerProperties = new Properties();
+    producerProperties.put(ProducerConfig.MAX_BLOCK_MS_CONFIG, "100");
+    producerProperties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
         ByteArraySerializer.class.getName());
-    overrides.put(ProducerConfig.BATCH_SIZE_CONFIG, "0");
-    overrides.put(ProducerConfig.ACKS_CONFIG, "0");
-    overrides.put(ProducerConfig.LINGER_MS_CONFIG, "500");
-    overrides.put(ProducerConfig.BUFFER_MEMORY_CONFIG, "33554432");
-    overrides.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "127.0.0.1:9092");
-    overrides.put(ProducerConfig.SECURITY_PROVIDERS_CONFIG, "sun.security.provider.Sun");
+    producerProperties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
+        ByteArraySerializer.class.getName());
+    producerProperties.put(ProducerConfig.BATCH_SIZE_CONFIG, "0");
+    producerProperties.put(ProducerConfig.ACKS_CONFIG, "0");
+    producerProperties.put(ProducerConfig.LINGER_MS_CONFIG, "500");
+    producerProperties.put(ProducerConfig.BUFFER_MEMORY_CONFIG, "33554432");
+    producerProperties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "127.0.0.1:9092");
+    producerProperties.put(ProducerConfig.SECURITY_PROVIDERS_CONFIG, "sun.security.provider.Sun");
 
-    Map<String, Object> filteredProperties = sender.filterPropertiesForAdminClient(overrides);
+    Map<String, Object> filteredProperties =
+        sender.filterPropertiesForAdminClient(producerProperties);
 
     assertThat(filteredProperties.size()).isEqualTo(2);
     assertThat(filteredProperties.get(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG)).isNotNull();
