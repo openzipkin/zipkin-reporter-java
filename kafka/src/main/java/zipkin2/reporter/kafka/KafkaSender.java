@@ -223,7 +223,7 @@ public final class KafkaSender extends Sender {
    * <p>
    * See @{@link AdminClientConfig} config properties
    */
-  protected Map<String, Object> filterPropertiesForAdminClient(Properties properties) {
+  Map<String, Object> filterPropertiesForAdminClient(Properties properties) {
     Map<String, Object> adminClientProperties = new LinkedHashMap<>();
     for (Map.Entry property : properties.entrySet()) {
       if (AdminClientConfig.configNames().contains(property.getKey())) {
