@@ -18,6 +18,7 @@ import com.github.charithe.kafka.KafkaJunitRule;
 import java.lang.management.ManagementFactory;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Stream;
@@ -26,6 +27,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.errors.RecordTooLargeException;
+import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -159,6 +161,29 @@ public class ITKafkaSender {
     assertThat(sender.toString()).isEqualTo(
         "KafkaSender{bootstrapServers=" + broker.getBrokerList().get() + ", topic=zipkin}"
     );
+  }
+
+  @Test
+  public void checkFilterPropertiesProducerToAdminClient() {
+    Properties producerProperties = new Properties();
+    producerProperties.put(ProducerConfig.MAX_BLOCK_MS_CONFIG, "100");
+    producerProperties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
+        ByteArraySerializer.class.getName());
+    producerProperties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
+        ByteArraySerializer.class.getName());
+    producerProperties.put(ProducerConfig.BATCH_SIZE_CONFIG, "0");
+    producerProperties.put(ProducerConfig.ACKS_CONFIG, "0");
+    producerProperties.put(ProducerConfig.LINGER_MS_CONFIG, "500");
+    producerProperties.put(ProducerConfig.BUFFER_MEMORY_CONFIG, "33554432");
+    producerProperties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "127.0.0.1:9092");
+    producerProperties.put(ProducerConfig.SECURITY_PROVIDERS_CONFIG, "sun.security.provider.Sun");
+
+    Map<String, Object> filteredProperties =
+        sender.filterPropertiesForAdminClient(producerProperties);
+
+    assertThat(filteredProperties.size()).isEqualTo(2);
+    assertThat(filteredProperties.get(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG)).isNotNull();
+    assertThat(filteredProperties.get(ProducerConfig.SECURITY_PROVIDERS_CONFIG)).isNotNull();
   }
 
   Call<Void> send(Span... spans) {

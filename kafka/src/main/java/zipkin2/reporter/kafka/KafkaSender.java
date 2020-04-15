@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2019 The OpenZipkin Authors
+ * Copyright 2016-2020 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -14,12 +14,14 @@
 package zipkin2.reporter.kafka;
 
 import java.io.IOException;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -215,6 +217,22 @@ public final class KafkaSender extends Sender {
     messageMaxBytes = builder.messageMaxBytes;
   }
 
+  /**
+   * Filter the properties configured for the producer by removing those not used for the Admin
+   * Client.
+   * <p>
+   * See @{@link AdminClientConfig} config properties
+   */
+  Map<String, Object> filterPropertiesForAdminClient(Properties properties) {
+    Map<String, Object> adminClientProperties = new LinkedHashMap<>();
+    for (Map.Entry property : properties.entrySet()) {
+      if (AdminClientConfig.configNames().contains(property.getKey())) {
+        adminClientProperties.put(property.getKey().toString(), property.getValue());
+      }
+    }
+    return adminClientProperties;
+  }
+
   public Builder toBuilder() {
     return new Builder(this);
   }
@@ -278,7 +296,7 @@ public final class KafkaSender extends Sender {
     if (adminClient == null) {
       synchronized (this) {
         if (adminClient == null) {
-          adminClient = AdminClient.create(properties);
+          adminClient = AdminClient.create(filterPropertiesForAdminClient(properties));
         }
       }
     }
