@@ -66,7 +66,7 @@ public class ITKafkaSender {
     send(CLIENT_SPAN, CLIENT_SPAN).execute();
 
     assertThat(SpanBytesDecoder.JSON_V2.decodeList(readMessage()))
-        .containsExactly(CLIENT_SPAN, CLIENT_SPAN);
+      .containsExactly(CLIENT_SPAN, CLIENT_SPAN);
   }
 
   @Test
@@ -77,7 +77,7 @@ public class ITKafkaSender {
     send(CLIENT_SPAN, CLIENT_SPAN).execute();
 
     assertThat(SpanBytesDecoder.PROTO3.decodeList(readMessage()))
-        .containsExactly(CLIENT_SPAN, CLIENT_SPAN);
+      .containsExactly(CLIENT_SPAN, CLIENT_SPAN);
   }
 
   @Test
@@ -88,7 +88,7 @@ public class ITKafkaSender {
     send(CLIENT_SPAN, CLIENT_SPAN).execute();
 
     assertThat(SpanBytesDecoder.THRIFT.decodeList(readMessage()))
-        .containsExactly(CLIENT_SPAN, CLIENT_SPAN);
+      .containsExactly(CLIENT_SPAN, CLIENT_SPAN);
   }
 
   @Test
@@ -99,7 +99,7 @@ public class ITKafkaSender {
     send(CLIENT_SPAN, CLIENT_SPAN).execute();
 
     assertThat(SpanBytesDecoder.JSON_V2.decodeList(readMessage("customzipkintopic")))
-        .containsExactly(CLIENT_SPAN, CLIENT_SPAN);
+      .containsExactly(CLIENT_SPAN, CLIENT_SPAN);
   }
 
   @Test
@@ -131,13 +131,13 @@ public class ITKafkaSender {
 
     final ObjectName kafkaProducerMXBeanName = new ObjectName("kafka.producer:*");
     final Set<ObjectName> withProducers = ManagementFactory.getPlatformMBeanServer().queryNames(
-        kafkaProducerMXBeanName, null);
+      kafkaProducerMXBeanName, null);
     assertThat(withProducers).isNotEmpty();
 
     sender.close();
 
     final Set<ObjectName> withNoProducers = ManagementFactory.getPlatformMBeanServer().queryNames(
-        kafkaProducerMXBeanName, null);
+      kafkaProducerMXBeanName, null);
     assertThat(withNoProducers).isEmpty();
   }
 
@@ -159,7 +159,7 @@ public class ITKafkaSender {
   @Test
   public void toStringContainsOnlySummaryInformation() {
     assertThat(sender.toString()).isEqualTo(
-        "KafkaSender{bootstrapServers=" + broker.getBrokerList().get() + ", topic=zipkin}"
+      "KafkaSender{bootstrapServers=" + broker.getBrokerList().get() + ", topic=zipkin}"
     );
   }
 
@@ -168,9 +168,9 @@ public class ITKafkaSender {
     Properties producerProperties = new Properties();
     producerProperties.put(ProducerConfig.MAX_BLOCK_MS_CONFIG, "100");
     producerProperties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
-        ByteArraySerializer.class.getName());
+      ByteArraySerializer.class.getName());
     producerProperties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
-        ByteArraySerializer.class.getName());
+      ByteArraySerializer.class.getName());
     producerProperties.put(ProducerConfig.BATCH_SIZE_CONFIG, "0");
     producerProperties.put(ProducerConfig.ACKS_CONFIG, "0");
     producerProperties.put(ProducerConfig.LINGER_MS_CONFIG, "500");
@@ -179,7 +179,7 @@ public class ITKafkaSender {
     producerProperties.put(ProducerConfig.SECURITY_PROVIDERS_CONFIG, "sun.security.provider.Sun");
 
     Map<String, Object> filteredProperties =
-        sender.filterPropertiesForAdminClient(producerProperties);
+      sender.filterPropertiesForAdminClient(producerProperties);
 
     assertThat(filteredProperties.size()).isEqualTo(2);
     assertThat(filteredProperties.get(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG)).isNotNull();
@@ -207,7 +207,7 @@ public class ITKafkaSender {
   private byte[] readMessage(String topic) throws Exception {
     KafkaConsumer<byte[], byte[]> consumer = kafka.helper().createByteConsumer();
     return kafka.helper().consume(topic, consumer, 1)
-        .get().stream().map(ConsumerRecord::value).findFirst().get();
+      .get().stream().map(ConsumerRecord::value).findFirst().get();
   }
 
   private byte[] readMessage() throws Exception {

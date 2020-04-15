@@ -19,7 +19,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -84,7 +83,7 @@ public final class KafkaSender extends Sender {
     Properties properties = new Properties();
     properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class.getName());
     properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
-        ByteArraySerializer.class.getName());
+      ByteArraySerializer.class.getName());
     // disabling batching as duplicates effort covered by sender buffering.
     properties.put(ProducerConfig.BATCH_SIZE_CONFIG, 0);
     properties.put(ProducerConfig.ACKS_CONFIG, "0");
@@ -131,8 +130,7 @@ public final class KafkaSender extends Sender {
 
     /**
      * Maximum size of a message. Must be equal to or less than the server's "message.max.bytes" and
-     * "replica.fetch.max.bytes" to avoid rejected records on the broker side.
-     * Default 500KB.
+     * "replica.fetch.max.bytes" to avoid rejected records on the broker side. Default 500KB.
      */
     public Builder messageMaxBytes(int messageMaxBytes) {
       this.messageMaxBytes = messageMaxBytes;
@@ -220,8 +218,8 @@ public final class KafkaSender extends Sender {
   /**
    * Filter the properties configured for the producer by removing those not used for the Admin
    * Client.
-   * <p>
-   * See @{@link AdminClientConfig} config properties
+   *
+   * @see AdminClientConfig config properties
    */
   Map<String, Object> filterPropertiesForAdminClient(Properties properties) {
     Map<String, Object> adminClientProperties = new LinkedHashMap<>();
@@ -291,7 +289,6 @@ public final class KafkaSender extends Sender {
     return producer;
   }
 
-
   AdminClient getAdminClient() {
     if (adminClient == null) {
       synchronized (this) {
@@ -305,7 +302,7 @@ public final class KafkaSender extends Sender {
 
   @Override public synchronized void close() {
     if (closeCalled) return;
-    KafkaProducer<byte[], byte[]>  producer = this.producer;
+    KafkaProducer<byte[], byte[]> producer = this.producer;
     if (producer != null) producer.close();
     AdminClient adminClient = this.adminClient;
     if (adminClient != null) adminClient.close(1, TimeUnit.SECONDS);
@@ -314,9 +311,9 @@ public final class KafkaSender extends Sender {
 
   @Override public final String toString() {
     return "KafkaSender{"
-        + "bootstrapServers=" + properties.get(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG)
-        + ", topic=" + topic
-        + "}";
+      + "bootstrapServers=" + properties.get(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG)
+      + ", topic=" + topic
+      + "}";
   }
 
   class KafkaCall extends Call.Base<Void> { // KafkaFuture is not cancelable
