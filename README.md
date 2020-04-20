@@ -37,6 +37,11 @@ reporter = AsyncReporter.create(URLConnectionSender.create("http://localhost:941
 reporter.report(span);
 ```
 
+## Brave
+Those using the [Brave library](https://github.com/openzipkin/brave) can adapt
+the `Reporter<Span>` here to a Brave
+
+
 ## Spring Beans
 If you are trying to trace legacy applications, you may be interested in
 [Spring XML Configuration](spring-beans/). This allows you to trace legacy
@@ -72,7 +77,7 @@ message.
 
 ## Sender
 The sender component handles the last step of sending a list of encoded spans onto a transport.
-This involves I/O, so you can call `Sender.check()` to check its health on a given frequency. 
+This involves I/O, so you can call `Sender.check()` to check its health on a given frequency.
 
 Sender is used by AsyncReporter, but you can also create your own if you need to.
 ```java
