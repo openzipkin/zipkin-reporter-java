@@ -26,18 +26,19 @@ import zipkin2.Span;
 import zipkin2.reporter.Reporter;
 
 /**
- * This adapts a {@link Reporter} to a {@link FinishedSpanHandler} used by Brave.
+ * This allows you to send spans recorded by Brave to a {@linkplain Reporter Zipkin reporter}.
  *
  * <p>Ex.
  * <pre>{@code
+ * spanReporter = AsyncReporter.create(URLConnectionSender.create("http://localhost:9411/api/v2/spans"));
  * tracingBuilder.addFinishedSpanHandler(ZipkinFinishedSpanHandler.create(reporter));
  * }</pre>
  *
+ * @see brave.Tracing.Builder#addFinishedSpanHandler(FinishedSpanHandler)
  * @since 2.13
  */
 // TODO: move to SpanHandler after Brave 5.12
 public final class ZipkinSpanHandler extends FinishedSpanHandler {
-
   /** @since 2.13 */
   public static FinishedSpanHandler create(Reporter<Span> spanReporter) {
     return newBuilder(spanReporter).build();
@@ -97,6 +98,7 @@ public final class ZipkinSpanHandler extends FinishedSpanHandler {
     }
 
     public FinishedSpanHandler build() {
+      if (spanReporter == Reporter.NOOP) return FinishedSpanHandler.NOOP;
       return new ZipkinSpanHandler(this);
     }
   }
@@ -175,6 +177,22 @@ public final class ZipkinSpanHandler extends FinishedSpanHandler {
 
   @Override public String toString() {
     return spanReporter.toString();
+  }
+
+  /**
+   * Overridden to avoid duplicates when added via {@link brave.Tracing.Builder#addFinishedSpanHandler(FinishedSpanHandler)}
+   */
+  @Override public final boolean equals(Object o) {
+    if (o == this) return true;
+    if (!(o instanceof ZipkinSpanHandler)) return false;
+    return spanReporter.equals(((ZipkinSpanHandler) o).spanReporter);
+  }
+
+  /**
+   * Overridden to avoid duplicates when added via {@link brave.Tracing.Builder#addFinishedSpanHandler(FinishedSpanHandler)}
+   */
+  @Override public final int hashCode() {
+    return spanReporter.hashCode();
   }
 
   enum Consumer implements TagConsumer<Span.Builder>, AnnotationConsumer<Span.Builder> {

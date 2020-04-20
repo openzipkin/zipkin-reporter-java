@@ -1,13 +1,11 @@
 # zipkin-reporter-brave
-This module contains integration between `zipkin2.reporter.Reporter` and
-Brave's `FinishedSpanHandler`.
+This allows you to send spans recorded by Brave to a Zipkin reporter.
 
 Ex.
 ```java
-tracingBuilder.addFinishedSpanHandler(ZipkinFinishedSpanHandler.create(reporter));
+spanReporter = AsyncReporter.create(URLConnectionSender.create("http://localhost:9411/api/v2/spans"));
+tracingBuilder.addFinishedSpanHandler(ZipkinSpanHandler.create(reporter));
 ```
 
-This decouples Brave from this library and allows users to report to multiple
-Zipkin destinations at the same time.
 
 

@@ -13,15 +13,18 @@
  */
 package zipkin2.reporter.brave;
 
+import brave.handler.FinishedSpanHandler;
 import brave.handler.MutableSpan;
 import brave.propagation.TraceContext;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import org.junit.Before;
 import org.junit.Test;
 import zipkin2.Annotation;
 import zipkin2.Endpoint;
 import zipkin2.Span;
+import zipkin2.reporter.Reporter;
 
 import static brave.Span.Kind.CLIENT;
 import static brave.Span.Kind.SERVER;
@@ -40,6 +43,25 @@ public class ZipkinSpanHandlerTest {
     defaultSpan.localIp("1.2.3.4");
     defaultSpan.localPort(80);
     handler = (ZipkinSpanHandler) ZipkinSpanHandler.create(spans::add);
+  }
+
+  @Test public void noopIsNoop() {
+    assertThat(ZipkinSpanHandler.create(Reporter.NOOP))
+      .isSameAs(FinishedSpanHandler.NOOP);
+  }
+
+  @Test public void equalsAndHashCode() {
+    assertThat(handler)
+      .hasSameHashCodeAs(ZipkinSpanHandler.create(handler.spanReporter))
+      .isEqualTo(ZipkinSpanHandler.create(handler.spanReporter));
+
+    FinishedSpanHandler otherHandler = ZipkinSpanHandler.create(s -> {
+    });
+
+    assertThat(handler)
+      .isNotEqualTo(otherHandler)
+      .extracting(Objects::hashCode)
+      .isNotEqualTo(otherHandler.hashCode());
   }
 
   @Test public void reportsSampledSpan() {
