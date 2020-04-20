@@ -31,7 +31,7 @@ import zipkin2.reporter.Reporter;
  * <p>Ex.
  * <pre>{@code
  * spanReporter = AsyncReporter.create(URLConnectionSender.create("http://localhost:9411/api/v2/spans"));
- * tracingBuilder.addFinishedSpanHandler(ZipkinFinishedSpanHandler.create(reporter));
+ * tracingBuilder.addFinishedSpanHandler(ZipkinSpanHandler.create(reporter));
  * }</pre>
  *
  * @see brave.Tracing.Builder#addFinishedSpanHandler(FinishedSpanHandler)
