@@ -1,6 +1,6 @@
 # zipkin-reporter-spring-beans
 This module contains Spring Factory Beans that allow you to configure
-tracing with only XML. Notably, this requires minimally Spring version 2.5.
+zipkinSpanHandler with only XML. Notably, this requires minimally Spring version 2.5.
 
 ## Configuration
 Bean Factories exist for the following types:
@@ -10,6 +10,7 @@ Bean Factories exist for the following types:
 * KafkaSenderFactoryBean - for [zipkin-sender-kafka](../kafka)
 * RabbitMQSenderFactoryBean - for [zipkin-sender-amqp-client](../amqp-client)
 * URLConnectionSenderFactoryBean - for [zipkin-sender-urlconnection](../urlconnection)
+* ZipkinSpanHandlerFactoryBeanTest - for [brave](https://github.com/openzipkin/brave)
 
 Here's a basic example
 ```xml

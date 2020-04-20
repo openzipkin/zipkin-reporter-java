@@ -44,7 +44,7 @@
     <dependency>
       <groupId>io.zipkin.brave</groupId>
       <artifactId>brave</artifactId>
-      <version>5.11.2</version>
+      <!-- Don't pin Brave -->
       <scope>provided</scope>
     </dependency>
   </dependencies>
