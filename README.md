@@ -39,8 +39,12 @@ reporter.report(span);
 
 ## Brave
 Those using the [Brave library](https://github.com/openzipkin/brave) can adapt
-the `Reporter<Span>` here to a Brave
+the `Reporter<Span>` here to a Brave.
 
+Ex.
+```java
+ tracingBuilder.addFinishedSpanHandler(ZipkinFinishedSpanHandler.create(reporter));
+```
 
 ## Spring Beans
 If you are trying to trace legacy applications, you may be interested in
