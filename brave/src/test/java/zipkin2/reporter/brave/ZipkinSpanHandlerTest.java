@@ -27,6 +27,8 @@ import zipkin2.Span;
 import zipkin2.reporter.Reporter;
 
 import static brave.Span.Kind.CLIENT;
+import static brave.Span.Kind.CONSUMER;
+import static brave.Span.Kind.PRODUCER;
 import static brave.Span.Kind.SERVER;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
@@ -43,6 +45,15 @@ public class ZipkinSpanHandlerTest {
     defaultSpan.localIp("1.2.3.4");
     defaultSpan.localPort(80);
     handler = (ZipkinSpanHandler) ZipkinSpanHandler.create(spans::add);
+  }
+
+  @Test public void generateKindMap() {
+    assertThat(ZipkinSpanHandler.generateKindMap()).containsExactly(
+      entry(CLIENT, Span.Kind.CLIENT),
+      entry(SERVER, Span.Kind.SERVER),
+      entry(PRODUCER, Span.Kind.PRODUCER),
+      entry(CONSUMER, Span.Kind.CONSUMER)
+    );
   }
 
   @Test public void noopIsNoop() {

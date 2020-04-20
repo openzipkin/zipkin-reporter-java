@@ -14,11 +14,15 @@
 package zipkin2.reporter.brave;
 
 import brave.ErrorParser;
+import brave.Span.Kind;
 import brave.handler.FinishedSpanHandler;
 import brave.handler.MutableSpan;
 import brave.handler.MutableSpan.AnnotationConsumer;
 import brave.handler.MutableSpan.TagConsumer;
 import brave.propagation.TraceContext;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.logging.Logger;
 import zipkin2.Endpoint;
 import zipkin2.Span;
 import zipkin2.reporter.Reporter;
@@ -39,6 +43,9 @@ import zipkin2.reporter.Reporter;
 // addSpanHandler. This allows a floor version of Brave 5.4 and lets more applications migrate who
 // may not be able to immediately update Brave at the same time.
 public final class ZipkinSpanHandler extends FinishedSpanHandler {
+  static final Logger logger = Logger.getLogger(ZipkinSpanHandler.class.getName());
+  static final Map<Kind, Span.Kind> BRAVE_TO_ZIPKIN_KIND = generateKindMap();
+
   /** @since 2.13 */
   public static FinishedSpanHandler create(Reporter<Span> spanReporter) {
     return newBuilder(spanReporter).build();
@@ -133,9 +140,9 @@ public final class ZipkinSpanHandler extends FinishedSpanHandler {
     if (start != 0 && finish != 0L) result.duration(Math.max(finish - start, 1));
 
     // use ordinal comparison to defend against version skew
-    brave.Span.Kind kind = span.kind();
-    if (kind != null && kind.ordinal() < Span.Kind.values().length) {
-      result.kind(Span.Kind.values()[kind.ordinal()]);
+    Kind kind = span.kind();
+    if (kind != null) {
+      result.kind(BRAVE_TO_ZIPKIN_KIND.get(kind));
     }
 
     String localServiceName = span.localServiceName(), localIp = span.localIp();
@@ -199,5 +206,22 @@ public final class ZipkinSpanHandler extends FinishedSpanHandler {
     @Override public void accept(Span.Builder target, long timestamp, String value) {
       target.addAnnotation(timestamp, value);
     }
+  }
+
+  /**
+   * This keeps the code maintenance free in the rare case there is disparity between Brave and
+   * Zipkin kind values.
+   */
+  static Map<Kind, Span.Kind> generateKindMap() {
+    Map<Kind, Span.Kind> result = new LinkedHashMap<>();
+    // Note: Both Brave and Zipkin treat null kind as a local/in-process span
+    for (Kind kind : Kind.values()) {
+      try {
+        result.put(kind, Span.Kind.valueOf(kind.name()));
+      } catch (RuntimeException e) {
+        logger.warning("Could not map Brave kind " + kind + " to Zipkin");
+      }
+    }
+    return result;
   }
 }
