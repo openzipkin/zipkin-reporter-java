@@ -1,5 +1,5 @@
 # zipkin-reporter-brave
-This allows you to send spans recorded by Brave to a Zipkin reporter.
+This allows you to send spans recorded by Brave 5.6+ to a Zipkin reporter.
 
 Ex.
 ```java

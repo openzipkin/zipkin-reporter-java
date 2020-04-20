@@ -14,8 +14,6 @@
 package zipkin2.reporter.brave;
 
 import brave.ErrorParser;
-import brave.Tags;
-import brave.baggage.BaggageField;
 import brave.handler.FinishedSpanHandler;
 import brave.handler.MutableSpan;
 import brave.handler.MutableSpan.AnnotationConsumer;
@@ -37,7 +35,9 @@ import zipkin2.reporter.Reporter;
  * @see brave.Tracing.Builder#addFinishedSpanHandler(FinishedSpanHandler)
  * @since 2.13
  */
-// TODO: move to SpanHandler after Brave 5.12
+// NOTE: Leave this extending FinishedSpanHandler for a while even after docs update to Brave 5.12's
+// addSpanHandler. This allows a floor version of Brave 5.4 and lets more applications migrate who
+// may not be able to immediately update Brave at the same time.
 public final class ZipkinSpanHandler extends FinishedSpanHandler {
   /** @since 2.13 */
   public static FinishedSpanHandler create(Reporter<Span> spanReporter) {
@@ -51,7 +51,7 @@ public final class ZipkinSpanHandler extends FinishedSpanHandler {
 
   public static final class Builder {
     Reporter<Span> spanReporter;
-    ErrorParser errorParser = new ErrorParser(); // TODO: Brave 5.12 ErrorParser.get()
+    ErrorParser errorParser = new ErrorParser();
     boolean alwaysReportSpans;
 
     Builder(Reporter<Span> spanReporter) {
@@ -62,13 +62,8 @@ public final class ZipkinSpanHandler extends FinishedSpanHandler {
     /**
      * Sets the "error" tag when absent and {@link MutableSpan#error()} is present.
      *
-     * <p>Set to the same value as {@link brave.Tracing.Builder#errorParser(ErrorParser)}
-     *
-     * @see Tags#ERROR
      * @since 2.13
      */
-    // TODO: Brave 5.12 remove reference to deprecated Tracing.Builder.errorParser which is only
-    // used for Zipkin conversion
     public Builder errorParser(ErrorParser errorParser) {
       this.errorParser = errorParser;
       return this;
@@ -80,8 +75,8 @@ public final class ZipkinSpanHandler extends FinishedSpanHandler {
      *
      * <p>The primary use case is to implement a <a href="https://github.com/openzipkin-contrib/zipkin-secondary-sampling">sampling
      * overlay</a>, such as boosting the sample rate for a subset of the network depending on the
-     * value of a {@link BaggageField baggage field}. This means that data will report when either
-     * the trace is normally sampled, or secondarily sampled via a custom header.
+     * value of a baggage field. This means that data will report when either the trace is normally
+     * sampled, or secondarily sampled via a custom header.
      *
      * <p>This is simpler than a custom {@link FinishedSpanHandler}, because you don't have to
      * duplicate transport mechanics already implemented in the {@link Reporter span reporter}.
@@ -121,12 +116,12 @@ public final class ZipkinSpanHandler extends FinishedSpanHandler {
     return true;
   }
 
-  @Override public boolean supportsOrphans() {
+  // Do not use @Override annotation to ensure compatibility with Brave 5.6
+  public boolean supportsOrphans() {
     return true;
   }
 
   static Span convert(TraceContext context, MutableSpan span) {
-    // TODO: Brave 5.12: use span, not context for IDs as they could be remapped
     Span.Builder result = Span.newBuilder()
       .traceId(context.traceIdString())
       .parentId(context.parentIdString())
@@ -164,7 +159,6 @@ public final class ZipkinSpanHandler extends FinishedSpanHandler {
     span.forEachTag(Consumer.INSTANCE, result);
     span.forEachAnnotation(Consumer.INSTANCE, result);
     if (span.shared()) result.shared(true);
-    // if (span.debug()) result.debug(true); TODO: Brave 5.12
     if (context.debug()) result.debug(true);
     return result.build();
   }
