@@ -25,8 +25,8 @@
   <modelVersion>4.0.0</modelVersion>
 
   <artifactId>zipkin-reporter-brave</artifactId>
-  <name>Zipkin Reporter Spring Factory Brave</name>
-  <description>Allows you to configure Zipkin Reporter using XML</description>
+  <name>Zipkin Reporter Brave</name>
+  <description>Adapts a Reporter to a Brave FinishedSpanHandler</description>
 
   <properties>
     <!-- Matches Export-Package in bnd.bnd -->

@@ -15,6 +15,3 @@ Ex.
 ```java
 tracingBuilder.spanReporter(Reporter.NOOP);
 ```
-
-
-
