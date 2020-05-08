@@ -39,35 +39,15 @@ Here's an example with Kafka configuration and extended configuration:
   </bean>
 ```
 
-Here's an example integrating with [Brave](https://github.com/openzipkin/brave/tree/master/spring-beans)
+Here's an example integrating with [Brave 5.12+](https://github.com/openzipkin/brave/tree/master/spring-beans)
 
 ```xml
 <bean id="tracing" class="brave.spring.beans.TracingFactoryBean">
   <property name="localServiceName" value="${zipkin.service}"/>
-  <property name="finishedSpanHandlers">
+  <property name="spanHandlers">
     <bean class="zipkin2.reporter.beans.ZipkinSpanHandlerFactoryBean">
       <property name="spanReporter" ref="spanReporter"/>
     </bean>
-  </property>
-</bean>
-```
-
-*Note*: The minimum version of Brave is 5.6. If you are using a version of Brave before 5.12, you
-will also need to set the "spanReporter" field to `Reporter.NOOP`. Otherwise, you will see a log
-message for each span.
-
-Ex.
-```xml
-<bean id="tracing" class="brave.spring.beans.TracingFactoryBean">
-  <property name="localServiceName" value="${zipkin.service}"/>
-  <property name="finishedSpanHandlers">
-    <bean class="zipkin2.reporter.beans.ZipkinSpanHandlerFactoryBean">
-      <property name="spanReporter" ref="spanReporter"/>
-    </bean>
-  </property>
-  <!-- Suppress the logging reporter -->
-  <property name="spanReporter">
-    <util:constant static-field="zipkin2.reporter.Reporter.NOOP"/>
   </property>
 </bean>
 ```

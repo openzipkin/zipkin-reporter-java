@@ -15,10 +15,10 @@ package zipkin2.reporter.brave;
 
 import brave.ErrorParser;
 import brave.Span.Kind;
-import brave.handler.FinishedSpanHandler;
 import brave.handler.MutableSpan;
 import brave.handler.MutableSpan.AnnotationConsumer;
 import brave.handler.MutableSpan.TagConsumer;
+import brave.handler.SpanHandler;
 import brave.propagation.TraceContext;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -33,21 +33,18 @@ import zipkin2.reporter.Reporter;
  * <p>Ex.
  * <pre>{@code
  * spanReporter = AsyncReporter.create(URLConnectionSender.create("http://localhost:9411/api/v2/spans"));
- * tracingBuilder.addFinishedSpanHandler(ZipkinSpanHandler.create(reporter));
+ * tracingBuilder.addSpanHandler(ZipkinSpanHandler.create(reporter));
  * }</pre>
  *
- * @see brave.Tracing.Builder#addFinishedSpanHandler(FinishedSpanHandler)
+ * @see brave.Tracing.Builder#addSpanHandler(SpanHandler)
  * @since 2.13
  */
-// NOTE: Leave this extending FinishedSpanHandler for a while even after docs update to Brave 5.12's
-// addSpanHandler. This allows a floor version of Brave 5.4 and lets more applications migrate who
-// may not be able to immediately update Brave at the same time.
-public final class ZipkinSpanHandler extends FinishedSpanHandler {
+public final class ZipkinSpanHandler extends SpanHandler {
   static final Logger logger = Logger.getLogger(ZipkinSpanHandler.class.getName());
   static final Map<Kind, Span.Kind> BRAVE_TO_ZIPKIN_KIND = generateKindMap();
 
   /** @since 2.13 */
-  public static FinishedSpanHandler create(Reporter<Span> spanReporter) {
+  public static SpanHandler create(Reporter<Span> spanReporter) {
     return newBuilder(spanReporter).build();
   }
 
@@ -85,7 +82,7 @@ public final class ZipkinSpanHandler extends FinishedSpanHandler {
      * value of a baggage field. This means that data will report when either the trace is normally
      * sampled, or secondarily sampled via a custom header.
      *
-     * <p>This is simpler than a custom {@link FinishedSpanHandler}, because you don't have to
+     * <p>This is simpler than a custom {@link SpanHandler}, because you don't have to
      * duplicate transport mechanics already implemented in the {@link Reporter span reporter}.
      * However, this assumes your backend can properly process the partial traces implied when using
      * conditional sampling. For example, if your sampling condition is not consistent on a call
@@ -99,8 +96,8 @@ public final class ZipkinSpanHandler extends FinishedSpanHandler {
       return this;
     }
 
-    public FinishedSpanHandler build() {
-      if (spanReporter == Reporter.NOOP) return FinishedSpanHandler.NOOP;
+    public SpanHandler build() {
+      if (spanReporter == Reporter.NOOP) return SpanHandler.NOOP;
       return new ZipkinSpanHandler(this);
     }
   }
@@ -115,7 +112,7 @@ public final class ZipkinSpanHandler extends FinishedSpanHandler {
     this.alwaysReportSpans = builder.alwaysReportSpans;
   }
 
-  @Override public boolean handle(TraceContext context, MutableSpan span) {
+  @Override public boolean end(TraceContext context, MutableSpan span, Cause cause) {
     if (!alwaysReportSpans && !Boolean.TRUE.equals(context.sampled())) return true;
     maybeAddErrorTag(span);
     Span converted = convert(context, span);
@@ -123,17 +120,12 @@ public final class ZipkinSpanHandler extends FinishedSpanHandler {
     return true;
   }
 
-  // Do not use @Override annotation to ensure compatibility with Brave 5.6
-  public boolean supportsOrphans() {
-    return true;
-  }
-
   static Span convert(TraceContext context, MutableSpan span) {
     Span.Builder result = Span.newBuilder()
-      .traceId(context.traceIdString())
-      .parentId(context.parentIdString())
-      .id(context.spanId())
-      .name(span.name());
+        .traceId(context.traceIdString())
+        .parentId(context.parentIdString())
+        .id(context.spanId())
+        .name(span.name());
 
     long start = span.startTimestamp(), finish = span.finishTimestamp();
     result.timestamp(start);
@@ -148,19 +140,19 @@ public final class ZipkinSpanHandler extends FinishedSpanHandler {
     String localServiceName = span.localServiceName(), localIp = span.localIp();
     if (localServiceName != null || localIp != null) {
       result.localEndpoint(Endpoint.newBuilder()
-        .serviceName(localServiceName)
-        .ip(localIp)
-        .port(span.localPort())
-        .build());
+          .serviceName(localServiceName)
+          .ip(localIp)
+          .port(span.localPort())
+          .build());
     }
 
     String remoteServiceName = span.remoteServiceName(), remoteIp = span.remoteIp();
     if (remoteServiceName != null || remoteIp != null) {
       result.remoteEndpoint(Endpoint.newBuilder()
-        .serviceName(remoteServiceName)
-        .ip(remoteIp)
-        .port(span.remotePort())
-        .build());
+          .serviceName(remoteServiceName)
+          .ip(remoteIp)
+          .port(span.remotePort())
+          .build());
     }
 
     span.forEachTag(Consumer.INSTANCE, result);
@@ -181,7 +173,7 @@ public final class ZipkinSpanHandler extends FinishedSpanHandler {
   }
 
   /**
-   * Overridden to avoid duplicates when added via {@link brave.Tracing.Builder#addFinishedSpanHandler(FinishedSpanHandler)}
+   * Overridden to avoid duplicates when added via {@link brave.Tracing.Builder#addSpanHandler(SpanHandler)}
    */
   @Override public final boolean equals(Object o) {
     if (o == this) return true;
@@ -190,7 +182,7 @@ public final class ZipkinSpanHandler extends FinishedSpanHandler {
   }
 
   /**
-   * Overridden to avoid duplicates when added via {@link brave.Tracing.Builder#addFinishedSpanHandler(FinishedSpanHandler)}
+   * Overridden to avoid duplicates when added via {@link brave.Tracing.Builder#addSpanHandler(SpanHandler)}
    */
   @Override public final int hashCode() {
     return spanReporter.hashCode();

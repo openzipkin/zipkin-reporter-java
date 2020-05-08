@@ -13,8 +13,8 @@
  */
 package zipkin2.reporter.brave;
 
-import brave.handler.FinishedSpanHandler;
 import brave.handler.MutableSpan;
+import brave.handler.SpanHandler;
 import brave.propagation.TraceContext;
 import java.util.ArrayList;
 import java.util.List;
@@ -30,6 +30,8 @@ import static brave.Span.Kind.CLIENT;
 import static brave.Span.Kind.CONSUMER;
 import static brave.Span.Kind.PRODUCER;
 import static brave.Span.Kind.SERVER;
+import static brave.handler.SpanHandler.Cause.FINISHED;
+import static brave.handler.SpanHandler.Cause.FLUSHED;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 
@@ -49,74 +51,74 @@ public class ZipkinSpanHandlerTest {
 
   @Test public void generateKindMap() {
     assertThat(ZipkinSpanHandler.generateKindMap()).containsExactly(
-      entry(CLIENT, Span.Kind.CLIENT),
-      entry(SERVER, Span.Kind.SERVER),
-      entry(PRODUCER, Span.Kind.PRODUCER),
-      entry(CONSUMER, Span.Kind.CONSUMER)
+        entry(CLIENT, Span.Kind.CLIENT),
+        entry(SERVER, Span.Kind.SERVER),
+        entry(PRODUCER, Span.Kind.PRODUCER),
+        entry(CONSUMER, Span.Kind.CONSUMER)
     );
   }
 
   @Test public void noopIsNoop() {
     assertThat(ZipkinSpanHandler.create(Reporter.NOOP))
-      .isSameAs(FinishedSpanHandler.NOOP);
+        .isSameAs(SpanHandler.NOOP);
   }
 
   @Test public void equalsAndHashCode() {
     assertThat(handler)
-      .hasSameHashCodeAs(ZipkinSpanHandler.create(handler.spanReporter))
-      .isEqualTo(ZipkinSpanHandler.create(handler.spanReporter));
+        .hasSameHashCodeAs(ZipkinSpanHandler.create(handler.spanReporter))
+        .isEqualTo(ZipkinSpanHandler.create(handler.spanReporter));
 
-    FinishedSpanHandler otherHandler = ZipkinSpanHandler.create(s -> {
+    SpanHandler otherHandler = ZipkinSpanHandler.create(s -> {
     });
 
     assertThat(handler)
-      .isNotEqualTo(otherHandler)
-      .extracting(Objects::hashCode)
-      .isNotEqualTo(otherHandler.hashCode());
+        .isNotEqualTo(otherHandler)
+        .extracting(Objects::hashCode)
+        .isNotEqualTo(otherHandler.hashCode());
   }
 
   @Test public void reportsSampledSpan() {
     MutableSpan span = new MutableSpan();
-    handler.handle(context, span);
+    handler.end(context, span, FINISHED);
 
     assertThat(spans.get(0)).isEqualToComparingFieldByField(
-      Span.newBuilder()
-        .traceId("1")
-        .id("2")
-        .build()
+        Span.newBuilder()
+            .traceId("1")
+            .id("2")
+            .build()
     );
   }
 
   @Test public void reportsDebugSpan() {
     TraceContext context = TraceContext.newBuilder().traceId(1).spanId(2).debug(true).build();
     MutableSpan span = new MutableSpan();
-    handler.handle(context, span);
+    handler.end(context, span, FINISHED);
 
     assertThat(spans.get(0)).isEqualToComparingFieldByField(
-      Span.newBuilder()
-        .traceId("1")
-        .id("2")
-        .debug(true)
-        .build()
+        Span.newBuilder()
+            .traceId("1")
+            .id("2")
+            .debug(true)
+            .build()
     );
   }
 
   @Test public void doesntReportUnsampledSpan() {
     TraceContext context =
-      TraceContext.newBuilder().traceId(1).spanId(2).sampled(false).sampledLocal(true).build();
-    handler.handle(context, new MutableSpan());
+        TraceContext.newBuilder().traceId(1).spanId(2).sampled(false).sampledLocal(true).build();
+    handler.end(context, new MutableSpan(), FINISHED);
 
     assertThat(spans).isEmpty();
   }
 
   @Test public void alwaysReportSpans_reportsUnsampledSpan() {
     handler = (ZipkinSpanHandler) ZipkinSpanHandler.newBuilder(spans::add)
-      .alwaysReportSpans()
-      .build();
+        .alwaysReportSpans()
+        .build();
 
     TraceContext context =
-      TraceContext.newBuilder().traceId(1).spanId(2).sampled(false).sampledLocal(true).build();
-    handler.handle(context, new MutableSpan());
+        TraceContext.newBuilder().traceId(1).spanId(2).sampled(false).sampledLocal(true).build();
+    handler.end(context, new MutableSpan(), FINISHED);
 
     assertThat(spans).isNotEmpty();
   }
@@ -127,7 +129,7 @@ public class ZipkinSpanHandlerTest {
     span.startTimestamp(1L);
     span.finishTimestamp(1L);
 
-    handler.handle(context, span);
+    handler.end(context, span, FINISHED);
     assertThat(spans.get(0).duration()).isEqualTo(1L);
   }
 
@@ -140,12 +142,12 @@ public class ZipkinSpanHandlerTest {
     span.tag("foo", "baz");
     span.tag("3", "3");
 
-    handler.handle(context, span);
+    handler.end(context, span, FINISHED);
     assertThat(spans.get(0).tags()).containsOnly(
-      entry("1", "1"),
-      entry("foo", "baz"),
-      entry("2", "2"),
-      entry("3", "3")
+        entry("1", "1"),
+        entry("foo", "baz"),
+        entry("2", "2"),
+        entry("3", "3")
     );
   }
 
@@ -156,10 +158,10 @@ public class ZipkinSpanHandlerTest {
 
     span.error(ERROR);
 
-    handler.handle(context, span);
+    handler.end(context, span, FINISHED);
 
     assertThat(spans.get(0).tags())
-      .containsOnly(entry("error", "RuntimeException"));
+        .containsOnly(entry("error", "RuntimeException"));
   }
 
   @Test public void doesntOverwriteErrorTag() {
@@ -168,10 +170,10 @@ public class ZipkinSpanHandlerTest {
     span.error(ERROR);
     span.tag("error", "");
 
-    handler.handle(context, span);
+    handler.end(context, span, FINISHED);
 
     assertThat(spans.get(0).tags())
-      .containsOnly(entry("error", ""));
+        .containsOnly(entry("error", ""));
   }
 
   @Test public void addsAnnotations() {
@@ -181,10 +183,10 @@ public class ZipkinSpanHandlerTest {
     span.annotate(2L, "foo");
     span.finishTimestamp(2L);
 
-    handler.handle(context, span);
+    handler.end(context, span, FINISHED);
 
     assertThat(spans.get(0).annotations())
-      .containsOnly(Annotation.create(2L, "foo"));
+        .containsOnly(Annotation.create(2L, "foo"));
   }
 
   @Test public void finished_client() {
@@ -209,7 +211,7 @@ public class ZipkinSpanHandlerTest {
     span.startTimestamp(1L);
     span.finishTimestamp(2L);
 
-    handler.handle(context, span);
+    handler.end(context, span, FINISHED);
 
     Span zipkinSpan = spans.get(0);
     assertThat(zipkinSpan.annotations()).isEmpty();
@@ -240,7 +242,7 @@ public class ZipkinSpanHandlerTest {
     span.startTimestamp(1L);
     span.finishTimestamp(0L);
 
-    handler.handle(context, span);
+    handler.end(context, span, FINISHED);
 
     Span zipkinSpan = spans.get(0);
     assertThat(zipkinSpan.annotations()).isEmpty();
@@ -253,10 +255,10 @@ public class ZipkinSpanHandlerTest {
     MutableSpan span = new MutableSpan();
 
     Endpoint endpoint = Endpoint.newBuilder()
-      .serviceName("fooService")
-      .ip("1.2.3.4")
-      .port(80)
-      .build();
+        .serviceName("fooService")
+        .ip("1.2.3.4")
+        .port(80)
+        .build();
 
     span.kind(CLIENT);
     span.remoteServiceName(endpoint.serviceName());
@@ -264,10 +266,10 @@ public class ZipkinSpanHandlerTest {
     span.startTimestamp(1L);
     span.finishTimestamp(2L);
 
-    handler.handle(context, span);
+    handler.end(context, span, FINISHED);
 
     assertThat(spans.get(0).remoteEndpoint())
-      .isEqualTo(endpoint);
+        .isEqualTo(endpoint);
   }
 
   // This prevents the server startTimestamp from overwriting the client one on the collector
@@ -279,19 +281,19 @@ public class ZipkinSpanHandlerTest {
     span.kind(SERVER);
     span.finishTimestamp(2L);
 
-    handler.handle(context, span);
+    handler.end(context, span, FINISHED);
 
     assertThat(spans.get(0).shared())
-      .isTrue();
+        .isTrue();
   }
 
   @Test public void flushUnstartedNeitherSetsTimestampNorDuration() {
     MutableSpan flushed = new MutableSpan();
     flushed.finishTimestamp(0L);
 
-    handler.handle(context, flushed);
+    handler.end(context, flushed, FLUSHED);
 
     assertThat(spans.get(0)).extracting(Span::timestampAsLong, Span::durationAsLong)
-      .allSatisfy(u -> assertThat(u).isEqualTo(0L));
+        .allSatisfy(u -> assertThat(u).isEqualTo(0L));
   }
 }

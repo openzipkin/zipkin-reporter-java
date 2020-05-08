@@ -39,11 +39,11 @@ reporter.report(span);
 
 ## Brave
 Those using the [Brave library](https://github.com/openzipkin/brave) can adapt
-the `Reporter<Span>` here to a Brave `FinishedSpanHandler`.
+the `Reporter<Span>` here to a Brave `SpanHandler`.
 
 Ex.
 ```java
-tracingBuilder.addFinishedSpanHandler(ZipkinSpanHandler.create(reporter));
+tracingBuilder.addSpanHandler(ZipkinSpanHandler.create(reporter));
 ```
 
 See [zipkin-reporter-brave](brave/README.md) for more details.

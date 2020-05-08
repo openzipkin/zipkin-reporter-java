@@ -59,9 +59,8 @@
     <!-- use the same value in bom/pom.xml -->
     <zipkin.version>2.21.1</zipkin.version>
 
-    <!-- Intentionally old for a while. Ex Allows usage in Sleuth 2.0.4
-         Regardless, do not set this value in bom/pom.xml -->
-    <brave.version>5.6.0</brave.version>
+    <!-- Do not set this value in bom/pom.xml to avoid cyclic pinning -->
+    <brave.version>5.11.3-SNAPSHOT</brave.version>
 
     <license-maven-plugin.version>3.0</license-maven-plugin.version>
     <maven-failsafe-plugin.version>3.0.0-M4</maven-failsafe-plugin.version>

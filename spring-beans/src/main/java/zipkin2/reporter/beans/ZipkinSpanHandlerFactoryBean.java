@@ -14,7 +14,7 @@
 package zipkin2.reporter.beans;
 
 import brave.ErrorParser;
-import brave.handler.FinishedSpanHandler;
+import brave.handler.SpanHandler;
 import org.springframework.beans.factory.config.AbstractFactoryBean;
 import zipkin2.Span;
 import zipkin2.reporter.Reporter;
@@ -26,7 +26,7 @@ public class ZipkinSpanHandlerFactoryBean extends AbstractFactoryBean {
   ErrorParser errorParser;
   Boolean alwaysReportSpans;
 
-  @Override protected FinishedSpanHandler createInstance() {
+  @Override protected SpanHandler createInstance() {
     ZipkinSpanHandler.Builder builder = ZipkinSpanHandler.newBuilder(spanReporter);
     if (errorParser != null) builder.errorParser(errorParser);
     if (alwaysReportSpans != null) builder.alwaysReportSpans();
@@ -36,8 +36,8 @@ public class ZipkinSpanHandlerFactoryBean extends AbstractFactoryBean {
   @Override protected void destroyInstance(Object instance) {
   }
 
-  @Override public Class<? extends FinishedSpanHandler> getObjectType() {
-    return FinishedSpanHandler.class;
+  @Override public Class<? extends SpanHandler> getObjectType() {
+    return SpanHandler.class;
   }
 
   @Override public boolean isSingleton() {

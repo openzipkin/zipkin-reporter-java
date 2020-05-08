@@ -26,7 +26,7 @@
 
   <artifactId>zipkin-reporter-brave</artifactId>
   <name>Zipkin Reporter Brave</name>
-  <description>Adapts a Reporter to a Brave FinishedSpanHandler</description>
+  <description>Adapts a Reporter to a Brave SpanHandler</description>
 
   <properties>
     <!-- Matches Export-Package in bnd.bnd -->
