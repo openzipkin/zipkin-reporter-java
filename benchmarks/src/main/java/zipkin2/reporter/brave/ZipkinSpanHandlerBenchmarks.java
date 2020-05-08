@@ -45,7 +45,7 @@ import static zipkin2.reporter.brave.MutableSpanBenchmarks.newServerSpan;
 @Threads(1)
 public class ZipkinSpanHandlerBenchmarks {
   final SpanHandler handler =
-      ZipkinSpanHandler.newBuilder(Reporter.NOOP).alwaysReportSpans().build();
+      ZipkinSpanHandler.newBuilder(Reporter.NOOP).alwaysReportSpans(true).build();
   final TraceContext context = TraceContext.newBuilder().traceId(1).spanId(2).sampled(true).build();
   final MutableSpan serverSpan = newServerSpan();
   final MutableSpan bigClientSpan = newBigClientSpan();

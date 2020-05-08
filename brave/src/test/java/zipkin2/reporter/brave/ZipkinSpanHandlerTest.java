@@ -113,7 +113,7 @@ public class ZipkinSpanHandlerTest {
 
   @Test public void alwaysReportSpans_reportsUnsampledSpan() {
     handler = (ZipkinSpanHandler) ZipkinSpanHandler.newBuilder(spans::add)
-        .alwaysReportSpans()
+        .alwaysReportSpans(true)
         .build();
 
     TraceContext context =

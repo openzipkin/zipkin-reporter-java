@@ -96,8 +96,8 @@ public final class ZipkinSpanHandler extends SpanHandler {
      * @see TraceContext#sampledLocal()
      * @since 2.13
      */
-    public Builder alwaysReportSpans() {
-      this.alwaysReportSpans = true;
+    public Builder alwaysReportSpans(boolean alwaysReportSpans) {
+      this.alwaysReportSpans = alwaysReportSpans;
       return this;
     }
 

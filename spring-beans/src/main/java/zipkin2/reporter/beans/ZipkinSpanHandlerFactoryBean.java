@@ -13,7 +13,7 @@
  */
 package zipkin2.reporter.beans;
 
-import brave.ErrorParser;
+import brave.Tag;
 import brave.handler.SpanHandler;
 import org.springframework.beans.factory.config.AbstractFactoryBean;
 import zipkin2.Span;
@@ -23,13 +23,13 @@ import zipkin2.reporter.brave.ZipkinSpanHandler;
 /** Spring XML config does not support chained builders. This converts accordingly */
 public class ZipkinSpanHandlerFactoryBean extends AbstractFactoryBean {
   Reporter<Span> spanReporter;
-  ErrorParser errorParser;
+  Tag<Throwable> errorTag;
   Boolean alwaysReportSpans;
 
   @Override protected SpanHandler createInstance() {
     ZipkinSpanHandler.Builder builder = ZipkinSpanHandler.newBuilder(spanReporter);
-    if (errorParser != null) builder.errorParser(errorParser);
-    if (alwaysReportSpans != null) builder.alwaysReportSpans();
+    if (errorTag != null) builder.errorTag(errorTag);
+    if (alwaysReportSpans != null) builder.alwaysReportSpans(alwaysReportSpans);
     return builder.build();
   }
 
@@ -48,8 +48,8 @@ public class ZipkinSpanHandlerFactoryBean extends AbstractFactoryBean {
     this.spanReporter = spanReporter;
   }
 
-  public void setErrorParser(ErrorParser errorParser) {
-    this.errorParser = errorParser;
+  public void setErrorTag(Tag<Throwable> errorTag) {
+    this.errorTag = errorTag;
   }
 
   public void setAlwaysReportSpans(Boolean alwaysReportSpans) {
