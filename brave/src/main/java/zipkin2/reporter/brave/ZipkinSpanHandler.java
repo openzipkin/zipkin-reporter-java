@@ -13,8 +13,9 @@
  */
 package zipkin2.reporter.brave;
 
-import brave.ErrorParser;
 import brave.Span.Kind;
+import brave.Tag;
+import brave.Tags;
 import brave.handler.MutableSpan;
 import brave.handler.MutableSpan.AnnotationConsumer;
 import brave.handler.MutableSpan.TagConsumer;
@@ -55,7 +56,7 @@ public final class ZipkinSpanHandler extends SpanHandler {
 
   public static final class Builder {
     Reporter<Span> spanReporter;
-    ErrorParser errorParser = new ErrorParser();
+    Tag<Throwable> errorTag = Tags.ERROR;
     boolean alwaysReportSpans;
 
     Builder(Reporter<Span> spanReporter) {
@@ -66,10 +67,14 @@ public final class ZipkinSpanHandler extends SpanHandler {
     /**
      * Sets the "error" tag when absent and {@link MutableSpan#error()} is present.
      *
+     * <p><em>Note</em>: Zipkin format uses the {@linkplain Tags#ERROR "error" tag}, but
+     * alternative formats may have a different tag name or a field entirely. Hence, we only create the "error"
+     * tag here, and only if not previously set.
+     *
      * @since 2.13
      */
-    public Builder errorParser(ErrorParser errorParser) {
-      this.errorParser = errorParser;
+    public Builder errorTag(Tag<Throwable> errorTag) {
+      this.errorTag = errorTag;
       return this;
     }
 
@@ -103,18 +108,18 @@ public final class ZipkinSpanHandler extends SpanHandler {
   }
 
   final Reporter<Span> spanReporter;
-  final ErrorParser errorParser;
+  final Tag<Throwable> errorTag;
   final boolean alwaysReportSpans;
 
   ZipkinSpanHandler(Builder builder) {
     this.spanReporter = builder.spanReporter;
-    this.errorParser = builder.errorParser;
+    this.errorTag = builder.errorTag;
     this.alwaysReportSpans = builder.alwaysReportSpans;
   }
 
   @Override public boolean end(TraceContext context, MutableSpan span, Cause cause) {
     if (!alwaysReportSpans && !Boolean.TRUE.equals(context.sampled())) return true;
-    maybeAddErrorTag(span);
+    maybeAddErrorTag(context, span);
     Span converted = convert(context, span);
     spanReporter.report(converted);
     return true;
@@ -162,10 +167,10 @@ public final class ZipkinSpanHandler extends SpanHandler {
     return result.build();
   }
 
-  void maybeAddErrorTag(MutableSpan span) {
+  void maybeAddErrorTag(TraceContext context, MutableSpan span) {
     // span.tag(key) iterates: check if we need to first!
     if (span.error() == null) return;
-    if (span.tag("error") == null) errorParser.error(span.error(), span);
+    if (span.tag("error") == null) errorTag.tag(span.error(), context, span);
   }
 
   @Override public String toString() {
