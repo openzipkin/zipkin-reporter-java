@@ -30,6 +30,7 @@ import static brave.Span.Kind.CLIENT;
 import static brave.Span.Kind.CONSUMER;
 import static brave.Span.Kind.PRODUCER;
 import static brave.Span.Kind.SERVER;
+import static brave.handler.SpanHandler.Cause.ABANDONED;
 import static brave.handler.SpanHandler.Cause.FINISHED;
 import static brave.handler.SpanHandler.Cause.FLUSHED;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -109,6 +110,12 @@ public class ZipkinSpanHandlerTest {
     handler.end(context, new MutableSpan(), FINISHED);
 
     assertThat(spans).isEmpty();
+  }
+
+  @Test public void abandonedDoesntReport() {
+    handler.end(context, new MutableSpan(), ABANDONED);
+
+    assertThat(spans).hasSize(0);
   }
 
   @Test public void alwaysReportSpans_reportsUnsampledSpan() {

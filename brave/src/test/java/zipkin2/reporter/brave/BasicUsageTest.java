@@ -61,4 +61,17 @@ public class BasicUsageTest {
             + "\"tags\":{\"error\":\"this cake is a lie\"}}"
     );
   }
+
+  /** This shows that in practice, we don't report when the user tells us not to! */
+  @Test public void abandonedSpan() {
+    TraceContext context = B3SingleFormat.parseB3SingleFormat(
+        "50d980fffa300f29-86154a4ba6e91385-1"
+    ).context();
+
+    tracing.tracer().toSpan(context).name("test")
+        .start(1L)
+        .abandon(); // whoops.. don't need this one!
+
+    assertThat(spans).isEmpty();
+  }
 }
