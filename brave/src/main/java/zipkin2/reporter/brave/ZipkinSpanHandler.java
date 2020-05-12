@@ -118,10 +118,6 @@ public final class ZipkinSpanHandler extends SpanHandler {
   }
 
   @Override public boolean end(TraceContext context, MutableSpan span, Cause cause) {
-    // Abandon explicitly means don't send to the tracing system! This state might be used for
-    // tracking functions, so return true to retain vs false.
-    if (cause == Cause.ABANDONED) return true;
-
     if (!alwaysReportSpans && !Boolean.TRUE.equals(context.sampled())) return true;
     maybeAddErrorTag(context, span);
     Span converted = convert(context, span);
