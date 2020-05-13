@@ -42,12 +42,18 @@ Here's an example with Kafka configuration and extended configuration:
 Here's an example integrating with [Brave 5.12+](https://github.com/openzipkin/brave/tree/master/spring-beans)
 
 ```xml
-<bean id="tracing" class="brave.spring.beans.TracingFactoryBean">
-  <property name="localServiceName" value="${zipkin.service}"/>
-  <property name="spanHandlers">
-    <bean class="zipkin2.reporter.beans.ZipkinSpanHandlerFactoryBean">
-      <property name="spanReporter" ref="spanReporter"/>
+  <property name="sender">
+    <bean class="zipkin2.reporter.beans.OkHttpSenderFactoryBean">
+      <property name="endpoint" value="http://localhost:9411/api/v2/spans"/>
     </bean>
   </property>
-</bean>
+
+  <bean id="zipkinSpanHandler" class="zipkin2.reporter.beans.AsyncZipkinSpanHandlerFactoryBean">
+    <property name="sender" ref="sender"/>
+  </bean>
+
+  <bean id="tracing" class="brave.spring.beans.TracingFactoryBean">
+    <property name="localServiceName" value="${zipkin.service}"/>
+    <property name="spanHandlers" ref="zipkinSpanHandler" />
+  </bean>
 ```

@@ -13,25 +13,25 @@
  */
 package zipkin2.reporter.beans;
 
+import brave.Tag;
+import brave.propagation.TraceContext;
 import java.util.concurrent.TimeUnit;
 import org.junit.After;
 import org.junit.Test;
-import zipkin2.codec.Encoding;
-import zipkin2.codec.SpanBytesEncoder;
-import zipkin2.reporter.AsyncReporter;
 import zipkin2.reporter.ReporterMetrics;
 import zipkin2.reporter.Sender;
+import zipkin2.reporter.brave.AsyncZipkinSpanHandler;
+import zipkin2.reporter.brave.ZipkinSpanHandler;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class AsyncReporterFactoryBeanTest {
-
-  public static Sender SENDER = new FakeSender();
-  public static Sender PROTO3_SENDER = new FakeSender(){
-    @Override public Encoding encoding() {
-      return Encoding.PROTO3;
+public class AsyncZipkinSpanHandlerFactoryBeanTest {
+  public static final Tag<Throwable> ERROR_TAG = new Tag<Throwable>("error") {
+    @Override protected String parseValue(Throwable throwable, TraceContext traceContext) {
+      return null;
     }
   };
+  public static Sender SENDER = new FakeSender();
   public static ReporterMetrics METRICS = ReporterMetrics.NOOP_METRICS;
 
   XmlBeans context;
@@ -40,9 +40,44 @@ public class AsyncReporterFactoryBeanTest {
     if (context != null) context.close();
   }
 
+  @Test public void errorTag() {
+    context = new XmlBeans(""
+        + "<bean id=\"zipkinSpanHandler\" class=\"zipkin2.reporter.beans.AsyncZipkinSpanHandlerFactoryBean\">\n"
+        + "  <property name=\"sender\">\n"
+        + "    <util:constant static-field=\"" + getClass().getName() + ".SENDER\"/>\n"
+        + "  </property>\n"
+        + "  <property name=\"messageTimeout\" value=\"0\"/>\n" // disable thread for test
+        + "  <property name=\"errorTag\">\n"
+        + "    <util:constant static-field=\"" + getClass().getName() + ".ERROR_TAG\"/>\n"
+        + "  </property>\n"
+        + "</bean>\n"
+    );
+
+    assertThat(context.getBean("zipkinSpanHandler", AsyncZipkinSpanHandler.class))
+        .extracting("spanReporter.encoder.delegate.writer.errorTag")
+        .isSameAs(ERROR_TAG);
+  }
+
+  @Test public void alwaysReportSpans() {
+    context = new XmlBeans(""
+        + "<bean id=\"zipkinSpanHandler\" class=\"zipkin2.reporter.beans.AsyncZipkinSpanHandlerFactoryBean\">\n"
+        + "  <property name=\"sender\">\n"
+        + "    <util:constant static-field=\"" + getClass().getName() + ".SENDER\"/>\n"
+        + "  </property>\n"
+        + "  <property name=\"messageTimeout\" value=\"0\"/>\n" // disable thread for test
+        + "  <property name=\"alwaysReportSpans\" value=\"true\"/>\n"
+        + "</bean>"
+    );
+
+    assertThat(context.getBean("zipkinSpanHandler", AsyncZipkinSpanHandler.class))
+        .extracting("alwaysReportSpans")
+        .isEqualTo(true);
+  }
+
+  // below copied from AsyncReporterFactoryBean
   @Test public void sender() {
     context = new XmlBeans(""
-        + "<bean id=\"asyncReporter\" class=\"zipkin2.reporter.beans.AsyncReporterFactoryBean\">\n"
+        + "<bean id=\"zipkinSpanHandler\" class=\"zipkin2.reporter.beans.AsyncZipkinSpanHandlerFactoryBean\">\n"
         + "  <property name=\"sender\">\n"
         + "    <util:constant static-field=\"" + getClass().getName() + ".SENDER\"/>\n"
         + "  </property>\n"
@@ -50,14 +85,14 @@ public class AsyncReporterFactoryBeanTest {
         + "</bean>"
     );
 
-    assertThat(context.getBean("asyncReporter", AsyncReporter.class))
-        .extracting("sender")
+    assertThat(context.getBean("zipkinSpanHandler", AsyncZipkinSpanHandler.class))
+        .extracting("spanReporter.sender")
         .isEqualTo(SENDER);
   }
 
   @Test public void metrics() {
     context = new XmlBeans(""
-        + "<bean id=\"asyncReporter\" class=\"zipkin2.reporter.beans.AsyncReporterFactoryBean\">\n"
+        + "<bean id=\"zipkinSpanHandler\" class=\"zipkin2.reporter.beans.AsyncZipkinSpanHandlerFactoryBean\">\n"
         + "  <property name=\"sender\">\n"
         + "    <util:constant static-field=\"" + getClass().getName() + ".SENDER\"/>\n"
         + "  </property>\n"
@@ -68,14 +103,14 @@ public class AsyncReporterFactoryBeanTest {
         + "</bean>"
     );
 
-    assertThat(context.getBean("asyncReporter", AsyncReporter.class))
-        .extracting("metrics")
+    assertThat(context.getBean("zipkinSpanHandler", AsyncZipkinSpanHandler.class))
+        .extracting("spanReporter.metrics")
         .isEqualTo(METRICS);
   }
 
   @Test public void messageMaxBytes() {
     context = new XmlBeans(""
-        + "<bean id=\"asyncReporter\" class=\"zipkin2.reporter.beans.AsyncReporterFactoryBean\">\n"
+        + "<bean id=\"zipkinSpanHandler\" class=\"zipkin2.reporter.beans.AsyncZipkinSpanHandlerFactoryBean\">\n"
         + "  <property name=\"sender\">\n"
         + "    <util:constant static-field=\"" + getClass().getName() + ".SENDER\"/>\n"
         + "  </property>\n"
@@ -84,14 +119,14 @@ public class AsyncReporterFactoryBeanTest {
         + "</bean>"
     );
 
-    assertThat(context.getBean("asyncReporter", AsyncReporter.class))
-        .extracting("messageMaxBytes")
+    assertThat(context.getBean("zipkinSpanHandler", AsyncZipkinSpanHandler.class))
+        .extracting("spanReporter.messageMaxBytes")
         .isEqualTo(512);
   }
 
   @Test public void messageTimeout() {
     context = new XmlBeans(""
-        + "<bean id=\"asyncReporter\" class=\"zipkin2.reporter.beans.AsyncReporterFactoryBean\">\n"
+        + "<bean id=\"zipkinSpanHandler\" class=\"zipkin2.reporter.beans.AsyncZipkinSpanHandlerFactoryBean\">\n"
         + "  <property name=\"sender\">\n"
         + "    <util:constant static-field=\"" + getClass().getName() + ".SENDER\"/>\n"
         + "  </property>\n"
@@ -99,14 +134,14 @@ public class AsyncReporterFactoryBeanTest {
         + "</bean>"
     );
 
-    assertThat(context.getBean("asyncReporter", AsyncReporter.class))
-        .extracting("messageTimeoutNanos")
+    assertThat(context.getBean("zipkinSpanHandler", AsyncZipkinSpanHandler.class))
+        .extracting("spanReporter.messageTimeoutNanos")
         .isEqualTo(TimeUnit.MILLISECONDS.toNanos(500));
   }
 
   @Test public void closeTimeout() {
     context = new XmlBeans(""
-        + "<bean id=\"asyncReporter\" class=\"zipkin2.reporter.beans.AsyncReporterFactoryBean\">\n"
+        + "<bean id=\"zipkinSpanHandler\" class=\"zipkin2.reporter.beans.AsyncZipkinSpanHandlerFactoryBean\">\n"
         + "  <property name=\"sender\">\n"
         + "    <util:constant static-field=\"" + getClass().getName() + ".SENDER\"/>\n"
         + "  </property>\n"
@@ -115,14 +150,14 @@ public class AsyncReporterFactoryBeanTest {
         + "</bean>"
     );
 
-    assertThat(context.getBean("asyncReporter", AsyncReporter.class))
-        .extracting("closeTimeoutNanos")
+    assertThat(context.getBean("zipkinSpanHandler", AsyncZipkinSpanHandler.class))
+        .extracting("spanReporter.closeTimeoutNanos")
         .isEqualTo(TimeUnit.MILLISECONDS.toNanos(500));
   }
 
   @Test public void queuedMaxSpans() {
     context = new XmlBeans(""
-        + "<bean id=\"asyncReporter\" class=\"zipkin2.reporter.beans.AsyncReporterFactoryBean\">\n"
+        + "<bean id=\"zipkinSpanHandler\" class=\"zipkin2.reporter.beans.AsyncZipkinSpanHandlerFactoryBean\">\n"
         + "  <property name=\"sender\">\n"
         + "    <util:constant static-field=\"" + getClass().getName() + ".SENDER\"/>\n"
         + "  </property>\n"
@@ -131,14 +166,14 @@ public class AsyncReporterFactoryBeanTest {
         + "</bean>"
     );
 
-    assertThat(context.getBean("asyncReporter", AsyncReporter.class))
-        .extracting("pending.maxSize")
+    assertThat(context.getBean("zipkinSpanHandler", AsyncZipkinSpanHandler.class))
+        .extracting("spanReporter.pending.maxSize")
         .isEqualTo(10);
   }
 
   @Test public void queuedMaxBytes() {
     context = new XmlBeans(""
-        + "<bean id=\"asyncReporter\" class=\"zipkin2.reporter.beans.AsyncReporterFactoryBean\">\n"
+        + "<bean id=\"zipkinSpanHandler\" class=\"zipkin2.reporter.beans.AsyncZipkinSpanHandlerFactoryBean\">\n"
         + "  <property name=\"sender\">\n"
         + "    <util:constant static-field=\"" + getClass().getName() + ".SENDER\"/>\n"
         + "  </property>\n"
@@ -147,39 +182,8 @@ public class AsyncReporterFactoryBeanTest {
         + "</bean>"
     );
 
-    assertThat(context.getBean("asyncReporter", AsyncReporter.class))
-        .extracting("pending.maxBytes")
+    assertThat(context.getBean("zipkinSpanHandler", AsyncZipkinSpanHandler.class))
+        .extracting("spanReporter.pending.maxBytes")
         .isEqualTo(512);
-  }
-
-  @Test public void sender_proto3() {
-    context = new XmlBeans(""
-        + "<bean id=\"asyncReporter\" class=\"zipkin2.reporter.beans.AsyncReporterFactoryBean\">\n"
-        + "  <property name=\"sender\">\n"
-        + "    <util:constant static-field=\"" + getClass().getName() + ".PROTO3_SENDER\"/>\n"
-        + "  </property>\n"
-        + "  <property name=\"messageTimeout\" value=\"0\"/>\n" // disable thread for test
-        + "</bean>"
-    );
-
-    assertThat(context.getBean("asyncReporter", AsyncReporter.class))
-        .extracting("encoder")
-        .isEqualTo(SpanBytesEncoder.PROTO3);
-  }
-
-  @Test public void encoder() {
-    context = new XmlBeans(""
-        + "<bean id=\"asyncReporter\" class=\"zipkin2.reporter.beans.AsyncReporterFactoryBean\">\n"
-        + "  <property name=\"sender\">\n"
-        + "    <util:constant static-field=\"" + getClass().getName() + ".PROTO3_SENDER\"/>\n"
-        + "  </property>\n"
-        + "  <property name=\"encoder\" value=\"PROTO3\"/>\n"
-        + "  <property name=\"messageTimeout\" value=\"0\"/>\n" // disable thread for test
-        + "</bean>"
-    );
-
-    assertThat(context.getBean("asyncReporter", AsyncReporter.class))
-        .extracting("encoder")
-        .isEqualTo(SpanBytesEncoder.PROTO3);
   }
 }
