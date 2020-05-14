@@ -27,8 +27,7 @@ import zipkin2.reporter.Reporter;
  * reporter}.
  *
  * <p>If you can't use {@link AsyncZipkinSpanHandler} because you are using an old format,
- * construct
- * the span handler like this:
+ * construct the span handler like this:
  * <pre>{@code
  * reporter = AsyncReporter.builder(URLConnectionSender.create("http://localhost:9411/api/v1/spans"))
  *                         .build(SpanBytesEncoder.JSON_V1);
@@ -132,6 +131,10 @@ public class ZipkinSpanHandler extends SpanHandler {
     if (!alwaysReportSpans && !Boolean.TRUE.equals(context.sampled())) return true;
     spanReporter.report(span);
     return true;
+  }
+
+  @Override public String toString() {
+    return spanReporter.toString();
   }
 
   /**
