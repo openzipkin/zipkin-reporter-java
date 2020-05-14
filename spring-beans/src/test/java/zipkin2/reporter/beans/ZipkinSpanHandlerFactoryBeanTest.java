@@ -18,7 +18,9 @@ import brave.propagation.TraceContext;
 import org.junit.After;
 import org.junit.Test;
 import zipkin2.reporter.Reporter;
+import zipkin2.reporter.Sender;
 import zipkin2.reporter.brave.ZipkinSpanHandler;
+import zipkin2.reporter.urlconnection.URLConnectionSender;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -45,7 +47,7 @@ public class ZipkinSpanHandlerFactoryBeanTest {
     );
 
     assertThat(context.getBean("zipkinSpanHandler", ZipkinSpanHandler.class))
-        .extracting("spanReporter")
+        .extracting("spanReporter.delegate")
         .isEqualTo(Reporter.CONSOLE);
   }
 
@@ -62,7 +64,7 @@ public class ZipkinSpanHandlerFactoryBeanTest {
     );
 
     assertThat(context.getBean("zipkinSpanHandler", ZipkinSpanHandler.class))
-        .extracting("errorTag")
+        .extracting("spanReporter.errorTag")
         .isSameAs(ERROR_TAG);
   }
 

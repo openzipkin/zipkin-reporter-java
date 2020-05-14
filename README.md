@@ -38,12 +38,14 @@ reporter.report(span);
 ```
 
 ## Brave
-Those using the [Brave library](https://github.com/openzipkin/brave) can adapt
-the `Reporter<Span>` here to a Brave `SpanHandler`.
+Those using the [Brave library](https://github.com/openzipkin/brave) can skip
+overhead by using `AsyncZipkinSpanHandler`.
 
 Ex.
 ```java
-tracingBuilder.addSpanHandler(ZipkinSpanHandler.create(reporter));
+sender = URLConnectionSender.create("http://localhost:9411/api/v2/spans");
+zipkinSpanHandler = AsyncZipkinSpanHandler.create(sender); // don't forget to close!
+tracingBuilder.addSpanHandler(zipkinSpanHandler);
 ```
 
 See [zipkin-reporter-brave](brave/README.md) for more details.

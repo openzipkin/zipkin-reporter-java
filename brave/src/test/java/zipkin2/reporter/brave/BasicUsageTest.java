@@ -14,24 +14,34 @@
 package zipkin2.reporter.brave;
 
 import brave.Tracing;
+import brave.handler.SpanHandler;
 import brave.propagation.B3SingleFormat;
 import brave.propagation.TraceContext;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import zipkin2.Span;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class BasicUsageTest {
+abstract class BasicUsageTest<H extends SpanHandler> {
   List<Span> spans = new ArrayList<>();
-  Tracing tracing = Tracing.newBuilder()
-      .localServiceName("Aa")
-      .localIp("1.2.3.4")
-      .localPort(80)
-      .addSpanHandler(ZipkinSpanHandler.create(spans::add))
-      .build();
+  H zipkinSpanHandler;
+  Tracing tracing;
+
+  abstract H zipkinSpanHandler(List<Span> spans);
+
+  @Before public void init() {
+    zipkinSpanHandler = zipkinSpanHandler(spans);
+    tracing = Tracing.newBuilder()
+        .localServiceName("Aa")
+        .localIp("1.2.3.4")
+        .localPort(80)
+        .addSpanHandler(zipkinSpanHandler)
+        .build();
+  }
 
   @After public void close() {
     tracing.close();
@@ -48,6 +58,8 @@ public class BasicUsageTest {
         .error(new RuntimeException("this cake is a lie"))
         .finish(3L);
 
+    triggerReport();
+
     assertThat(spans.get(0)).hasToString(
         "{\"traceId\":\"50d980fffa300f29\","
             + "\"id\":\"86154a4ba6e91385\","
@@ -62,6 +74,10 @@ public class BasicUsageTest {
     );
   }
 
+  void triggerReport() {
+
+  }
+
   /** This shows that in practice, we don't report when the user tells us not to! */
   @Test public void abandonedSpan() {
     TraceContext context = B3SingleFormat.parseB3SingleFormat(
@@ -71,6 +87,8 @@ public class BasicUsageTest {
     tracing.tracer().toSpan(context).name("test")
         .start(1L)
         .abandon(); // whoops.. don't need this one!
+
+    triggerReport();
 
     assertThat(spans).isEmpty();
   }
