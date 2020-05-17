@@ -13,6 +13,10 @@
  */
 package zipkin2.reporter;
 
+import static java.lang.String.format;
+import static java.util.logging.Level.FINE;
+import static java.util.logging.Level.WARNING;
+
 import java.io.Flushable;
 import java.util.ArrayList;
 import java.util.List;
@@ -23,16 +27,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import zipkin2.Call;
 import zipkin2.CheckResult;
 import zipkin2.Component;
 import zipkin2.Span;
 import zipkin2.codec.BytesEncoder;
 import zipkin2.codec.SpanBytesEncoder;
-
-import static java.lang.String.format;
-import static java.util.logging.Level.FINE;
-import static java.util.logging.Level.WARNING;
 
 /**
  * As spans are reported, they are encoded and added to a pending queue. The task of sending spans
