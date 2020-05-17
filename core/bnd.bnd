@@ -2,4 +2,4 @@ Import-Package: \
   *
 Export-Package: \
   zipkin2.reporter,\
-  brave.internal;braveinternal=true;mandatory:=braveinternal
+  zipkin2.reporter.internal;zipkinreporterinternal=true;mandatory:=zipkinreporterinternal
