@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2019 The OpenZipkin Authors
+ * Copyright 2016-2020 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -19,6 +19,7 @@ import zipkin2.Call;
 import zipkin2.Component;
 import zipkin2.codec.BytesEncoder;
 import zipkin2.codec.Encoding;
+import zipkin2.reporter.internal.InternalReporter;
 
 /**
  * Sends a list of encoded spans to a transport such as http or Kafka. Usually, this involves
@@ -89,4 +90,12 @@ public abstract class Sender extends Component {
    * @throws IllegalStateException if {@link #close() close} was called.
    */
   public abstract Call<Void> sendSpans(List<byte[]> encodedSpans);
+
+  static {
+    InternalReporter.instance = new InternalReporter() {
+      @Override public AsyncReporter.Builder toBuilder(AsyncReporter<?> asyncReporter) {
+        return ((AsyncReporter.BoundedAsyncReporter) asyncReporter).toBuilder();
+      }
+    };
+  }
 }

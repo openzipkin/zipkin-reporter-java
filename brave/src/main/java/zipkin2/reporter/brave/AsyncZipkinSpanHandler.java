@@ -14,7 +14,6 @@
 package zipkin2.reporter.brave;
 
 import brave.Tag;
-import brave.handler.MutableSpan;
 import brave.handler.SpanHandler;
 import java.io.Closeable;
 import java.io.Flushable;
@@ -23,6 +22,7 @@ import java.util.concurrent.TimeUnit;
 import zipkin2.reporter.AsyncReporter;
 import zipkin2.reporter.ReporterMetrics;
 import zipkin2.reporter.Sender;
+import zipkin2.reporter.internal.InternalReporter;
 
 /**
  * A {@link brave.handler.SpanHandler} that queues spans on {@link #end} to bundle and send as a
@@ -53,9 +53,19 @@ public final class AsyncZipkinSpanHandler extends ZipkinSpanHandler
     return new Builder(sender);
   }
 
-  /** @since 5.14 */
+  @Override public Builder toBuilder() {
+    return new Builder(this);
+  }
+
+  /** @since 2.14 */
   public static final class Builder extends ZipkinSpanHandler.Builder {
     final AsyncReporter.Builder delegate;
+
+    Builder(AsyncZipkinSpanHandler zipkinSpanHandler) {
+      super(zipkinSpanHandler);
+      delegate = InternalReporter.instance.toBuilder(
+          (AsyncReporter<?>) zipkinSpanHandler.spanReporter);
+    }
 
     Builder(Sender sender) {
       this.delegate = AsyncReporter.builder(sender);
@@ -134,13 +144,13 @@ public final class AsyncZipkinSpanHandler extends ZipkinSpanHandler
 
     // AsyncZipkinSpanHandler not SpanHandler, so that Flushable and Closeable are accessible
     public AsyncZipkinSpanHandler build() {
-      return new AsyncZipkinSpanHandler(delegate.build(new JsonV2Encoder(errorTag)),
-          alwaysReportSpans);
+      return new AsyncZipkinSpanHandler(this);
     }
   }
 
-  AsyncZipkinSpanHandler(AsyncReporter<MutableSpan> asyncReporter, boolean alwaysReportSpans) {
-    super(asyncReporter, alwaysReportSpans);
+  AsyncZipkinSpanHandler(Builder builder) {
+    super(builder.delegate.build(new JsonV2Encoder(builder.errorTag)),
+        builder.errorTag, builder.alwaysReportSpans);
   }
 
   @Override public void flush() {

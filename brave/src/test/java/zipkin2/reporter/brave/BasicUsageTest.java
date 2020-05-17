@@ -14,9 +14,9 @@
 package zipkin2.reporter.brave;
 
 import brave.Tracing;
-import brave.handler.SpanHandler;
 import brave.propagation.B3SingleFormat;
 import brave.propagation.TraceContext;
+import brave.propagation.TraceContextOrSamplingFlags;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.After;
@@ -26,7 +26,7 @@ import zipkin2.Span;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-abstract class BasicUsageTest<H extends SpanHandler> {
+abstract class BasicUsageTest<H extends ZipkinSpanHandler> {
   List<Span> spans = new ArrayList<>();
   H zipkinSpanHandler;
   Tracing tracing;
@@ -45,6 +45,32 @@ abstract class BasicUsageTest<H extends SpanHandler> {
 
   @After public void close() {
     tracing.close();
+  }
+
+  @Test public void reconfigure() {
+    tracing.close();
+    zipkinSpanHandler.close();
+
+    zipkinSpanHandler = (H) zipkinSpanHandler.toBuilder().alwaysReportSpans(true).build();
+    tracing = Tracing.newBuilder()
+        .localServiceName("Aa")
+        .localIp("1.2.3.4")
+        .localPort(80)
+        .addSpanHandler(zipkinSpanHandler)
+        .alwaysSampleLocal()
+        .build();
+
+    brave.Span unsampledRemote =
+        tracing.tracer().nextSpan(TraceContextOrSamplingFlags.NOT_SAMPLED).name("test").start(1L);
+    assertThat(unsampledRemote.isNoop()).isFalse();
+    assertThat(unsampledRemote.context().sampled()).isFalse();
+    assertThat(unsampledRemote.context().sampledLocal()).isTrue();
+    unsampledRemote.finish(2L);
+
+    triggerReport();
+
+    // alwaysReportSpans applied
+    assertThat(spans).isNotEmpty();
   }
 
   /** This mainly shows endpoints are taken from Brave, and error is back-filled. */
@@ -87,6 +113,19 @@ abstract class BasicUsageTest<H extends SpanHandler> {
     tracing.tracer().toSpan(context).name("test")
         .start(1L)
         .abandon(); // whoops.. don't need this one!
+
+    triggerReport();
+
+    assertThat(spans).isEmpty();
+  }
+
+  @Test public void unsampledSpan() {
+    brave.Span unsampledRemote =
+        tracing.tracer().nextSpan(TraceContextOrSamplingFlags.NOT_SAMPLED).name("test").start(1L);
+    assertThat(unsampledRemote.isNoop()).isTrue();
+    assertThat(unsampledRemote.context().sampled()).isFalse();
+    assertThat(unsampledRemote.context().sampledLocal()).isFalse();
+    unsampledRemote.finish(2L);
 
     triggerReport();
 

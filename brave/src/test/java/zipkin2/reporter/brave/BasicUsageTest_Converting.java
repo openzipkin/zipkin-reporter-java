@@ -13,12 +13,11 @@
  */
 package zipkin2.reporter.brave;
 
-import brave.handler.SpanHandler;
 import java.util.List;
 import zipkin2.Span;
 
-public class BasicUsageTest_Converting extends BasicUsageTest<SpanHandler> {
-  @Override SpanHandler zipkinSpanHandler(List<Span> spans) {
-    return ZipkinSpanHandler.create(spans::add);
+public class BasicUsageTest_Converting extends BasicUsageTest<ZipkinSpanHandler> {
+  @Override ZipkinSpanHandler zipkinSpanHandler(List<Span> spans) {
+    return (ZipkinSpanHandler) ZipkinSpanHandler.create(spans::add);
   }
 }

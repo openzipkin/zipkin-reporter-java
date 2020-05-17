@@ -13,6 +13,7 @@
  */
 package zipkin2.reporter.brave;
 
+import brave.Tags;
 import brave.handler.MutableSpan;
 import brave.handler.SpanHandler;
 import brave.propagation.TraceContext;
@@ -44,7 +45,7 @@ public class ZipkinSpanHandlerTest {
     defaultSpan.localServiceName("Aa");
     defaultSpan.localIp("1.2.3.4");
     defaultSpan.localPort(80);
-    handler = new ZipkinSpanHandler(spans, false);
+    handler = new ZipkinSpanHandler(spans, Tags.ERROR, false);
   }
 
   @Test public void noopIsNoop() {
@@ -55,9 +56,9 @@ public class ZipkinSpanHandlerTest {
   @Test public void equalsAndHashCode() {
     assertThat(handler)
         .hasSameHashCodeAs(spans)
-        .isEqualTo(new ZipkinSpanHandler(spans, false));
+        .isEqualTo(new ZipkinSpanHandler(spans, Tags.ERROR, false));
 
-    ZipkinSpanHandler otherHandler = new ZipkinSpanHandler(spans::add, false);
+    ZipkinSpanHandler otherHandler = new ZipkinSpanHandler(spans::add, Tags.ERROR, false);
 
     assertThat(handler)
         .isNotEqualTo(otherHandler)
@@ -100,7 +101,7 @@ public class ZipkinSpanHandlerTest {
   }
 
   @Test public void alwaysReportSpans_reportsUnsampledSpan() {
-    handler = new ZipkinSpanHandler(spans, true);
+    handler = new ZipkinSpanHandler(spans, Tags.ERROR, true);
 
     TraceContext context =
         TraceContext.newBuilder().traceId(1).spanId(2).sampled(false).sampledLocal(true).build();
@@ -110,7 +111,7 @@ public class ZipkinSpanHandlerTest {
   }
 
   @Test public void alwaysReportSpans_doesNotHandleAbandoned() {
-    handler = new ZipkinSpanHandler(spans, true);
+    handler = new ZipkinSpanHandler(spans, Tags.ERROR, true);
     assertThat(handler.handlesAbandoned()).isFalse();
   }
 }
