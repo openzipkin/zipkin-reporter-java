@@ -18,6 +18,7 @@ import brave.Tags;
 import brave.handler.MutableSpan;
 import brave.handler.SpanHandler;
 import brave.propagation.TraceContext;
+import java.io.Closeable;
 import zipkin2.Span;
 import zipkin2.codec.SpanBytesEncoder;
 import zipkin2.reporter.Reporter;
@@ -43,7 +44,7 @@ import zipkin2.reporter.Reporter;
  * @see brave.Tracing.Builder#addSpanHandler(SpanHandler)
  * @since 2.13
  */
-public class ZipkinSpanHandler extends SpanHandler {
+public class ZipkinSpanHandler extends SpanHandler implements Closeable {
   /** @since 2.13 */
   // SpanHandler not ZipkinSpanHandler as it can coerce to NOOP
   public static SpanHandler create(Reporter<Span> spanReporter) {
@@ -53,27 +54,39 @@ public class ZipkinSpanHandler extends SpanHandler {
   /** @since 2.13 */
   public static Builder newBuilder(Reporter<Span> spanReporter) {
     if (spanReporter == null) throw new NullPointerException("spanReporter == null");
-    return new ConvertingSpanReporterBuilder(spanReporter);
+    return new ConvertingZipkinSpanHandler.Builder(spanReporter);
   }
 
-  static final class ConvertingSpanReporterBuilder extends Builder {
-    final Reporter<Span> spanReporter;
+  /**
+   * Allows this instance to be reconfigured, for example {@link Builder#alwaysReportSpans(boolean)}.
+   *
+   * <p><em>Note:</em> Call {@link #close()} if you no longer need this instance, as otherwise it
+   * can leak resources.
+   *
+   * @since 2.15
+   */
+  public Builder toBuilder() {
+    // For testing, this is easier than making the type abstract: It is package sealed anyway!
+    throw new UnsupportedOperationException();
+  }
 
-    ConvertingSpanReporterBuilder(Reporter<Span> spanReporter) {
-      this.spanReporter = spanReporter;
-    }
-
-    // SpanHandler not ZipkinSpanHandler as it can coerce to NOOP
-    @Override public SpanHandler build() {
-      if (spanReporter == Reporter.NOOP) return SpanHandler.NOOP;
-      return new ZipkinSpanHandler(new ConvertingSpanReporter(spanReporter, errorTag),
-          alwaysReportSpans);
-    }
+  /**
+   * Implementations that throw exceptions on close have bugs. This may result in log warnings,
+   * though.
+   *
+   * @since 2.15
+   */
+  @Override public void close() {
   }
 
   public static abstract class Builder {
     Tag<Throwable> errorTag = Tags.ERROR;
     boolean alwaysReportSpans;
+
+    Builder(ZipkinSpanHandler zipkinSpanHandler) {
+      errorTag = zipkinSpanHandler.errorTag;
+      this.alwaysReportSpans = zipkinSpanHandler.alwaysReportSpans;
+    }
 
     Builder() { // sealed
     }
@@ -120,10 +133,13 @@ public class ZipkinSpanHandler extends SpanHandler {
   }
 
   final Reporter<MutableSpan> spanReporter;
+  final Tag<Throwable> errorTag; // for toBuilder()
   final boolean alwaysReportSpans;
 
-  ZipkinSpanHandler(Reporter<MutableSpan> spanReporter, boolean alwaysReportSpans) {
+  ZipkinSpanHandler(Reporter<MutableSpan> spanReporter, Tag<Throwable> errorTag,
+      boolean alwaysReportSpans) {
     this.spanReporter = spanReporter;
+    this.errorTag = errorTag;
     this.alwaysReportSpans = alwaysReportSpans;
   }
 

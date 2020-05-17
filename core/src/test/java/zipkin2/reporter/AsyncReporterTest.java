@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2019 The OpenZipkin Authors
+ * Copyright 2016-2020 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -275,11 +275,16 @@ public class AsyncReporterTest {
   }
 
   @Test
-  public void close_close_stopsSender() throws InterruptedException {
+  public void close_close_stopsFlushThread() throws InterruptedException {
     reporter = AsyncReporter.builder(FakeSender.create())
         .metrics(metrics)
         .messageTimeout(2, TimeUnit.MILLISECONDS)
         .build();
+
+    // Reporter thread is lazy
+    assertThat(reporter).extracting("started.get").isEqualTo(false);
+    reporter.report(span);
+    assertThat(reporter).extracting("started.get").isEqualTo(true);
 
     reporter.close();
 
@@ -375,9 +380,9 @@ public class AsyncReporterTest {
         .messageTimeout(30, TimeUnit.SECONDS)
         .build();
 
+    reporter.report(span);
     Thread.sleep(500); // wait for the thread to start
 
-    reporter.report(span);
     reporter.close(); // close while there's a pending span
 
     assertThat(metrics.spans()).isEqualTo(1);
@@ -450,9 +455,13 @@ public class AsyncReporterTest {
 
   @Test public void build_threadFactory() {
     Thread thread = new Thread();
-    AsyncReporter.builder(FakeSender.create())
+    reporter = AsyncReporter.builder(FakeSender.create())
       .threadFactory(r -> thread)
       .build();
+
+    // Reporter thread is lazy
+    assertThat(thread.isAlive()).isFalse();
+    reporter.report(span);
 
     assertThat(thread.getName()).isEqualTo("AsyncReporter{FakeSender}");
     assertThat(thread.toString()).contains("AsyncReporter{FakeSender}");

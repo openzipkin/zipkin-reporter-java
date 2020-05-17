@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2019 The OpenZipkin Authors
+ * Copyright 2016-2020 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -89,6 +89,17 @@ public abstract class AsyncReporter<S> extends Component implements Reporter<S>,
     long closeTimeoutNanos = TimeUnit.SECONDS.toNanos(1);
     int queuedMaxSpans = 10000;
     int queuedMaxBytes = onePercentOfMemory();
+
+    Builder(BoundedAsyncReporter<?> asyncReporter) {
+      this.sender = asyncReporter.sender;
+      this.threadFactory = asyncReporter.threadFactory;
+      this.metrics = asyncReporter.metrics;
+      this.messageMaxBytes = asyncReporter.messageMaxBytes;
+      this.messageTimeoutNanos = asyncReporter.messageTimeoutNanos;
+      this.closeTimeoutNanos = asyncReporter.closeTimeoutNanos;
+      this.queuedMaxSpans = asyncReporter.pending.maxSize;
+      this.queuedMaxBytes = asyncReporter.pending.maxBytes;
+    }
 
     static int onePercentOfMemory() {
       long result = (long) (Runtime.getRuntime().totalMemory() * 0.01);
@@ -191,31 +202,21 @@ public abstract class AsyncReporter<S> extends Component implements Reporter<S>,
             "Encoder doesn't match Sender: %s %s", encoder.encoding(), sender.encoding()));
       }
 
-      final BoundedAsyncReporter<S> result = new BoundedAsyncReporter<>(this, encoder);
-
-      if (messageTimeoutNanos > 0) { // Start a thread that flushes the queue in a loop.
-        final BufferNextMessage<S> consumer =
-            BufferNextMessage.create(encoder.encoding(), messageMaxBytes, messageTimeoutNanos);
-        Thread flushThread = threadFactory.newThread(new Flusher<>(result, consumer));
-        flushThread.setName("AsyncReporter{" + sender + "}");
-        flushThread.setDaemon(true);
-        flushThread.start();
-      }
-      return result;
+      return new BoundedAsyncReporter<>(this, encoder);
     }
   }
 
   static final class BoundedAsyncReporter<S> extends AsyncReporter<S> {
     static final Logger logger = Logger.getLogger(BoundedAsyncReporter.class.getName());
-    final AtomicBoolean closed;
+    final AtomicBoolean started, closed;
     final BytesEncoder<S> encoder;
     final ByteBoundedQueue<S> pending;
     final Sender sender;
     final int messageMaxBytes;
-    final long messageTimeoutNanos;
-    final long closeTimeoutNanos;
+    final long messageTimeoutNanos, closeTimeoutNanos;
     final CountDownLatch close;
     final ReporterMetrics metrics;
+    final ThreadFactory threadFactory;
 
     /** Tracks if we should log the first instance of an exception in flush(). */
     private boolean shouldWarnException = true;
@@ -227,13 +228,27 @@ public abstract class AsyncReporter<S> extends Component implements Reporter<S>,
       this.messageTimeoutNanos = builder.messageTimeoutNanos;
       this.closeTimeoutNanos = builder.closeTimeoutNanos;
       this.closed = new AtomicBoolean(false);
+      // pretend we already started when config implies no thread that flushes the queue in a loop.
+      this.started = new AtomicBoolean(builder.messageTimeoutNanos == 0);
       this.close = new CountDownLatch(builder.messageTimeoutNanos > 0 ? 1 : 0);
       this.metrics = builder.metrics;
+      this.threadFactory = builder.threadFactory;
       this.encoder = encoder;
+    }
+
+    void startFlusherThread() {
+      BufferNextMessage<S> consumer =
+          BufferNextMessage.create(encoder.encoding(), messageMaxBytes, messageTimeoutNanos);
+      Thread flushThread = threadFactory.newThread(new Flusher<>(this, consumer));
+      flushThread.setName("AsyncReporter{" + sender + "}");
+      flushThread.setDaemon(true);
+      flushThread.start();
     }
 
     @Override public void report(S next) {
       if (next == null) throw new NullPointerException("span == null");
+      // Lazy start so that reporters never used don't spawn threads
+      if (started.compareAndSet(false, true)) startFlusherThread();
       metrics.incrementSpans(1);
       int nextSizeInBytes = encoder.sizeInBytes(next);
       int messageSizeOfNextSpan = sender.messageSizeInBytes(nextSizeInBytes);
@@ -320,6 +335,7 @@ public abstract class AsyncReporter<S> extends Component implements Reporter<S>,
 
     @Override public void close() {
       if (!closed.compareAndSet(false, true)) return; // already closed
+      started.set(true); // prevent anything from starting the thread after close!
       try {
         // wait for in-flight spans to send
         if (!close.await(closeTimeoutNanos, TimeUnit.NANOSECONDS)) {
@@ -334,6 +350,10 @@ public abstract class AsyncReporter<S> extends Component implements Reporter<S>,
         metrics.incrementSpansDropped(count);
         logger.warning("Dropped " + count + " spans due to AsyncReporter.close()");
       }
+    }
+
+    Builder toBuilder() {
+      return new Builder(this);
     }
 
     @Override public String toString() {
