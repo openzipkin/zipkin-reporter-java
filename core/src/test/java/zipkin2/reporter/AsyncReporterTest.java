@@ -380,9 +380,9 @@ public class AsyncReporterTest {
         .messageTimeout(30, TimeUnit.SECONDS)
         .build();
 
+    reporter.report(span);
     Thread.sleep(500); // wait for the thread to start
 
-    reporter.report(span);
     reporter.close(); // close while there's a pending span
 
     assertThat(metrics.spans()).isEqualTo(1);

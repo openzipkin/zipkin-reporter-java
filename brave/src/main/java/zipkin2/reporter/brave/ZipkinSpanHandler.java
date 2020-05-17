@@ -21,7 +21,6 @@ import brave.propagation.TraceContext;
 import java.io.Closeable;
 import zipkin2.Span;
 import zipkin2.codec.SpanBytesEncoder;
-import zipkin2.reporter.AsyncReporter;
 import zipkin2.reporter.Reporter;
 
 /**
@@ -61,8 +60,8 @@ public class ZipkinSpanHandler extends SpanHandler implements Closeable {
   /**
    * Allows this instance to be reconfigured, for example {@link Builder#alwaysReportSpans(boolean)}.
    *
-   * <p><em>Note:</em>If the instance  {@link AsyncReporter#close()} if you no longer need this
-   * instance, as otherwise it can leak its reporting thread.
+   * <p><em>Note:</em> Call {@link #close()} if you no longer need this instance, as otherwise it
+   * can leak resources.
    *
    * @since 2.15
    */
