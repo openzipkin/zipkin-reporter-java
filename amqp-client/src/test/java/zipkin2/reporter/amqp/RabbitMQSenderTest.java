@@ -24,10 +24,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static zipkin2.TestObjects.CLIENT_SPAN;
 import static zipkin2.reporter.amqp.ITRabbitMQSender.send;
 
-/** This works against a running RabbitMQ server on localhost */
 public class RabbitMQSenderTest {
+  // We can be pretty certain RabbitMQ isn't running on localhost port 80
   RabbitMQSender sender = RabbitMQSender.newBuilder()
-      .connectionTimeout(100).addresses("1.2.3.4:1213").build();
+      .connectionTimeout(100).addresses("localhost:80").build();
 
   @Test public void checkFalseWhenRabbitMQIsDown() {
     CheckResult check = sender.check();
@@ -51,7 +51,7 @@ public class RabbitMQSenderTest {
    */
   @Test public void toStringContainsOnlySummaryInformation() {
     assertThat(sender).hasToString(
-        "RabbitMQSender{addresses=[1.2.3.4:1213], queue=zipkin}"
+        "RabbitMQSender{addresses=[localhost:80], queue=zipkin}"
     );
   }
 }
