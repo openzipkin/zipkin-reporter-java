@@ -59,8 +59,6 @@ class RabbitMQSenderRule extends ExternalResource {
     }
 
     declareQueue(QUEUE);
-
-    tryToInitializeSender(newSenderBuilder());
   }
 
   RabbitMQSender tryToInitializeSender(RabbitMQSender.Builder senderBuilder) {
