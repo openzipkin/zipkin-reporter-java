@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2019 The OpenZipkin Authors
+ * Copyright 2016-2020 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -29,6 +29,8 @@ import zipkin2.reporter.AsyncReporter;
 import zipkin2.reporter.BytesMessageEncoder;
 import zipkin2.reporter.ClosedSenderException;
 import zipkin2.reporter.Sender;
+
+import static zipkin2.Call.propagateIfFatal;
 
 /**
  * This sends (usually json v2) encoded spans to a RabbitMQ queue.
@@ -221,9 +223,10 @@ public final class RabbitMQSender extends Sender {
   /** Ensures there are no connection issues. */
   @Override public CheckResult check() {
     try {
-      if (get().isOpen()) return CheckResult.OK;
+      if (localChannel().isOpen()) return CheckResult.OK;
       throw new IllegalStateException("Not Open");
-    } catch (RuntimeException e) {
+    } catch (Throwable e) {
+      propagateIfFatal(e);
       return CheckResult.failed(e);
     }
   }
@@ -258,7 +261,7 @@ public final class RabbitMQSender extends Sender {
     closeCalled = true;
   }
 
-  final ThreadLocal<Channel> CHANNEL_BUFFER = new ThreadLocal<>();
+  final ThreadLocal<Channel> CHANNEL = new ThreadLocal<>();
 
   /**
    * In most circumstances there will only be one thread calling {@link #sendSpans(List)}, the
@@ -267,10 +270,10 @@ public final class RabbitMQSender extends Sender {
    * roundtrips.
    */
   Channel localChannel() throws IOException {
-    Channel channel = CHANNEL_BUFFER.get();
+    Channel channel = CHANNEL.get();
     if (channel == null) {
       channel = get().createChannel();
-      CHANNEL_BUFFER.set(channel);
+      CHANNEL.set(channel);
     }
     return channel;
   }

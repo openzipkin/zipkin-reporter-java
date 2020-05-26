@@ -4,6 +4,9 @@ cache:
   directories:
     - $HOME/.m2
 
+services:
+  - docker
+
 language: java
 
 jdk: openjdk13

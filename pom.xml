@@ -60,7 +60,7 @@
     <zipkin.version>2.21.1</zipkin.version>
 
     <!-- Do not set this value in bom/pom.xml to avoid cyclic pinning -->
-    <brave.version>5.12.0</brave.version>
+    <brave.version>5.12.3</brave.version>
 
     <license-maven-plugin.version>3.0</license-maven-plugin.version>
     <maven-failsafe-plugin.version>3.0.0-M4</maven-failsafe-plugin.version>
@@ -148,6 +148,11 @@
         <groupId>com.squareup.okhttp3</groupId>
         <artifactId>mockwebserver</artifactId>
         <version>3.14.7</version>
+      </dependency>
+      <dependency>
+        <groupId>org.testcontainers</groupId>
+        <artifactId>testcontainers</artifactId>
+        <version>1.14.2</version>
       </dependency>
       <dependency>
         <groupId>ch.qos.logback</groupId>
