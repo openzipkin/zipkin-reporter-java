@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2019 The OpenZipkin Authors
+ * Copyright 2016-2020 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -18,6 +18,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -225,12 +226,22 @@ public final class OkHttpSender extends Sender {
         // the AsyncReporter flush thread. This is ok, as the AsyncReporter has a buffer of
         // unsent spans for this purpose.
         new SynchronousQueue<>(),
-        r -> new Thread(r, "OkHttpSender Dispatcher"));
+        OkHttpSenderThreadFactory.INSTANCE);
 
     Dispatcher dispatcher = new Dispatcher(dispatchExecutor);
     dispatcher.setMaxRequests(maxRequests);
     dispatcher.setMaxRequestsPerHost(maxRequests);
     return dispatcher;
+  }
+
+  // Not lambda as Retrolambda creates an OSGi dependency on jdk.internal.vm.annotation with JDK 14
+  // See https://github.com/luontola/retrolambda/issues/160
+  enum OkHttpSenderThreadFactory implements ThreadFactory {
+    INSTANCE;
+
+    @Override public Thread newThread(Runnable r) {
+      return new Thread(r, "OkHttpSender Dispatcher");
+    }
   }
 
   /**
