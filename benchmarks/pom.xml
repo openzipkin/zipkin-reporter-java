@@ -29,7 +29,7 @@
 
   <properties>
     <main.basedir>${project.basedir}/..</main.basedir>
-    <jmh.version>1.23</jmh.version>
+    <jmh.version>1.25</jmh.version>
     <main.java.version>1.8</main.java.version>
     <main.signature.artifact>java18</main.signature.artifact>
   </properties>
@@ -103,7 +103,7 @@
     <dependency>
       <groupId>com.linecorp.armeria</groupId>
       <artifactId>armeria</artifactId>
-      <version>0.99.4</version>
+      <version>0.99.9</version>
     </dependency>
 
     <dependency>
@@ -111,7 +111,7 @@
       <artifactId>kafka-junit</artifactId>
       <!-- This version is tightly coupled to the version of kafka-clients being used.
        https://github.com/charithe/kafka-junit -->
-      <version>4.1.8</version>
+      <version>4.1.10</version>
     </dependency>
     <dependency>
       <groupId>junit</groupId>
