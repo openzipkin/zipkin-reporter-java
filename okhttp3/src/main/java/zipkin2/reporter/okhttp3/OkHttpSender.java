@@ -317,6 +317,9 @@ public final class OkHttpSender extends Sender {
 
   Request newRequest(RequestBody body) throws IOException {
     Request.Builder request = new Request.Builder().url(endpoint);
+    // Amplification can occur when the Zipkin endpoint is proxied, and the proxy is instrumented.
+    // This prevents that in proxies, such as Envoy, that understand B3 single format,
+    request.addHeader("b3", "0");
     if (compressionEnabled) {
       request.addHeader("Content-Encoding", "gzip");
       Buffer gzipped = new Buffer();

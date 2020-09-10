@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2019 The OpenZipkin Authors
+ * Copyright 2016-2020 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -209,6 +209,9 @@ public final class URLConnectionSender extends Sender {
     connection.setConnectTimeout(connectTimeout);
     connection.setReadTimeout(readTimeout);
     connection.setRequestMethod("POST");
+    // Amplification can occur when the Zipkin endpoint is proxied, and the proxy is instrumented.
+    // This prevents that in proxies, such as Envoy, that understand B3 single format,
+    connection.addRequestProperty("b3", "0");
     connection.addRequestProperty("Content-Type", mediaType);
     if (compressionEnabled) {
       connection.addRequestProperty("Content-Encoding", "gzip");

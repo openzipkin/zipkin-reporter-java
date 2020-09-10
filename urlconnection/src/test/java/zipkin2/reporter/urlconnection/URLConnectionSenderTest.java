@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2019 The OpenZipkin Authors
+ * Copyright 2016-2020 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -45,7 +45,7 @@ public class URLConnectionSenderTest {
   URLConnectionSender sender;
   String endpoint = server.url("/api/v2/spans").toString();
 
-  @Before public void setUp() throws Exception {
+  @Before public void setUp() {
     sender = URLConnectionSender.newBuilder()
         .endpoint(endpoint)
         .compressionEnabled(false)
@@ -53,7 +53,7 @@ public class URLConnectionSenderTest {
   }
 
   @Test
-  public void badUrlIsAnIllegalArgument() throws Exception {
+  public void badUrlIsAnIllegalArgument() {
     thrown.expect(IllegalArgumentException.class);
     thrown.expectMessage("unknown protocol: htp");
 
@@ -121,6 +121,15 @@ public class URLConnectionSenderTest {
         .isLessThan(requests.get(1).getBodySize());
   }
 
+  @Test public void ensuresProxiesDontTrace() throws Exception {
+    server.enqueue(new MockResponse());
+
+    send(CLIENT_SPAN, CLIENT_SPAN).execute();
+
+    // If the Zipkin endpoint is proxied and instrumented, it will know "0" means don't trace.
+    assertThat(server.takeRequest().getHeader("b3")).isEqualTo("0");
+  }
+
   @Test public void mediaTypeBasedOnSpanEncoding() throws Exception {
     server.enqueue(new MockResponse());
 
@@ -131,7 +140,7 @@ public class URLConnectionSenderTest {
         .isEqualTo("application/json");
   }
 
-  @Test public void noExceptionWhenServerErrors() throws Exception {
+  @Test public void noExceptionWhenServerErrors() {
     server.enqueue(new MockResponse().setResponseCode(500));
 
     send().enqueue(new Callback<Void>() {
@@ -143,7 +152,7 @@ public class URLConnectionSenderTest {
     });
   }
 
-  @Test public void check_ok() throws Exception {
+  @Test public void check_ok() {
     server.enqueue(new MockResponse());
 
     assertThat(sender.check().ok()).isTrue();
@@ -151,7 +160,7 @@ public class URLConnectionSenderTest {
     assertThat(server.getRequestCount()).isEqualTo(1);
   }
 
-  @Test public void check_fail() throws Exception {
+  @Test public void check_fail() {
     server.enqueue(new MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_START));
 
     assertThat(sender.check().ok()).isFalse();
@@ -170,7 +179,7 @@ public class URLConnectionSenderTest {
    * tools, care should be taken to ensure the toString() output is a reasonable length and does not
    * contain sensitive information.
    */
-  @Test public void toStringContainsOnlySenderTypeAndEndpoint() throws Exception {
+  @Test public void toStringContainsOnlySenderTypeAndEndpoint() {
     assertThat(sender.toString()).isEqualTo("URLConnectionSender{" + endpoint + "}");
   }
 
