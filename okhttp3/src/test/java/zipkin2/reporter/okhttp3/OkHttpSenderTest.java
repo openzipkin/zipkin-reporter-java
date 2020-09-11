@@ -27,7 +27,6 @@ import okhttp3.mockwebserver.RecordedRequest;
 import okhttp3.mockwebserver.SocketPolicy;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import zipkin2.Call;
 import zipkin2.Callback;
 import zipkin2.Span;
@@ -41,23 +40,21 @@ import zipkin2.reporter.Sender;
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.failBecauseExceptionWasNotThrown;
 import static zipkin2.TestObjects.CLIENT_SPAN;
 
 public class OkHttpSenderTest {
-
   @Rule public MockWebServer server = new MockWebServer();
-  @Rule public ExpectedException thrown = ExpectedException.none();
 
   String endpoint = server.url("/api/v2/spans").toString();
   OkHttpSender sender =
       OkHttpSender.newBuilder().endpoint(endpoint).compressionEnabled(false).build();
 
   @Test public void badUrlIsAnIllegalArgument() {
-    thrown.expect(IllegalArgumentException.class);
-    thrown.expectMessage("invalid post url: ");
-
-    OkHttpSender.create("htp://localhost:9411/api/v1/spans");
+    assertThatThrownBy(() -> OkHttpSender.create("htp://localhost:9411/api/v1/spans"))
+      .isInstanceOf(IllegalArgumentException.class)
+      .hasMessageStartingWith("invalid POST url: ");
   }
 
   @Test public void canCustomizeClient() throws Exception {
@@ -296,11 +293,11 @@ public class OkHttpSenderTest {
     assertThat(sender.check().ok()).isFalse();
   }
 
-  @Test public void illegalToSendWhenClosed() throws Exception {
-    thrown.expect(IllegalStateException.class);
+  @Test public void illegalToSendWhenClosed() {
     sender.close();
 
-    send(CLIENT_SPAN).execute();
+    assertThatThrownBy(() -> send(CLIENT_SPAN))
+      .isInstanceOf(IllegalStateException.class);
   }
 
   /**

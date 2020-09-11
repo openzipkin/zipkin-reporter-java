@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2019 The OpenZipkin Authors
+ * Copyright 2016-2020 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -15,17 +15,13 @@ package zipkin2.reporter;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.failBecauseExceptionWasNotThrown;
-import static org.hamcrest.core.Is.isA;
 
 public class AwaitableCallbackTest {
-
-  @Rule public ExpectedException thrown = ExpectedException.none();
 
   @Test public void awaitIsUninterruptable() {
     AtomicBoolean returned = new AtomicBoolean();
@@ -54,16 +50,16 @@ public class AwaitableCallbackTest {
     AwaitableCallback captor = new AwaitableCallback();
     captor.onError(new IllegalStateException());
 
-    thrown.expect(IllegalStateException.class);
-    captor.await();
+    assertThatThrownBy(captor::await)
+      .isInstanceOf(IllegalStateException.class);
   }
 
   @Test public void onError_propagatesError() {
     AwaitableCallback captor = new AwaitableCallback();
     captor.onError(new LinkageError());
 
-    thrown.expect(LinkageError.class);
-    captor.await();
+    assertThatThrownBy(captor::await)
+      .isInstanceOf(LinkageError.class);
   }
 
   @Test public void onError_doesntSetInterrupted() {
@@ -83,9 +79,9 @@ public class AwaitableCallbackTest {
     AwaitableCallback captor = new AwaitableCallback();
     captor.onError(new IOException());
 
-    thrown.expect(RuntimeException.class);
-    thrown.expectCause(isA(IOException.class));
-    captor.await();
+    assertThatThrownBy(captor::await)
+      .isInstanceOf(RuntimeException.class)
+      .hasCauseInstanceOf(IOException.class);
   }
 
   @Test public void onError_wrapsCustomThrowable() {
@@ -94,8 +90,8 @@ public class AwaitableCallbackTest {
     }
     captor.onError(new MyThrowable());
 
-    thrown.expect(RuntimeException.class);
-    thrown.expectCause(isA(MyThrowable.class));
-    captor.await();
+    assertThatThrownBy(captor::await)
+      .isInstanceOf(RuntimeException.class)
+      .hasCauseInstanceOf(MyThrowable.class);
   }
 }

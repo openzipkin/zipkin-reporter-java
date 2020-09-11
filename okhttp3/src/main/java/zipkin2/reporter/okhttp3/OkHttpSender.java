@@ -117,7 +117,7 @@ public final class OkHttpSender extends Sender {
     public Builder endpoint(String endpoint) {
       if (endpoint == null) throw new NullPointerException("endpoint == null");
       HttpUrl parsed = HttpUrl.parse(endpoint);
-      if (parsed == null) throw new IllegalArgumentException("invalid post url: " + endpoint);
+      if (parsed == null) throw new IllegalArgumentException("invalid POST url: " + endpoint);
       return endpoint(parsed);
     }
 

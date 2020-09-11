@@ -78,7 +78,7 @@ public class ConvertingSpanReporterTest {
     MutableSpan span = new MutableSpan(context, null);
     spanReporter.report(span);
 
-    assertThat(spans.get(0)).isEqualToComparingFieldByField(
+    assertThat(spans.get(0)).usingRecursiveComparison().isEqualTo(
         Span.newBuilder()
             .traceId("1")
             .id("2")
@@ -91,7 +91,7 @@ public class ConvertingSpanReporterTest {
     MutableSpan span = new MutableSpan(context, null);
     spanReporter.report(span);
 
-    assertThat(spans.get(0)).isEqualToComparingFieldByField(
+    assertThat(spans.get(0)).usingRecursiveComparison().isEqualTo(
         Span.newBuilder()
             .traceId("0000000000000001")
             .id("0000000000000002")

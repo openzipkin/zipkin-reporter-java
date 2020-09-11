@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2019 The OpenZipkin Authors
+ * Copyright 2016-2020 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -23,7 +23,6 @@ import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.rules.TestName;
 import zipkin2.Call;
 import zipkin2.CheckResult;
@@ -36,12 +35,12 @@ import zipkin2.reporter.Sender;
 
 import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static zipkin2.TestObjects.CLIENT_SPAN;
 
 public class ITActiveMQSender {
   @ClassRule public static EmbeddedActiveMQBroker activemq = new EmbeddedActiveMQBroker();
   @Rule public TestName testName = new TestName();
-  @Rule public ExpectedException thrown = ExpectedException.none();
 
   ActiveMQSender sender;
 
@@ -76,9 +75,9 @@ public class ITActiveMQSender {
     connectionFactory.setBrokerURL("tcp://localhost:80");
     sender = builder().connectionFactory(connectionFactory).build();
 
-    thrown.expect(IOException.class);
-    thrown.expectMessage("Unable to establish connection to ActiveMQ broker: Connection refused");
-    send(CLIENT_SPAN, CLIENT_SPAN).execute();
+    assertThatThrownBy(() -> send(CLIENT_SPAN, CLIENT_SPAN).execute())
+      .isInstanceOf(IOException.class)
+      .hasMessage("Unable to establish connection to ActiveMQ broker: Connection refused");
   }
 
   @Test public void sendsSpans() throws Exception {
@@ -118,11 +117,11 @@ public class ITActiveMQSender {
       .containsExactly(CLIENT_SPAN, CLIENT_SPAN);
   }
 
-  @Test public void illegalToSendWhenClosed() throws Exception {
-    thrown.expect(IllegalStateException.class);
+  @Test public void illegalToSendWhenClosed() {
     sender.close();
 
-    send(CLIENT_SPAN, CLIENT_SPAN).execute();
+    assertThatThrownBy(() -> send(CLIENT_SPAN, CLIENT_SPAN).execute())
+      .isInstanceOf(IllegalStateException.class);
   }
 
   /**

@@ -61,10 +61,11 @@
     <zipkin.version>2.21.7</zipkin.version>
 
     <!-- Do not set this value in bom/pom.xml to avoid cyclic pinning -->
-    <brave.version>5.12.4</brave.version>
+    <brave.version>5.12.5</brave.version>
 
     <!-- TODO: cleanup any redundant ignores now also in the 4.0 release (once final) -->
     <license-maven-plugin.version>4.0.rc2</license-maven-plugin.version>
+    <!-- 3.0.0-M5 breaks the build: https://github.com/openzipkin/zipkin/issues/3159 -->
     <maven-failsafe-plugin.version>3.0.0-M4</maven-failsafe-plugin.version>
     <maven-jar-plugin.version>3.2.0</maven-jar-plugin.version>
     <maven-bundle-plugin.version>5.1.1</maven-bundle-plugin.version>
@@ -186,7 +187,7 @@
     <dependency>
       <groupId>org.assertj</groupId>
       <artifactId>assertj-core</artifactId>
-      <version>3.16.1</version>
+      <version>3.17.2</version>
       <scope>test</scope>
     </dependency>
     <dependency>
