@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2019 The OpenZipkin Authors
+ * Copyright 2016-2020 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -54,8 +54,8 @@ public class LibthriftSenderFactoryBeanTest {
                 + "</bean>");
 
     assertThat(context.getBean("sender", LibthriftSender.class))
-        .isEqualToComparingFieldByField(
-            LibthriftSender.newBuilder().host("myhost").connectTimeout(0).build());
+        .usingRecursiveComparison()
+        .isEqualTo(LibthriftSender.newBuilder().host("myhost").connectTimeout(0).build());
   }
 
   @Test
@@ -69,8 +69,8 @@ public class LibthriftSenderFactoryBeanTest {
                 + "</bean>");
 
     assertThat(context.getBean("sender", LibthriftSender.class))
-        .isEqualToComparingFieldByField(
-            LibthriftSender.newBuilder().host("myhost").socketTimeout(0).build());
+        .usingRecursiveComparison()
+        .isEqualTo(LibthriftSender.newBuilder().host("myhost").socketTimeout(0).build());
   }
 
   @Test

@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2019 The OpenZipkin Authors
+ * Copyright 2016-2020 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -27,7 +27,6 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import zipkin2.Call;
 import zipkin2.CheckResult;
 import zipkin2.Span;
@@ -39,12 +38,11 @@ import zipkin2.reporter.Sender;
 
 import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static zipkin2.TestObjects.CLIENT_SPAN;
 
 public class ITKafkaSender {
-
   @Rule public KafkaJunitRule kafka = new KafkaJunitRule();
-  @Rule public ExpectedException thrown = ExpectedException.none();
 
   String bootstrapServers = "localhost:" + kafka.kafkaBrokerPort();
   KafkaSender sender = KafkaSender.create(bootstrapServers);
@@ -111,11 +109,11 @@ public class ITKafkaSender {
   }
 
   @Test
-  public void illegalToSendWhenClosed() throws Exception {
-    thrown.expect(IllegalStateException.class);
+  public void illegalToSendWhenClosed() {
     sender.close();
 
-    send(CLIENT_SPAN, CLIENT_SPAN).execute();
+    assertThatThrownBy(() -> send(CLIENT_SPAN, CLIENT_SPAN).execute())
+      .isInstanceOf(IllegalStateException.class);
   }
 
   @Test

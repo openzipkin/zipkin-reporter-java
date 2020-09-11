@@ -32,7 +32,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import zipkin2.Call;
 import zipkin2.CheckResult;
 import zipkin2.Span;
@@ -44,12 +43,12 @@ import zipkin2.reporter.Sender;
 
 import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static zipkin2.TestObjects.CLIENT_SPAN;
 
 public class ITKafkaSender {
   EphemeralKafkaBroker broker = EphemeralKafkaBroker.create();
   @Rule public KafkaJunitRule kafka = new KafkaJunitRule(broker).waitForStartup();
-  @Rule public ExpectedException thrown = ExpectedException.none();
 
   KafkaSender sender;
 
@@ -118,11 +117,11 @@ public class ITKafkaSender {
   }
 
   @Test
-  public void illegalToSendWhenClosed() throws Exception {
-    thrown.expect(IllegalStateException.class);
+  public void illegalToSendWhenClosed() {
     sender.close();
 
-    send(CLIENT_SPAN, CLIENT_SPAN).execute();
+    assertThatThrownBy(() -> send(CLIENT_SPAN, CLIENT_SPAN).execute())
+      .isInstanceOf(IllegalStateException.class);
   }
 
   @Test
@@ -142,12 +141,12 @@ public class ITKafkaSender {
   }
 
   @Test
-  public void shouldFailWhenMessageIsBiggerThanMaxSize() throws Exception {
-    thrown.expect(RecordTooLargeException.class);
+  public void shouldFailWhenMessageIsBiggerThanMaxSize() {
     sender.close();
     sender = sender.toBuilder().messageMaxBytes(1).build();
 
-    send(CLIENT_SPAN, CLIENT_SPAN).execute();
+    assertThatThrownBy(() -> send(CLIENT_SPAN, CLIENT_SPAN).execute())
+      .isInstanceOf(RecordTooLargeException.class);
   }
 
   /**

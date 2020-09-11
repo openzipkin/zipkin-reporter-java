@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2019 The OpenZipkin Authors
+ * Copyright 2016-2020 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -19,9 +19,7 @@ import java.util.List;
 import java.util.stream.Stream;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import zipkin2.Span;
 import zipkin2.codec.SpanBytesEncoder;
 import zipkin2.collector.InMemoryCollectorMetrics;
@@ -31,13 +29,12 @@ import zipkin2.storage.InMemoryStorage;
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.failBecauseExceptionWasNotThrown;
 import static zipkin2.TestObjects.CLIENT_SPAN;
 import static zipkin2.TestObjects.LOTS_OF_SPANS;
 
 public class ITLibthriftSender {
-  @Rule public ExpectedException thrown = ExpectedException.none();
-
   InMemoryStorage storage = InMemoryStorage.newBuilder().build();
   InMemoryCollectorMetrics collectorMetrics = new InMemoryCollectorMetrics();
   InMemoryCollectorMetrics scribeCollectorMetrics = collectorMetrics.forTransport("scribe");
@@ -120,11 +117,11 @@ public class ITLibthriftSender {
   }
 
   @Test
-  public void illegalToSendWhenClosed() throws Exception {
-    thrown.expect(IllegalStateException.class);
+  public void illegalToSendWhenClosed() {
     sender.close();
 
-    send(CLIENT_SPAN, CLIENT_SPAN);
+    assertThatThrownBy(() -> send(CLIENT_SPAN, CLIENT_SPAN))
+      .isInstanceOf(IllegalStateException.class);
   }
 
   /**

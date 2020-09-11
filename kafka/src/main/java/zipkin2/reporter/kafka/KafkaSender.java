@@ -305,6 +305,7 @@ public final class KafkaSender extends Sender {
     KafkaProducer<byte[], byte[]> producer = this.producer;
     if (producer != null) producer.close();
     AdminClient adminClient = this.adminClient;
+    // Intentionally using deprecated method to avoid pinning newer Kafka client
     if (adminClient != null) adminClient.close(1, TimeUnit.SECONDS);
     closeCalled = true;
   }
