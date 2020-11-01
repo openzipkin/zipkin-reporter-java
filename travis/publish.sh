@@ -132,7 +132,7 @@ if is_pull_request; then
 #    Sonatype and try again: https://oss.sonatype.org/#stagingRepositories
 elif is_travis_branch_master; then
   # -Prelease ensures the core jar ends up JRE 1.6 compatible
-  ./mvnw --batch-mode -s ./.settings.xml -Prelease -nsu -DskipTests deploy
+  ./mvnw --batch-mode -s ./.settings.xml -Prelease -nsu -DskipTests  -Dlicense.skip=true deploy
 
   if is_release_version; then
     # cleanup the release trigger, but don't fail if it was already there
