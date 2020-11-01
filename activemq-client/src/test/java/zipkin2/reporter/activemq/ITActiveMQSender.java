@@ -77,7 +77,7 @@ public class ITActiveMQSender {
 
     assertThatThrownBy(() -> send(CLIENT_SPAN, CLIENT_SPAN).execute())
       .isInstanceOf(IOException.class)
-      .hasMessage("Unable to establish connection to ActiveMQ broker: Connection refused");
+      .hasMessageContaining("Unable to establish connection to ActiveMQ broker");
   }
 
   @Test public void sendsSpans() throws Exception {

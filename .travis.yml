@@ -1,26 +1,53 @@
 # Run `travis lint` when changing this file to avoid breaking the build.
 
+# We need a full VM so that testcontainers can use Docker
+# See https://docs.travis-ci.com/user/reference/overview/#for-a-particular-travisyml-configuration
+arch: amd64           # arm64 is LXD containers which we can't use because we run Docker tests
+os: linux             # required for arch different than amd64
+dist: focal           # newest available distribution
+
+language: java
+
 cache:
   directories:
     - $HOME/.m2
 
-services:
-  - docker
-
-language: java
-
-jdk: openjdk14
-
 before_install:
-  # allocate commits to CI, not the owner of the deploy key
-  - git config user.name "zipkinci"
-  - git config user.email "zipkinci+zipkin-dev@googlegroups.com"
-  # setup https authentication credentials, used by ./mvnw release:prepare
-  - git config credential.helper "store --file=.git/credentials"
-  - echo "https://$GH_TOKEN:@github.com" > .git/credentials
+  - |
+    # Use JDK 11, so we can release Java 6 bytecode
+    OPENJDK_VERSION=11
+    sudo apt-get -y install openjdk-${OPENJDK_VERSION}-jdk
+    export JAVA_HOME=/usr/lib/jvm/java-${OPENJDK_VERSION}-openjdk-${TRAVIS_CPU_ARCH}/
+    ./mvnw -version
+  - |
+    # Cache as help:evaluate is not quick
+    export POM_VERSION=$(./mvnw help:evaluate -N -Dexpression=project.version -q -DforceStdout)
 
-# Override default travis to use the maven wrapper; skip license on travis due to #1512
-install: ./mvnw install -DskipTests=true -Dlicense.skip=true -Dmaven.javadoc.skip=true -B -V
+    # Disable testcontainers checks
+    echo checks.disable=true > ~/.testcontainers.properties
+  - |
+    # Credentials entered into https://travis-ci.org/github/openzipkin/${REPO}/settings are access
+    # controlled by branch (typically only master). Check to see if a well-known env is available
+    # before attempting to log in.
+    if [[ -n "$SONATYPE_USER" ]]; then
+      # allocate commits to CI, not the owner of the deploy key
+      git config user.name "zipkinci"
+      git config user.email "zipkinci+zipkin-dev@googlegroups.com"
+
+      # setup https authentication credentials, used by ./mvnw release:prepare
+      git config credential.helper "store --file=.git/credentials"
+      echo "https://$GH_TOKEN:@github.com" > .git/credentials
+
+      # ensure GPG commands work non-interactively
+      export GPG_TTY=$(tty)
+      # import signing key used for jar files
+      echo ${GPG_SIGNING_KEY} | base64 --decode | gpg --batch --passphrase ${GPG_PASSPHRASE} --import
+    fi
+
+install:
+  - |
+    # use a go-offline that properly works with multi-module builds
+    ./mvnw -q --batch-mode -nsu -Prelease de.qaware.maven:go-offline-maven-plugin:resolve-dependencies
 script: ./travis/publish.sh
 
 # Don't build release tags. This avoids publish conflicts because the version commit exists both on master and the release tag.
@@ -33,19 +60,29 @@ notifications:
   webhooks:
     urls:
       - https://webhooks.gitter.im/e/ead3c37d57527214e9f2
-      - https://webhooks.gitter.im/e/e57478303f87ecd7bffc
+      - https://webhooks.gitter.im/e/9f1ee2f315d32956f8d6
     on_success: change
     on_failure: always
 
-env:
-  global:
-    # Ex. travis encrypt BINTRAY_USER=your_github_account
-    - secure: "cmxYsTneW/zGccoaKGZRRy1zojNlannWqeg09s32sRhYdKAGL6fTTuuKI8yaU9A+r8Z4vBUyDXkHM8C6K3DqvXIIvfS12DAzL79hG3r7Ag7faNShjpOjwjtHPZy3dgAK3oWD7604wmG8p2qCAkRVVYUpIxqPAa+lFWeh/sWJEar+cuGufmwPC+Z2TQ36hfDs7Q+iXSk/7l0VNS+pO2b/wzEFQXjCYuAOV2sYbWUJadClRG76JQnkIWyu/VEJ69mJU1vzlSr1wMrrKJFIJnOfxq3afqOADGJcjGUQm3wPJvdxeuloJQRYHd8gfwJdDMiqXPsUOOjoyp5jjTMop74OvsU2J4wNUeUVUDovswj3KhizEPeDIEQ8EbEzR5sLMMtptGfj5goQwPBrlStWqIMD3xlwmAausUThH7WUqRC9udodg8axAr3JL+t3Ah7KiPXGkADDwDYZu8U2lwPLlGlG3y9oGyNz5Nwj2Opi3nByNytU4WhLq4esPqVKBMn8+UKJ7nsRhU5z4hGOkIeixKJfbj/KShMJAhnMiF3PgxmVHbPbu1UZxwO+5LePO4xzsfv2Gn+BiAPuXfmkngD41usSVhc8TAEgpKifGtMqIFV5CY1+JWJVfNaqyuyCyp2bCkucXAid71b0f+RitUgm6XgYRpXlmpbnDATwPn5WcZCJwtc="
-    # Ex. travis encrypt BINTRAY_KEY=xxx-https://bintray.com/profile/edit-xxx --add
-    - secure: "OvxCPLhq9AOTJV4kKNQwm44YOtS9c9MU4XoUt1RgDfzMh8E5zUBLOfmYKDwFQH7ELT7YVOOQmxpr8W9QiAIMwJl2fSoeh4G8I2eKC5HfqBa6OP+UxgUhqXNv0TWfgzOJk/xFKA5udu6heJGmgZdn/rdRZFx9RH8rKq0KpcS5sTlW9rY3l1doKCKgBum95i6cFJ1b8D7iWAWOKX+qWmW1NKSVSCL9OVOEoVvLEQBPgPtR/POpO20ABHBp/ARj1Q0ioMlQx9UXDK9TvZ9iuj2jqQs/Bv41AsdAXGiRA2WxBXTqMtvs3nNZgWuPfvL0WtbIkkj6XP1ePDYPmDE5zZ/EKic3ZF9FTU24wrBs+oUkCr46ohK/h0nSQHPY9ZD0XWol8aOSSwT46fc3hzGyyuILEuaJco580AHI78y70XaY3ZnDGo+QOi6EA767+hn1pNiH2QckH2PsK+eFACjD8APUo2XsZ6+NjACk7ilQKFvAGfSHZutRzpGALKKf/zaraY/l6/JwD8t6A+bp4cklPwLjib0b8s15eEZTuMJmWK+zdETt2VdXTwNH0Q6JO8VS9ycNoMHyRGw9mmyqbr2c7MztV7DjKHCJkMf/MRrwy8KYp+3yK6XmkuUNN+Mi4DMfMaB9p3Ra7rUgTIqdGJ8OhU1VjZLcZvX7nZ6p/6tKExeXtNo="
-    # Ex. travis encrypt GH_TOKEN=XXX-https://github.com/settings/tokens-XXX --add
-    - secure: "MMTUMCKDVSgQoMSv3LL9GA7fosQDDrmLEO5WscG4u3wgccuL6LoNEPY88Dvn6SleWltUiQrmFdly8xQ5aOqbmsvJsCwI58CWofmKOKXjJqPpuYQY9h1PueqVzmhpF7NpbvkRVmTGkUVeNONS/qeg/w6+aQO3RpPRu/mrll2YQbTDnUG4eF+BBIbZiHDmskmzvX4YCZpyH1CraD+sK876Ysr1DlcV/I5rgAw8Xr4f1jGYbngqIBFuO1ysX7kl1eDc/dsANeE6l/vQC/xVyoE7kEEqSyzfoQXDL6MeJBHoYjwrnj/f/B4zBI8LCR8eyJ8amMyYsHRdlLOAMO5AoMPRKxrwIveP7gSHFgwhaYPrxIv9UNTX2m62ScP2UN0agJYNIZQro41S/J+90RJgrcDp+Fl73QLq1D0PGBhS+4KINFl0by06JM7ObgMJ05uginw0yaQCWlwYgnSl9IL8SnpMU4g3wN0YuYAL/Yz9rjj/FFECzco5K+KpDER24o1FrFMnlg/pVMVPMZLSG8ewWitF0yQxgXM90JropSATRKgXhj5xixg2SSVGubXbFHFnxssbS17S95VYITmuaPPgs2WAi3G8rWohspookJd6gnEq+AHBXI6EJXtoUGG1zOOWPhOIdAvDwiWomPaNflFqQV/WoYrE2UYvJ96sCjSQtSZ8PDA="
-    # Ex. travis encrypt SONATYPE_USER=your_sonatype_account
-    - secure: "fM4jWSb5U+gm9Z81jzKguFCSmjcQ4763BLTF/ETstcsMMANWuWJ3QGXTdG7o12skov7AqIxMgCeWfpdVC83GsIPcKQl1b1/rUFNHYm9gE8Kx1fzqXOrjDgkFv4Y7xpd2IFKYlEzu3YqIlFi7GavnqYKA8r3XdIbBpnszFhV+LBSdomnckM5VzaST7CLe1Nej4fWfXD2mxh/VptmqRdeYIvz4xoF8+rG4hHbALv6sLL+J+KfSbIkXs0zBaEJ5/Ugph6iFDw/9Uf9JWPykWNoOPC2vPmUlnfZ21Si1V7Wumt90lhljOiqL/rJRwiQBwfyLf6fnembjEvefSo8vsF2MzfqAGeVMhZR8eR0+dkSKk2l3rk3OEdXLVA0yVDoZWuzoaQt4rSubi0P6+pAaoeul4IHfNB0PbJZGkoTUzsQnyvh+N6gQhdaRm4cJ5AWedBnbgMPG0NvK/hP/ja4LGFmMWc/5JI9rwOjAHiV1gLhWXNCCPu+tOyrBHo5MwOHUEp5ApuR7lgnhZvR8awb9AkYNGeDH06+H/qNVtJPlFwvZiScsvkOHL38zlAD6Q3HyF/N9CkpkOM1oif66jNtgOeJrF+mJw1UIu581vFrPi12njMp0aGO3K9Cj7gX2WlpRd3fu1EYePKUoM1EBoPbGXFTc4W+q6t5XTJhkiTtVarTMtWU="
-    # Ex. travis encrypt SONATYPE_PASSWORD=your_sonatype_password
-    - secure: "buOLYKxV/3w65/Kd0TPIObx/FGoun7YqLq0UhFaHzT4XN/ZPEDY6JtWkKUDAXLwgJVQxwkV2tm48kTLKeuUkKjB2NWNwKcoNxxOP1zgVdmDPQxlVSg7W35m4MqzHg33lEaIIzncmE69DOqdFUIy9L9kfUJ14hTONjrqYoL8wgIFCOkGfmSTHzXHXLeDjt6FyLg6cAceewXXOX4oI4/F09tGKX4dfgRFN8KUFQlUhmNp66NISi2oNwiYFp33rSrlvkMF5A5ASzoDEjIMHBV+2Czx7kfLpX/x7czp6OAdNV3hZMBus7rsZHRqWbMH+Xm4KFVng6h45JNP7ge4mHiSB73VF6S9YU+/llr6iUjcdVmru+lcum1Pyu57C1pzRxT/PsjFURq/X9Q3RzNap/RAuQpNFQySPVMoUgjy1dwWpXVXrHeJcFRjGQLitNtEPyUvmt6rS2nAXyDFH+I9rxKlLqaVC0GckGC/nUIadGZdbCZvqplR/c4oDMXZQ0vkKCGbS53n7bpafnS6Q9MH5n+HQFkeTrkDAFR9HFwHfDEPqVxaVY5ZoRV5EGRY61A/VkrYpL+ueMKw4IV5DJkcQxBSMAq9TH/Rgf3Eorh2D0/udAdweqXzFAFLfrJPDHNEGqZYOLZZBq0ueN8j1U/B/saZ8OpxrJitpH7mzLqBRoswM/60="
+# Secure variables needed for release and publication
+#
+# When Travis, add to https://travis-ci.org/github/openzipkin/${REPO}/settings
+#
+# GH_TOKEN=XXX-https://github.com/settings/tokens-XXX
+#   - makes release commits and tags, also writes to GHCR if Docker
+#   - needs repo:status, public_repo and if Docker write:packages, delete:packages
+#   - referenced in .settings.xml
+#   - store like this: echo "https://$GH_TOKEN:@github.com" > .git/credentials
+# GPG_SIGNING_KEY=$(gpg -a --export-secret-keys zipkin-admin@googlegroups.com |base64)
+#   - used to sign jars in release commands
+#   - sent to keyserver.ubuntu.com
+#   - import like this: echo ${GPG_SIGNING_KEY} | base64 --decode | gpg --batch --passphrase ${GPG_PASSPHRASE} --import
+# GPG_PASSPHRASE=passphrase_for_GPG_SIGNING_KEY
+#   - referenced in .settings.xml
+# SONATYPE_USER=your_sonatype_account_token
+#   - used to publish to Maven Central via https://oss.sonatype.org/#stagingRepositories
+#   - needs access to io.zipkin via https://issues.sonatype.org/browse/OSSRH-16669
+#   - generate via https://oss.sonatype.org/#profile;User%20Token
+#   - referenced in .settings.xml
+# SONATYPE_PASSWORD=password_to_SONATYPE_USER
+#   - referenced in .settings.xml
