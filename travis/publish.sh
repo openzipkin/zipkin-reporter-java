@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright 2016-2019 The OpenZipkin Authors
+# Copyright 2016-2020 The OpenZipkin Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
 # in compliance with the License. You may obtain a copy of the License at
@@ -13,8 +13,7 @@
 # the License.
 #
 
-set -euo pipefail
-set -x
+set -euxo pipefail
 
 build_started_by_tag() {
   if [ "${TRAVIS_TAG}" == "" ]; then
@@ -73,10 +72,12 @@ check_release_tag() {
 }
 
 print_project_version() {
-  ./mvnw help:evaluate -N -Dexpression=project.version|sed -n '/^[0-9]/p'
+  # Cache as help:evaluate is not quick
+  export POM_VERSION=${POM_VERSION:-$(mvn help:evaluate -N -Dexpression=project.version -q -DforceStdout)}
+  echo "${POM_VERSION}"
 }
 
-is_release_commit() {
+is_release_version() {
   project_version="$(print_project_version)"
   if [[ "$project_version" =~ ^[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+$ ]]; then
     echo "Build started by release commit $project_version. Will synchronize to maven central."
@@ -87,7 +88,7 @@ is_release_commit() {
 }
 
 release_version() {
-    echo "${TRAVIS_TAG}" | sed 's/^release-//'
+  echo "${TRAVIS_TAG}" | sed 's/^release-//'
 }
 
 safe_checkout_master() {
@@ -114,10 +115,11 @@ if ! is_pull_request && build_started_by_tag; then
 fi
 
 # During a release upload, don't run tests as they can flake or overrun the max time allowed by Travis.
-# skip license on travis due to #1512
-if is_release_commit; then
+if is_release_version; then
   true
 else
+  # verify runs both tests and integration tests (Docker tests included)
+  # -Dlicense.skip=true skips license on Travis due to #1512
   ./mvnw verify -nsu -Dlicense.skip=true
 fi
 
@@ -126,13 +128,15 @@ if is_pull_request; then
   true
 
 # If we are on master, we will deploy the latest snapshot or release version
-#   - If a release commit fails to deploy for a transient reason, delete the broken version from bintray and click rebuild
+#  * If a release commit fails to deploy for a transient reason, drop to staging repository in
+#    Sonatype and try again: https://oss.sonatype.org/#stagingRepositories
 elif is_travis_branch_master; then
+  # -Prelease ensures the core jar ends up JRE 1.6 compatible
   ./mvnw --batch-mode -s ./.settings.xml -Prelease -nsu -DskipTests -Dlicense.skip=true deploy
 
-  # If the deployment succeeded, sync it to Maven Central. Note: this needs to be done once per project, not module, hence -N
-  if is_release_commit; then
-    ./mvnw --batch-mode -s ./.settings.xml -nsu -N io.zipkin.centralsync-maven-plugin:centralsync-maven-plugin:sync
+  if is_release_version; then
+    # cleanup the release trigger, but don't fail if it was already there
+    git push origin :"release-$(print_project_version)" || true
   fi
 
 # If we are on a release tag, the following will update any version references and push a version tag for deployment.
