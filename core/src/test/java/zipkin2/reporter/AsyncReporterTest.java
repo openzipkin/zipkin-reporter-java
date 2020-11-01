@@ -282,9 +282,9 @@ public class AsyncReporterTest {
         .build();
 
     // Reporter thread is lazy
-    assertThat(reporter).extracting("started.get").isEqualTo(false);
+    assertThat(((BoundedAsyncReporter) reporter).started).isFalse();
     reporter.report(span);
-    assertThat(reporter).extracting("started.get").isEqualTo(true);
+    assertThat(((BoundedAsyncReporter) reporter).started).isTrue();
 
     reporter.close();
 
