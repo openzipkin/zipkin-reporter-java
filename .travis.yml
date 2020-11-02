@@ -16,6 +16,9 @@ cache:
   directories:
     - $HOME/.m2
 
+services:
+  - docker
+
 before_install:
   - |
     # Intentionally don't use "jdk" Travis apt key as it is coupled to jdk.java.net availability.
