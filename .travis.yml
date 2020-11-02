@@ -6,6 +6,10 @@ arch: amd64           # arm64 is LXD containers which we can't use because we ru
 os: linux             # required for arch different than amd64
 dist: focal           # newest available distribution
 
+# Don't do a shallow clone to allow license plugin to correctly read git history.
+git:
+  depth: false
+
 language: java
 
 cache:
@@ -14,6 +18,7 @@ cache:
 
 before_install:
   - |
+    # Intentionally don't use "jdk" Travis apt key as it is coupled to jdk.java.net availability.
     # Use JDK 11, so we can release Java 6 bytecode
     OPENJDK_VERSION=11
     sudo apt-get -y install openjdk-${OPENJDK_VERSION}-jdk

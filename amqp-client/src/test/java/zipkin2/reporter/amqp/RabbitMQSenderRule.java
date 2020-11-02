@@ -29,7 +29,8 @@ import static zipkin2.Call.propagateIfFatal;
 /** This should be used as a {@link ClassRule} as it takes a very long time to start-up. */
 class RabbitMQSenderRule extends ExternalResource {
   static final Logger LOGGER = LoggerFactory.getLogger(RabbitMQSenderRule.class);
-  static final String IMAGE = "rabbitmq:3.7-management-alpine";
+  // Use a ghcr.io mirror to prevent build outages due to Docker Hub pull quotas
+  static final String IMAGE = "ghcr.io/openzipkin/rabbitmq-management-alpine:latest";
   static final String QUEUE = "zipkin-test1";
   static final int RABBIT_PORT = 5672;
 
