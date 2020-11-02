@@ -31,7 +31,6 @@ import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.failBecauseExceptionWasNotThrown;
 import static zipkin2.TestObjects.CLIENT_SPAN;
 import static zipkin2.TestObjects.LOTS_OF_SPANS;
 
@@ -46,7 +45,7 @@ public class ITLibthriftSender {
     collector = ScribeCollector.newBuilder()
       .metrics(collectorMetrics)
       .storage(storage)
-      .port(0)
+      .port(0) // use a random port so that tests don't interfere with another
       .build();
     collector.start();
 
@@ -99,16 +98,16 @@ public class ITLibthriftSender {
 
   @Test public void reconnects() throws Exception {
     close();
-    try {
-      send(CLIENT_SPAN, CLIENT_SPAN);
-      failBecauseExceptionWasNotThrown(IOException.class);
-    } catch (IOException e) {
-    }
+
+    assertThatThrownBy(() -> send(CLIENT_SPAN, CLIENT_SPAN))
+      .isInstanceOf(IOException.class);
+
     start();
 
     send(CLIENT_SPAN, CLIENT_SPAN);
 
-    assertThat(storage.spanStore().getTraces()).containsExactly(asList(CLIENT_SPAN));
+    assertThat(storage.spanStore().getTraces())
+      .containsExactly(asList(CLIENT_SPAN));
   }
 
   @Test public void illegalToSendWhenClosed() {
