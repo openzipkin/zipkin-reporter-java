@@ -74,7 +74,10 @@ VERSION=xx-version-to-release-xx
 
 # once this works, deploy and synchronize to maven central
 git checkout $VERSION
-./mvnw --batch-mode -s ./.settings.xml -Prelease -nsu -DskipTests deploy
+
+# Deploy the Bill of Materials (BOM) separately as it is unhooked from the main project intentionally
+./mvnw --batch-mode -s ./.settings.xml -Prelease -nsu -DskipTests deploy -pl -:zipkin-reporter-bom
+./mvnw --batch-mode -s ./.settings.xml -Prelease -nsu -DskipTests deploy -f bom/pom.xml
 
 # if all the above worked, clean up stuff and push the local changes.
 ./mvnw release:clean

@@ -28,6 +28,8 @@
     <main.basedir>${project.basedir}/..</main.basedir>
     <!-- use the same value in ../pom.xml -->
     <zipkin.version>2.22.1</zipkin.version>
+
+    <nexus-staging-maven-plugin.version>1.6.8</nexus-staging-maven-plugin.version>
   </properties>
 
   <url>https://github.com/openzipkin/zipkin-reporter-java</url>
@@ -159,6 +161,17 @@
       <id>release</id>
       <build>
         <plugins>
+          <plugin>
+            <groupId>org.sonatype.plugins</groupId>
+            <artifactId>nexus-staging-maven-plugin</artifactId>
+            <extensions>true</extensions>
+            <configuration>
+              <serverId>ossrh</serverId>
+              <nexusUrl>https://oss.sonatype.org/</nexusUrl>
+              <autoReleaseAfterClose>true</autoReleaseAfterClose>
+            </configuration>
+          </plugin>
+
           <plugin>
             <artifactId>maven-gpg-plugin</artifactId>
             <version>1.6</version>

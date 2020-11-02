@@ -132,7 +132,11 @@ if is_pull_request; then
 #    Sonatype and try again: https://oss.sonatype.org/#stagingRepositories
 elif is_travis_branch_master; then
   # -Prelease ensures the core jar ends up JRE 1.6 compatible
-  ./mvnw --batch-mode -s ./.settings.xml -Prelease -nsu -DskipTests -Dlicense.skip=true deploy
+  DEPLOY="./mvnw --batch-mode -s ./.settings.xml -Prelease -nsu -DskipTests -Dlicense.skip=true deploy"
+
+  # Deploy the Bill of Materials (BOM) separately as it is unhooked from the main project intentionally
+  $DEPLOY -pl -:zipkin-reporter-bom
+  $DEPLOY -f bom/pom.xml
 
   if is_release_version; then
     # cleanup the release trigger, but don't fail if it was already there
