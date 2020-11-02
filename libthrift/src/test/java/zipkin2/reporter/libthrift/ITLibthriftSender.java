@@ -23,6 +23,7 @@ import org.junit.Test;
 import zipkin2.Span;
 import zipkin2.codec.SpanBytesEncoder;
 import zipkin2.collector.InMemoryCollectorMetrics;
+import zipkin2.collector.scribe.Access;
 import zipkin2.collector.scribe.ScribeCollector;
 import zipkin2.storage.InMemoryStorage;
 
@@ -39,44 +40,41 @@ public class ITLibthriftSender {
   InMemoryCollectorMetrics collectorMetrics = new InMemoryCollectorMetrics();
   InMemoryCollectorMetrics scribeCollectorMetrics = collectorMetrics.forTransport("scribe");
   ScribeCollector collector;
+  LibthriftSender sender;
 
-  @Before
-  public void start() {
-    collector =
-        ScribeCollector.newBuilder()
-            .metrics(collectorMetrics)
-            .storage(storage)
-            .build();
+  @Before public void start() {
+    collector = ScribeCollector.newBuilder()
+      .metrics(collectorMetrics)
+      .storage(storage)
+      .port(0)
+      .build();
     collector.start();
+
+    int port = Access.port(collector);
+    sender = LibthriftSender.newBuilder().host("127.0.0.1").port(port).build();
   }
 
-  @After
-  public void close() {
+  @After public void close() {
     collector.close();
   }
 
-  LibthriftSender sender = LibthriftSender.create("127.0.0.1");
-
-  @Test
-  public void sendsSpans() throws Exception {
+  @Test public void sendsSpans() throws Exception {
     send(CLIENT_SPAN);
 
     assertThat(storage.spanStore().getTraces()).containsExactly(asList(CLIENT_SPAN));
   }
 
   /** This will help verify sequence ID and response parsing logic works */
-  @Test
-  public void sendsSpans_multipleTimes() throws Exception {
+  @Test public void sendsSpans_multipleTimes() throws Exception {
     for (int i = 0; i < 5; i++) { // Have client send 5 messages
       send(Arrays.copyOfRange(LOTS_OF_SPANS, i, (i * 10) + 10));
     }
 
     assertThat(storage.getTraces()).flatExtracting(l -> l)
-        .contains(Arrays.copyOfRange(LOTS_OF_SPANS, 0, 50));
+      .contains(Arrays.copyOfRange(LOTS_OF_SPANS, 0, 50));
   }
 
-  @Test
-  public void sendsSpansExpectedMetrics() throws Exception {
+  @Test public void sendsSpansExpectedMetrics() throws Exception {
     send(CLIENT_SPAN, CLIENT_SPAN);
 
     assertThat(scribeCollectorMetrics.messages()).isEqualTo(1);
@@ -89,20 +87,17 @@ public class ITLibthriftSender {
     assertThat(scribeCollectorMetrics.bytes()).isEqualTo(thrift.length * 2);
   }
 
-  @Test
-  public void check_okWhenScribeIsListening() {
+  @Test public void check_okWhenScribeIsListening() {
     assertThat(sender.check().ok()).isTrue();
   }
 
-  @Test
-  public void check_notOkWhenScribeIsDown() {
+  @Test public void check_notOkWhenScribeIsDown() {
     collector.close();
 
     assertThat(sender.check().ok()).isFalse();
   }
 
-  @Test
-  public void reconnects() throws Exception {
+  @Test public void reconnects() throws Exception {
     close();
     try {
       send(CLIENT_SPAN, CLIENT_SPAN);
@@ -116,8 +111,7 @@ public class ITLibthriftSender {
     assertThat(storage.spanStore().getTraces()).containsExactly(asList(CLIENT_SPAN));
   }
 
-  @Test
-  public void illegalToSendWhenClosed() {
+  @Test public void illegalToSendWhenClosed() {
     sender.close();
 
     assertThatThrownBy(() -> send(CLIENT_SPAN, CLIENT_SPAN))
@@ -130,16 +124,15 @@ public class ITLibthriftSender {
    * exposed in logs and other monitoring tools, care should be taken to ensure the toString()
    * output is a reasonable length and does not contain sensitive information.
    */
-  @Test
-  public void toStringContainsOnlySenderTypeHostAndPort() {
+  @Test public void toStringContainsOnlySenderTypeHostAndPort() {
     assertThat(sender.toString())
-        .isEqualTo("LibthriftSender(" + sender.host + ":" + sender.port + ")");
+      .isEqualTo("LibthriftSender(" + sender.host + ":" + sender.port + ")");
   }
 
   /** Blocks until the callback completes to allow read-your-writes consistency during tests. */
   void send(Span... spans) throws IOException {
     List<byte[]> encodedSpans =
-        Stream.of(spans).map(SpanBytesEncoder.THRIFT::encode).collect(toList());
+      Stream.of(spans).map(SpanBytesEncoder.THRIFT::encode).collect(toList());
     sender.sendSpans(encodedSpans).execute();
   }
 }
