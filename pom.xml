@@ -14,7 +14,9 @@
     the License.
 
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>io.zipkin.reporter2</groupId>
@@ -33,7 +35,6 @@
     <module>okhttp3</module>
     <module>libthrift</module>
     <module>spring-beans</module>
-    <module>benchmarks</module>
     <module>brave</module>
     <module>metrics-micrometer</module>
   </modules>
@@ -54,14 +55,19 @@
     <maven.compiler.target>1.8</maven.compiler.target>
 
     <!-- override to set exclusions per-project -->
-    <errorprone.args />
+    <errorprone.args/>
     <errorprone.version>2.4.0</errorprone.version>
 
     <!-- use the same value in bom/pom.xml -->
-    <zipkin.version>2.22.1</zipkin.version>
+    <zipkin.version>2.22.2</zipkin.version>
+    <zipkin-proto3.version>0.2.2</zipkin-proto3.version>
 
     <!-- Do not set this value in bom/pom.xml to avoid cyclic pinning -->
-    <brave.version>5.12.7</brave.version>
+    <brave.version>5.13.0</brave.version>
+
+    <okhttp.version>3.14.9</okhttp.version>
+    <logback.version>1.2.3</logback.version>
+    <testcontainers.version>1.15.0-rc2</testcontainers.version>
 
     <!-- TODO: cleanup any redundant ignores now also in the 4.0 release (once final) -->
     <license-maven-plugin.version>4.0.rc2</license-maven-plugin.version>
@@ -126,52 +132,18 @@
   </issueManagement>
 
   <dependencyManagement>
-    <dependencies>
-      <dependency>
-        <groupId>${project.groupId}</groupId>
-        <artifactId>zipkin-reporter</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.zipkin.brave</groupId>
-        <artifactId>brave</artifactId>
-        <version>${brave.version}</version>
-        <exclusions>
-          <exclusion>
-            <groupId>*</groupId>
-            <artifactId>*</artifactId>
-          </exclusion>
-        </exclusions>
-      </dependency>
-      <dependency>
-        <groupId>com.squareup.okhttp3</groupId>
-        <artifactId>okhttp</artifactId>
-        <version>3.14.9</version>
-      </dependency>
-      <dependency>
-        <groupId>com.squareup.okhttp3</groupId>
-        <artifactId>mockwebserver</artifactId>
-        <version>3.14.9</version>
-      </dependency>
-      <dependency>
-        <groupId>org.testcontainers</groupId>
-        <artifactId>testcontainers</artifactId>
-        <version>1.15.0-rc2</version>
-      </dependency>
-      <dependency>
-        <groupId>ch.qos.logback</groupId>
-        <artifactId>logback-classic</artifactId>
-        <version>1.2.3</version>
-      </dependency>
-    </dependencies>
+    <!-- Be careful here, especially to not import BOMs as io.zipkin.reporter2:zipkin-reporter and
+         zipkin-reporter-brave have this parent.
+
+         For example, if you imported Netty's BOM here, using Brave would also download that BOM as
+         it depends indirectly on io.zipkin.reporter2:zipkin-reporter-brave. As Brave itself is
+         indirectly used, this can be extremely confusing when people are troubleshooting library
+         version assignments. -->
   </dependencyManagement>
 
   <dependencies>
-    <dependency>
-      <groupId>io.zipkin.zipkin2</groupId>
-      <artifactId>zipkin</artifactId>
-      <version>${zipkin.version}</version>
-    </dependency>
+    <!-- Do not add compile dependencies here. This can cause problems for libraries that depend on
+         io.zipkin.reporter2:zipkin-reporter or zipkin-reporter-brave difficult to unravel. -->
 
     <dependency>
       <groupId>junit</groupId>
@@ -194,6 +166,7 @@
     <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
+      <version>${logback.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -476,6 +449,18 @@
         </plugins>
       </build>
     </profile>
+    <!-- -DskipBenchmarks ensures benchmarks don't end up in javadocs or in Maven Central -->
+    <profile>
+      <id>include-benchmarks</id>
+      <activation>
+        <property>
+          <name>!skipBenchmarks</name>
+        </property>
+      </activation>
+      <modules>
+        <module>benchmarks</module>
+      </modules>
+    </profile>
     <profile>
       <id>release</id>
       <build>
@@ -487,6 +472,9 @@
             <configuration>
               <serverId>ossrh</serverId>
               <nexusUrl>https://oss.sonatype.org/</nexusUrl>
+              <!-- Double the normal timeout even though we haven't had a problem in this project.
+                   The only outcome of timing out client side is trying again. -->
+              <stagingProgressTimeoutMinutes>10</stagingProgressTimeoutMinutes>
               <autoReleaseAfterClose>true</autoReleaseAfterClose>
             </configuration>
           </plugin>

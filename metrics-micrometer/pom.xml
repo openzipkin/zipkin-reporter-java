@@ -41,6 +41,7 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>zipkin-reporter</artifactId>
+      <version>${project.version}</version>
     </dependency>
 
     <dependency>
