@@ -2,7 +2,7 @@
 
 # We need a full VM so that testcontainers can use Docker
 # See https://docs.travis-ci.com/user/reference/overview/#for-a-particular-travisyml-configuration
-arch: amd64           # arm64 is LXD containers which we can't use because we run Docker tests
+arch: arm64           # arm64 is LXD containers.. can we actually use Docker?
 os: linux             # required for arch different than amd64
 dist: focal           # newest available distribution
 
@@ -21,6 +21,9 @@ services:
   - docker
 
 before_install:
+  - |
+    # Test to see if docker works at all
+    docker run --rm ghcr.io/openzipkin/java:15.0.1_p9-jre -version
   - |
     # Intentionally don't use "jdk" Travis apt key as it is coupled to jdk.java.net availability.
     # Use JDK 11, so we can release Java 6 bytecode
