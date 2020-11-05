@@ -4,7 +4,7 @@
 # See https://docs.travis-ci.com/user/reference/overview/#for-a-particular-travisyml-configuration
 arch: arm64           # arm64 is LXD containers which we can't use because we run Docker tests
 os: linux             # required for arch different than amd64
-dist: focal           # newest available distribution
+dist: xenial           # newest available distribution
 
 # license-maven-plugin needs the full history to generate copyright year range. Ex. 2013-2020
 # Don't do a shallow clone, as it interferes with this.
