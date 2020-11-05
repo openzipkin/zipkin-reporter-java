@@ -23,6 +23,7 @@ services:
 before_install:
   - |
     # Test to see if docker works at all
+    docker run --rm openjdk:16-slim -version
     docker run --rm ghcr.io/openzipkin/java:15.0.1_p9-jre -version
   - |
     # Intentionally don't use "jdk" Travis apt key as it is coupled to jdk.java.net availability.
