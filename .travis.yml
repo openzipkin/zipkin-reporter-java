@@ -22,6 +22,11 @@ services:
 
 before_install:
   - |
+    # Add Google's mirror as our RabbitMQ image is from Docker Hub, which has a pull limit.
+    # * See https://cloud.google.com/container-registry/docs/pulling-cached-images
+    echo '{ "registry-mirrors": ["https://mirror.gcr.io"] }' | sudo tee /etc/docker/daemon.json
+    sudo service docker restart
+  - |
     # Test to see if docker works at all
     docker run --rm ghcr.io/openzipkin/java:15.0.1_p9-jre -version
   - |

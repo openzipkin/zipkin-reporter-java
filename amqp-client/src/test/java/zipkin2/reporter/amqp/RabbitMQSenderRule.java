@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.Container.ExecResult;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
+import org.testcontainers.utility.DockerImageName;
 import zipkin2.CheckResult;
 
 import static zipkin2.Call.propagateIfFatal;
@@ -29,17 +30,17 @@ import static zipkin2.Call.propagateIfFatal;
 /** This should be used as a {@link ClassRule} as it takes a very long time to start-up. */
 class RabbitMQSenderRule extends ExternalResource {
   static final Logger LOGGER = LoggerFactory.getLogger(RabbitMQSenderRule.class);
-  // Use a ghcr.io mirror to prevent build outages due to Docker Hub pull quotas
-  static final String IMAGE = "ghcr.io/openzipkin/rabbitmq-management-alpine:latest";
+  // TODO: This is a Docker Hub image, which can result in a build outage
+  static final DockerImageName IMAGE = DockerImageName.parse("rabbitmq:3.8.9-management-alpine");
   static final String QUEUE = "zipkin-test1";
   static final int RABBIT_PORT = 5672;
 
   static final class RabbitMQContainer extends GenericContainer<RabbitMQContainer> {
-    RabbitMQContainer(String image) {
+    RabbitMQContainer(DockerImageName image) {
       super(image);
       addExposedPorts(RABBIT_PORT);
       this.waitStrategy = Wait.forLogMessage(".*Server startup complete.*", 1)
-          .withStartupTimeout(Duration.ofSeconds(60));
+        .withStartupTimeout(Duration.ofSeconds(60));
     }
   }
 
@@ -56,7 +57,7 @@ class RabbitMQSenderRule extends ExternalResource {
       container.start();
     } catch (Throwable e) {
       throw new AssumptionViolatedException(
-          "Couldn't start docker image " + IMAGE + ": " + e.getMessage(), e);
+        "Couldn't start docker image " + IMAGE + ": " + e.getMessage(), e);
     }
 
     declareQueue(QUEUE);
@@ -75,8 +76,8 @@ class RabbitMQSenderRule extends ExternalResource {
 
     if (!check.ok()) {
       throw new AssumptionViolatedException(
-          "Couldn't connect to docker container " + container + ": " +
-              check.error().getMessage(), check.error());
+        "Couldn't connect to docker container " + container + ": " +
+          check.error().getMessage(), check.error());
     }
 
     return result;
@@ -84,7 +85,7 @@ class RabbitMQSenderRule extends ExternalResource {
 
   RabbitMQSender.Builder newSenderBuilder() {
     return RabbitMQSender.newBuilder().queue(QUEUE)
-        .addresses(container.getContainerIpAddress() + ":" + container.getMappedPort(RABBIT_PORT));
+      .addresses(container.getContainerIpAddress() + ":" + container.getMappedPort(RABBIT_PORT));
   }
 
   void declareQueue(String queue) {
@@ -94,7 +95,7 @@ class RabbitMQSenderRule extends ExternalResource {
     } catch (Throwable e) {
       propagateIfFatal(e);
       throw new AssumptionViolatedException(
-          "Couldn't declare queue " + queue + ": " + e.getMessage(), e);
+        "Couldn't declare queue " + queue + ": " + e.getMessage(), e);
     }
     if (result.getExitCode() != 0) {
       throw new AssumptionViolatedException("Couldn't declare queue " + queue + ": " + result);
