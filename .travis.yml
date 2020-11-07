@@ -29,10 +29,11 @@ before_install:
     # Don't pull Docker Hub Registry images as it can result in a build outage:
     # https://www.testcontainers.org/supported_docker_environment/image_registry_rate_limiting/
     #  * alpine - used to check whether images can be pulled at startup
-    echo checks.disable=true > ~/.testcontainers.properties
+    #    * disabling this saves time and another docker.io pull
+    echo checks.disable=true >> ~/.testcontainers.properties
     #  * testcontainers/ryuk - performs fail-safe cleanup of containers
-    #    * doesn't work on arm64 anyway: https://github.com/testcontainers/moby-ryuk/issues/15
-    export TESTCONTAINERS_RYUK_DISABLED=true
+    #    * Temporary until: https://github.com/testcontainers/moby-ryuk/issues/15 and 16
+    echo ryuk.container.image=ghcr.io/openzipkin/testcontainers-ryuk:latest >> ~/.testcontainers.properties
   - |
     # Credentials entered into https://travis-ci.org/github/openzipkin/${REPO}/settings are access
     # controlled by branch (typically only master). Check to see if a well-known env is available
