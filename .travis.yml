@@ -1,6 +1,5 @@
 # Run `travis lint` when changing this file to avoid breaking the build.
 
-# We need a full VM so that testcontainers can use Docker
 # See https://docs.travis-ci.com/user/reference/overview/#for-a-particular-travisyml-configuration
 arch: arm64           # LXD container based build for OSS only
 os: linux             # required for arch different than amd64
