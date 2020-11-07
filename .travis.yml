@@ -2,7 +2,7 @@
 
 # We need a full VM so that testcontainers can use Docker
 # See https://docs.travis-ci.com/user/reference/overview/#for-a-particular-travisyml-configuration
-arch: amd64           # arm64 is LXD containers which we can't use because we run Docker tests
+arch: arm64           # LXD container based build for OSS only
 os: linux             # required for arch different than amd64
 dist: focal           # newest available distribution
 
@@ -20,20 +20,19 @@ cache:
 services:
   - docker
 
+# Re-use JDK 11 from focal release instead of delaying build with installation
 before_install:
-  - |
-    # Intentionally don't use "jdk" Travis apt key as it is coupled to jdk.java.net availability.
-    # Use JDK 11, so we can release Java 6 bytecode
-    OPENJDK_VERSION=11
-    sudo apt-get -y install openjdk-${OPENJDK_VERSION}-jdk
-    export JAVA_HOME=/usr/lib/jvm/java-${OPENJDK_VERSION}-openjdk-${TRAVIS_CPU_ARCH}/
-    ./mvnw -version
   - |
     # Cache as help:evaluate is not quick
     export POM_VERSION=$(./mvnw help:evaluate -N -Dexpression=project.version -q -DforceStdout)
-
-    # Disable testcontainers checks
+  - |
+    # Don't pull Docker Hub Registry images as it can result in a build outage:
+    # https://www.testcontainers.org/supported_docker_environment/image_registry_rate_limiting/
+    #  * alpine - used to check whether images can be pulled at startup
     echo checks.disable=true > ~/.testcontainers.properties
+    #  * testcontainers/ryuk - performs fail-safe cleanup of containers
+    #    * doesn't work on arm64 anyway: https://github.com/testcontainers/moby-ryuk/issues/15
+    export TESTCONTAINERS_RYUK_DISABLED=true
   - |
     # Credentials entered into https://travis-ci.org/github/openzipkin/${REPO}/settings are access
     # controlled by branch (typically only master). Check to see if a well-known env is available
