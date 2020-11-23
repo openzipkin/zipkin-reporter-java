@@ -1,6 +1,10 @@
 # Test and Deploy scripts
 
-This is a Maven+Docker project, which uses standard conventions for test and deploy.
+This is a Maven project, which uses standard conventions for test and deploy.
+
+What's notable is that it has Docker (testcontainers) tests and that it has a Maven BOM.
+The latter implies deploy runs twice: once for the normal project modules, and again for the BOM.
+
 
 [//]: # (Below here should be standard for all projects)
 
