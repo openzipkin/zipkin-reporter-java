@@ -1,8 +1,9 @@
+# zipkin-reporter-java
+
 [![Gitter chat](http://img.shields.io/badge/gitter-join%20chat%20%E2%86%92-brightgreen.svg)](https://gitter.im/openzipkin/zipkin)
-[![Build Status](https://travis-ci.org/openzipkin/zipkin-reporter-java.svg?branch=master)](https://travis-ci.org/openzipkin/zipkin-reporter-java)
+[![Build Status](https://github.com/openzipkin/zipkin-reporter-java/workflows/test/badge.svg)](https://github.com/openzipkin/zipkin/actions?query=workflow%3Atest)
 [![Maven Central](https://img.shields.io/maven-central/v/io.zipkin.reporter2/zipkin-reporter.svg)](https://search.maven.org/search?q=g:io.zipkin.reporter2%20AND%20a:zipkin-reporter)
 
-# zipkin-reporter-java
 Zipkin Reporter buffers and sends trace data collected from tracer libraries to a Zipkin compatible backend.
 
 This repository includes a Java reporting library with transport-specific senders.
