@@ -27,8 +27,8 @@
   <properties>
     <main.basedir>${project.basedir}/..</main.basedir>
     <!-- use the same value in ../pom.xml -->
-    <zipkin.version>2.22.2</zipkin.version>
-    <zipkin-proto3.version>0.2.2</zipkin-proto3.version>
+    <zipkin.version>2.23.0</zipkin.version>
+    <zipkin-proto3.version>1.0.0</zipkin-proto3.version>
 
     <nexus-staging-maven-plugin.version>1.6.8</nexus-staging-maven-plugin.version>
   </properties>

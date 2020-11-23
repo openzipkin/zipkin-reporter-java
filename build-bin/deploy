@@ -1,0 +1,9 @@
+#!/bin/sh
+
+set -ue
+
+# This script deploys a master or release version.
+#
+# See [README.md] for an explanation of this and how CI should use it.
+
+build-bin/maven/maven_deploy
