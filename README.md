@@ -151,7 +151,8 @@ All artifacts publish to the group ID "io.zipkin.zipkin.reporter2". We use a com
 release version for all components.
 
 ### Library Releases
-Releases are at [Maven Central](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22io.zipkin.zipkin.reporter2%22)
+Snapshots are uploaded to [Sonatype](https://oss.sonatype.org/content/repositories/releases) which
+synchronizes with [Maven Central](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22io.zipkin.zipkin.reporter2%22)
 
 ### Library Snapshots
 Snapshots are uploaded to [Sonatype](https://oss.sonatype.org/content/repositories/snapshots) after
