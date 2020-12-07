@@ -14,7 +14,9 @@
     the License.
 
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>io.zipkin.reporter2</groupId>
@@ -54,11 +56,11 @@
     <maven.compiler.target>1.8</maven.compiler.target>
 
     <!-- override to set exclusions per-project -->
-    <errorprone.args />
+    <errorprone.args/>
     <errorprone.version>2.4.0</errorprone.version>
 
     <!-- use the same value in bom/pom.xml -->
-    <zipkin.version>2.23.0</zipkin.version>
+    <zipkin.version>2.23.1</zipkin.version>
     <zipkin-proto3.version>1.0.0</zipkin-proto3.version>
 
     <!-- Do not set this value in bom/pom.xml to avoid cyclic pinning -->
@@ -170,7 +172,7 @@
     <dependency>
       <groupId>org.assertj</groupId>
       <artifactId>assertj-core</artifactId>
-      <version>3.18.0</version>
+      <version>3.18.1</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -202,6 +204,13 @@
           <configuration>
             <!-- Add dependencies indirectly referenced by build plugins -->
             <dynamicDependencies>
+              <!-- animal sniffer implicitly uses this -->
+              <DynamicDependency>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>${maven-dependency-plugin.version}</version>
+                <repositoryType>PLUGIN</repositoryType>
+              </DynamicDependency>
               <DynamicDependency>
                 <groupId>org.codehaus.mojo.signature</groupId>
                 <artifactId>${main.signature.artifact}</artifactId>
@@ -236,8 +245,10 @@
           <version>${maven-compiler-plugin.version}</version>
           <inherited>true</inherited>
           <configuration>
-            <source>${main.java.version}</source>
-            <target>${main.java.version}</target>
+            <!-- Retrolambda will rewrite lambdas as Java 6 bytecode -->
+            <source>1.8</source>
+            <target>1.8</target>
+            <!-- or die! com.sun.tools.javac.api.JavacTool -->
             <fork>true</fork>
             <showWarnings>true</showWarnings>
           </configuration>
@@ -314,6 +325,14 @@
             </lifecycleMappingMetadata>
           </configuration>
         </plugin>
+        <plugin>
+          <artifactId>maven-eclipse-plugin</artifactId>
+          <version>2.10</version>
+          <configuration>
+            <downloadSources>true</downloadSources>
+            <downloadJavadocs>true</downloadJavadocs>
+          </configuration>
+        </plugin>
 
         <plugin>
           <artifactId>maven-shade-plugin</artifactId>
@@ -377,13 +396,9 @@
         <executions>
           <execution>
             <id>integration-test</id>
+            <phase>verify</phase>
             <goals>
               <goal>integration-test</goal>
-            </goals>
-          </execution>
-          <execution>
-            <id>verify</id>
-            <goals>
               <goal>verify</goal>
             </goals>
           </execution>
@@ -408,7 +423,8 @@
             <configuration>
               <rules>
                 <requireJavaVersion>
-                  <!-- Retrolambda doesn't work with JDK 15 -->
+                  <!-- Cannot use JDK 15 until Retrolambda supports it
+                       https://github.com/luontola/retrolambda/issues/161 -->
                   <version>[1.8,15)</version>
                 </requireJavaVersion>
               </rules>
@@ -447,18 +463,18 @@
             <exclude>.editorconfig</exclude>
             <exclude>.gitattributes</exclude>
             <exclude>.gitignore</exclude>
-            <exclude>.github/**</exclude>
+            <exclude>.mailmap</exclude>
             <exclude>.mvn/**</exclude>
             <exclude>mvnw*</exclude>
             <exclude>etc/header.txt</exclude>
             <exclude>**/.idea/**</exclude>
-            <exclude>**/build/**</exclude>
-            <exclude>**/coverage/**</exclude>
             <exclude>**/.editorconfig</exclude>
             <exclude>LICENSE</exclude>
+            <exclude>NOTICE</exclude>
             <exclude>**/*.md</exclude>
             <exclude>**/*.bnd</exclude>
             <exclude>src/test/resources/**</exclude>
+            <exclude>.github/**</exclude>
             <exclude>build-bin/*</exclude>
           </excludes>
           <strictCheck>true</strictCheck>
@@ -480,6 +496,19 @@
         </executions>
       </plugin>
     </plugins>
+
+    <resources>
+      <!-- This adds the LICENSE and NOTICE file to the jar and -sources jar of each module -->
+      <resource>
+        <filtering>false</filtering>
+        <directory>${main.basedir}</directory>
+        <targetPath>META-INF/</targetPath>
+        <includes>
+          <include>LICENSE</include>
+          <include>NOTICE</include>
+        </includes>
+      </resource>
+    </resources>
   </build>
 
   <profiles>

@@ -21,10 +21,9 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
-import org.junit.After;
-import org.junit.AssumptionViolatedException;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import zipkin2.Call;
 import zipkin2.Span;
 import zipkin2.codec.Encoding;
@@ -36,65 +35,62 @@ import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static zipkin2.TestObjects.CLIENT_SPAN;
 
-/** This works against a docker container or throws an {@link AssumptionViolatedException}. */
-public class ITRabbitMQSender {
-  @ClassRule public static RabbitMQSenderRule rabbit = new RabbitMQSenderRule();
-  RabbitMQSender sender = rabbit.tryToInitializeSender(rabbit.newSenderBuilder());
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+class ITRabbitMQSender {
+  @RegisterExtension RabbitMQExtension rabbit = new RabbitMQExtension();
 
-  @After public void after() throws Exception {
-    sender.close();
-  }
+  @Test void sendsSpans() throws Exception {
+    try (RabbitMQSender sender = rabbit.newSenderBuilder("sendsSpans").build()) {
 
-  @Test public void sendsSpans() throws Exception {
-    send(CLIENT_SPAN, CLIENT_SPAN).execute();
+      send(sender, CLIENT_SPAN, CLIENT_SPAN).execute();
 
-    assertThat(SpanBytesDecoder.JSON_V2.decodeList(readMessage()))
+      assertThat(SpanBytesDecoder.JSON_V2.decodeList(readMessage(sender)))
         .containsExactly(CLIENT_SPAN, CLIENT_SPAN);
+    }
   }
 
-  @Test public void sendsSpans_PROTO3() throws Exception {
-    sender.close();
-    sender = rabbit.tryToInitializeSender(rabbit.newSenderBuilder().encoding(Encoding.PROTO3));
+  @Test void sendsSpans_PROTO3() throws Exception {
+    try (RabbitMQSender sender = rabbit.newSenderBuilder("sendsSpans_PROTO3")
+      .encoding(Encoding.PROTO3)
+      .build()) {
 
-    send(CLIENT_SPAN, CLIENT_SPAN).execute();
+      send(sender, CLIENT_SPAN, CLIENT_SPAN).execute();
 
-    assertThat(SpanBytesDecoder.PROTO3.decodeList(readMessage()))
+      assertThat(SpanBytesDecoder.PROTO3.decodeList(readMessage(sender)))
         .containsExactly(CLIENT_SPAN, CLIENT_SPAN);
+    }
   }
 
-  @Test public void sendsSpansToCorrectQueue() throws Exception {
-    String differentQueue = "zipkin-test2";
+  @Test void sendsSpans_configuredQueueDoesntExist() throws Exception {
+    try (RabbitMQSender sender = rabbit.newSenderBuilder("ignored")
+      .queue("sendsSpans_configuredQueueDoesntExist")
+      .build()) {
 
-    rabbit.declareQueue(differentQueue);
-    sender.close();
-    sender = rabbit.tryToInitializeSender(rabbit.newSenderBuilder().queue(differentQueue));
-
-    send(CLIENT_SPAN, CLIENT_SPAN).execute();
-
-    assertThat(SpanBytesDecoder.JSON_V2.decodeList(readMessage()))
-        .containsExactly(CLIENT_SPAN, CLIENT_SPAN);
+      send(sender, CLIENT_SPAN, CLIENT_SPAN).execute(); // doesn't raise exception
+    }
   }
 
-  @Test public void shouldCloseRabbitMQConnectionOnClose() throws Exception {
-    send(CLIENT_SPAN, CLIENT_SPAN).execute();
+  @Test void shouldCloseRabbitMQConnectionOnClose() throws Exception {
+    try (RabbitMQSender sender = rabbit.newSenderBuilder("shouldCloseRabbitMQConnectionOnClose")
+      .build()) {
 
-    sender.close();
-    assertThat(sender.connection.isOpen())
+      send(sender, CLIENT_SPAN, CLIENT_SPAN).execute();
+
+      sender.close();
+
+      assertThat(sender.connection.isOpen())
         .isFalse();
-  }
-
-  Call<Void> send(Span... spans) {
-    return send(sender, spans);
+    }
   }
 
   /** Blocks until the callback completes to allow read-your-writes consistency during tests. */
   static Call<Void> send(Sender sender, Span... spans) {
     SpanBytesEncoder bytesEncoder = sender.encoding() == Encoding.JSON
-        ? SpanBytesEncoder.JSON_V2 : SpanBytesEncoder.PROTO3;
+      ? SpanBytesEncoder.JSON_V2 : SpanBytesEncoder.PROTO3;
     return sender.sendSpans(Stream.of(spans).map(bytesEncoder::encode).collect(toList()));
   }
 
-  byte[] readMessage() throws Exception {
+  byte[] readMessage(RabbitMQSender sender) throws Exception {
     final CountDownLatch countDown = new CountDownLatch(1);
     final AtomicReference<byte[]> result = new AtomicReference<>();
 
@@ -102,17 +98,17 @@ public class ITRabbitMQSender {
     Channel channel = sender.localChannel();
     channel.basicConsume(sender.queue, true, new DefaultConsumer(channel) {
       @Override public void handleDelivery(String consumerTag, Envelope envelope,
-          AMQP.BasicProperties properties, byte[] body) {
+        AMQP.BasicProperties properties, byte[] body) {
         result.set(body);
         countDown.countDown();
       }
     });
     assertThat(countDown.await(10, TimeUnit.SECONDS))
-        .withFailMessage("Timed out waiting to read message")
-        .isTrue();
+      .withFailMessage("Timed out waiting to read message")
+      .isTrue();
     assertThat(result)
-        .withFailMessage("handleDelivery set null body")
-        .isNotNull();
+      .withFailMessage("handleDelivery set null body")
+      .isNotNull();
     return result.get();
   }
 }
