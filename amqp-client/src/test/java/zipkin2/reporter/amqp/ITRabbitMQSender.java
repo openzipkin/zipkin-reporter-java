@@ -23,6 +23,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import zipkin2.Call;
 import zipkin2.Span;
@@ -36,6 +37,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static zipkin2.TestObjects.CLIENT_SPAN;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@Timeout(60)
 class ITRabbitMQSender {
   @RegisterExtension RabbitMQExtension rabbit = new RabbitMQExtension();
 
