@@ -16,6 +16,7 @@ package zipkin2.reporter.kafka;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.NewTopic;
@@ -55,12 +56,17 @@ class KafkaExtension implements BeforeAllCallback, AfterAllCallback {
     config.put(BOOTSTRAP_SERVERS_CONFIG, bootstrapServer());
 
     List<NewTopic> newTopics = new ArrayList<>();
+    List<String> topicNames = new ArrayList<>();
     for (String topic : topics.split(",")) {
       if ("".equals(topic)) continue;
       newTopics.add(new NewTopic(topic, partitions, (short) 1));
+      topicNames.add(topic);
     }
 
     try (AdminClient adminClient = AdminClient.create(config)) {
+      Set<String> existingTopics = adminClient.listTopics().names().get();
+      if (existingTopics.contains(topics))
+        adminClient.deleteTopics(topicNames).all().get();
       adminClient.createTopics(newTopics).all().get();
     } catch (InterruptedException | ExecutionException e) {
       if (e.getCause() != null && e.getCause() instanceof TopicExistsException) return;

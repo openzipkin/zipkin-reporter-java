@@ -67,6 +67,7 @@ class ITKafkaSender {
 
   @Test void sendsSpans() throws Exception {
     send(CLIENT_SPAN, CLIENT_SPAN).execute();
+    sender.producer.flush();
 
     assertThat(SpanBytesDecoder.JSON_V2.decodeList(readMessage()))
       .containsExactly(CLIENT_SPAN, CLIENT_SPAN);
@@ -77,6 +78,7 @@ class ITKafkaSender {
     sender = sender.toBuilder().encoding(Encoding.PROTO3).build();
 
     send(CLIENT_SPAN, CLIENT_SPAN).execute();
+    sender.producer.flush();
 
     assertThat(SpanBytesDecoder.PROTO3.decodeList(readMessage()))
       .containsExactly(CLIENT_SPAN, CLIENT_SPAN);
@@ -87,6 +89,7 @@ class ITKafkaSender {
     sender = sender.toBuilder().encoding(Encoding.THRIFT).build();
 
     send(CLIENT_SPAN, CLIENT_SPAN).execute();
+    sender.producer.flush();
 
     assertThat(SpanBytesDecoder.THRIFT.decodeList(readMessage()))
       .containsExactly(CLIENT_SPAN, CLIENT_SPAN);
@@ -98,6 +101,7 @@ class ITKafkaSender {
     sender = sender.toBuilder().topic("customzipkintopic").build();
 
     send(CLIENT_SPAN, CLIENT_SPAN).execute();
+    sender.producer.flush();
 
     assertThat(SpanBytesDecoder.JSON_V2.decodeList(readMessage("customzipkintopic")))
       .containsExactly(CLIENT_SPAN, CLIENT_SPAN);
@@ -126,6 +130,7 @@ class ITKafkaSender {
 
   @Test void shouldCloseKafkaProducerOnClose() throws Exception {
     send(CLIENT_SPAN, CLIENT_SPAN).execute();
+    sender.producer.flush();
 
     final ObjectName kafkaProducerMXBeanName = new ObjectName("kafka.producer:*");
     final Set<ObjectName> withProducers = ManagementFactory.getPlatformMBeanServer().queryNames(
@@ -210,7 +215,7 @@ class ITKafkaSender {
     try (Consumer<byte[], byte[]> consumer =
            new KafkaConsumer<>(properties, keyDeserializer, valueDeserializer)) {
       consumer.subscribe(Collections.singletonList(topic));
-      return consumer.poll(Duration.ofSeconds(1)).iterator().next().value();
+      return consumer.poll(Duration.ofSeconds(5)).iterator().next().value();
     }
   }
 
