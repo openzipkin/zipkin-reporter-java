@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2020 The OpenZipkin Authors
+ * Copyright 2016-2021 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -52,6 +52,12 @@ import zipkin2.reporter.Sender;
  * sender = OkHttpSender.create("http://127.0.0.1:9411/api/v2/spans");
  * }</pre>
  *
+ * <pre>{@code
+ * proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress("proxy.company.com", 8099));
+ * clientBuilder = new OKHttpClient().newBuilder().proxy(proxy);
+ * sender = OkHttpSender.create("http://127.0.0.1:9411/api/v2/spans", clientBuilder);
+ * }</pre>
+ *
  * <p>Here's an example that adds <a href="https://github.com/square/okhttp/blob/master/samples/guide/src/main/java/okhttp3/recipes/Authenticate.java">basic
  * auth</a> (assuming you have an authenticating proxy):
  *
@@ -82,6 +88,11 @@ public final class OkHttpSender extends Sender {
   /** Creates a sender that posts {@link Encoding#JSON} messages. */
   public static OkHttpSender create(String endpoint) {
     return newBuilder().endpoint(endpoint).build();
+  }
+
+  /** Creates a sender with given OkHttpClient.Builder that posts {@link Encoding#JSON} messages. */
+  public static OkHttpSender create(String endpoint, OkHttpClient.Builder clientBuilder) {
+    return new Builder(clientBuilder).endpoint(endpoint).build();
   }
 
   public static Builder newBuilder() {
