@@ -13,9 +13,9 @@
  */
 package zipkin2.reporter.kafka;
 
-import com.github.charithe.kafka.EphemeralKafkaBroker;
-import com.github.charithe.kafka.KafkaJunitRule;
 import java.lang.management.ManagementFactory;
+import java.time.Duration;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -23,15 +23,17 @@ import java.util.Set;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Stream;
 import javax.management.ObjectName;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.errors.RecordTooLargeException;
+import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import zipkin2.Call;
 import zipkin2.CheckResult;
 import zipkin2.Span;
@@ -42,68 +44,71 @@ import zipkin2.reporter.AsyncReporter;
 import zipkin2.reporter.Sender;
 
 import static java.util.stream.Collectors.toList;
+import static org.apache.kafka.clients.consumer.ConsumerConfig.AUTO_OFFSET_RESET_CONFIG;
+import static org.apache.kafka.clients.consumer.ConsumerConfig.GROUP_ID_CONFIG;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static zipkin2.TestObjects.CLIENT_SPAN;
 
-public class ITKafkaSender {
-  EphemeralKafkaBroker broker = EphemeralKafkaBroker.create();
-  @Rule public KafkaJunitRule kafka = new KafkaJunitRule(broker).waitForStartup();
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+class ITKafkaSender {
+  @RegisterExtension KafkaExtension kafka = new KafkaExtension();
 
   KafkaSender sender;
 
-  @Before public void open() {
-    sender = KafkaSender.create(broker.getBrokerList().get());
+  @BeforeEach public void open() {
+    sender = KafkaSender.create(kafka.bootstrapServer());
+    kafka.prepareTopics(sender.topic, 1);
   }
 
-  @After public void close() {
+  @AfterEach public void close() {
     sender.close();
   }
 
-  @Test
-  public void sendsSpans() throws Exception {
+  @Test void sendsSpans() throws Exception {
     send(CLIENT_SPAN, CLIENT_SPAN).execute();
+    sender.producer.flush();
 
     assertThat(SpanBytesDecoder.JSON_V2.decodeList(readMessage()))
       .containsExactly(CLIENT_SPAN, CLIENT_SPAN);
   }
 
-  @Test
-  public void sendsSpans_PROTO3() throws Exception {
+  @Test void sendsSpans_PROTO3() throws Exception {
     sender.close();
     sender = sender.toBuilder().encoding(Encoding.PROTO3).build();
 
     send(CLIENT_SPAN, CLIENT_SPAN).execute();
+    sender.producer.flush();
 
     assertThat(SpanBytesDecoder.PROTO3.decodeList(readMessage()))
       .containsExactly(CLIENT_SPAN, CLIENT_SPAN);
   }
 
-  @Test
-  public void sendsSpans_THRIFT() throws Exception {
+  @Test void sendsSpans_THRIFT() throws Exception {
     sender.close();
     sender = sender.toBuilder().encoding(Encoding.THRIFT).build();
 
     send(CLIENT_SPAN, CLIENT_SPAN).execute();
+    sender.producer.flush();
 
     assertThat(SpanBytesDecoder.THRIFT.decodeList(readMessage()))
       .containsExactly(CLIENT_SPAN, CLIENT_SPAN);
   }
 
-  @Test
-  public void sendsSpansToCorrectTopic() throws Exception {
+  @Test void sendsSpansToCorrectTopic() throws Exception {
     sender.close();
+    kafka.prepareTopics("customzipkintopic", 1);
     sender = sender.toBuilder().topic("customzipkintopic").build();
 
     send(CLIENT_SPAN, CLIENT_SPAN).execute();
+    sender.producer.flush();
 
     assertThat(SpanBytesDecoder.JSON_V2.decodeList(readMessage("customzipkintopic")))
       .containsExactly(CLIENT_SPAN, CLIENT_SPAN);
   }
 
-  @Test
-  public void checkFalseWhenKafkaIsDown() throws Exception {
-    broker.stop();
+  @Test void checkFalseWhenKafkaIsDown() {
+    kafka.container.stop();
 
     // Make a new tracer that fails faster than 60 seconds
     sender.close();
@@ -116,17 +121,16 @@ public class ITKafkaSender {
     assertThat(check.error()).isInstanceOf(TimeoutException.class);
   }
 
-  @Test
-  public void illegalToSendWhenClosed() {
+  @Test void illegalToSendWhenClosed() {
     sender.close();
 
     assertThatThrownBy(() -> send(CLIENT_SPAN, CLIENT_SPAN).execute())
       .isInstanceOf(IllegalStateException.class);
   }
 
-  @Test
-  public void shouldCloseKafkaProducerOnClose() throws Exception {
+  @Test void shouldCloseKafkaProducerOnClose() throws Exception {
     send(CLIENT_SPAN, CLIENT_SPAN).execute();
+    sender.producer.flush();
 
     final ObjectName kafkaProducerMXBeanName = new ObjectName("kafka.producer:*");
     final Set<ObjectName> withProducers = ManagementFactory.getPlatformMBeanServer().queryNames(
@@ -140,8 +144,7 @@ public class ITKafkaSender {
     assertThat(withNoProducers).isEmpty();
   }
 
-  @Test
-  public void shouldFailWhenMessageIsBiggerThanMaxSize() {
+  @Test void shouldFailWhenMessageIsBiggerThanMaxSize() {
     sender.close();
     sender = sender.toBuilder().messageMaxBytes(1).build();
 
@@ -155,15 +158,13 @@ public class ITKafkaSender {
    * tools, care should be taken to ensure the toString() output is a reasonable length and does not
    * contain sensitive information.
    */
-  @Test
-  public void toStringContainsOnlySummaryInformation() {
+  @Test void toStringContainsOnlySummaryInformation() {
     assertThat(sender.toString()).isEqualTo(
-      "KafkaSender{bootstrapServers=" + broker.getBrokerList().get() + ", topic=zipkin}"
+      "KafkaSender{bootstrapServers=" + kafka.bootstrapServer() + ", topic=zipkin}"
     );
   }
 
-  @Test
-  public void checkFilterPropertiesProducerToAdminClient() {
+  @Test void checkFilterPropertiesProducerToAdminClient() {
     Properties producerProperties = new Properties();
     producerProperties.put(ProducerConfig.MAX_BLOCK_MS_CONFIG, "100");
     producerProperties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
@@ -203,13 +204,22 @@ public class ITKafkaSender {
     return sender.sendSpans(Stream.of(spans).map(bytesEncoder::encode).collect(toList()));
   }
 
-  private byte[] readMessage(String topic) throws Exception {
-    KafkaConsumer<byte[], byte[]> consumer = kafka.helper().createByteConsumer();
-    return kafka.helper().consume(topic, consumer, 1)
-      .get().stream().map(ConsumerRecord::value).findFirst().get();
+  byte[] readMessage(String topic) {
+    Properties properties = new Properties();
+    properties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafka.bootstrapServer());
+    properties.put(GROUP_ID_CONFIG, "zipkin");
+    properties.put(AUTO_OFFSET_RESET_CONFIG, "earliest");
+
+    ByteArrayDeserializer keyDeserializer = new ByteArrayDeserializer();
+    ByteArrayDeserializer valueDeserializer = new ByteArrayDeserializer();
+    try (Consumer<byte[], byte[]> consumer =
+           new KafkaConsumer<>(properties, keyDeserializer, valueDeserializer)) {
+      consumer.subscribe(Collections.singletonList(topic));
+      return consumer.poll(Duration.ofSeconds(5)).iterator().next().value();
+    }
   }
 
-  private byte[] readMessage() throws Exception {
+  private byte[] readMessage() {
     return readMessage("zipkin");
   }
 }
