@@ -49,7 +49,6 @@
       <groupId>org.apache.kafka</groupId>
       <artifactId>kafka-clients</artifactId>
       <!-- recent clients can talk to old 0.10 brokers -->
-      <!-- when changing this, a change to the version of kafka-junit is likely needed, too -->
       <version>2.7.0</version>
     </dependency>
 
