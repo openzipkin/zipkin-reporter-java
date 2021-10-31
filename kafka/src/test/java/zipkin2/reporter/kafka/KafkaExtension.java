@@ -95,8 +95,7 @@ class KafkaExtension implements BeforeAllCallback, AfterAllCallback {
         throw new TestAbortedException("${docker.skip} == true");
       }
       waitStrategy = Wait.forHealthcheck();
-      // 19092 is for connections from the Docker host and needs to be used as a fixed port.
-      // TODO: someone who knows Kafka well, make ^^ comment better!
+      // Kafka broker listener port (19092) needs to be exposed for test cases to access it.
       addFixedExposedPort(KAFKA_PORT, KAFKA_PORT, InternetProtocol.TCP);
       withLogConsumer(new Slf4jLogConsumer(LOGGER));
     }
