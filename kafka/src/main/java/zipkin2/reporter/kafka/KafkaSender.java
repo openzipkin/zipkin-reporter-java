@@ -142,7 +142,7 @@ public final class KafkaSender extends Sender {
      * By default, a producer will be created, targeted to {@link #bootstrapServers(String)} with 0
      * required {@link ProducerConfig#ACKS_CONFIG acks}. Any properties set here will affect the
      * producer config.
-     *
+     * <p>
      * Consider not overriding batching properties ("batch.size" and "linger.ms") as those will
      * duplicate buffering effort that is already handled by Sender.
      *
@@ -155,7 +155,7 @@ public final class KafkaSender extends Sender {
      *
      * @see ProducerConfig
      */
-    public final Builder overrides(Map<String, ?> overrides) {
+    public Builder overrides(Map<String, ?> overrides) {
       if (overrides == null) throw new NullPointerException("overrides == null");
       properties.putAll(overrides);
       return this;
@@ -165,7 +165,7 @@ public final class KafkaSender extends Sender {
      * By default, a producer will be created, targeted to {@link #bootstrapServers(String)} with 0
      * required {@link ProducerConfig#ACKS_CONFIG acks}. Any properties set here will affect the
      * producer config.
-     *
+     * <p>
      * Consider not overriding batching properties ("batch.size" and "linger.ms") as those will
      * duplicate buffering effort that is already handled by Sender.
      *
@@ -223,8 +223,8 @@ public final class KafkaSender extends Sender {
    */
   Map<String, Object> filterPropertiesForAdminClient(Properties properties) {
     Map<String, Object> adminClientProperties = new LinkedHashMap<>();
-    for (Map.Entry property : properties.entrySet()) {
-      if (AdminClientConfig.configNames().contains(property.getKey())) {
+    for (Map.Entry<?, ?> property : properties.entrySet()) {
+      if (AdminClientConfig.configNames().contains((String) property.getKey())) {
         adminClientProperties.put(property.getKey().toString(), property.getValue());
       }
     }
@@ -305,7 +305,6 @@ public final class KafkaSender extends Sender {
     KafkaProducer<byte[], byte[]> producer = this.producer;
     if (producer != null) producer.close();
     AdminClient adminClient = this.adminClient;
-    // Intentionally using deprecated method to avoid pinning newer Kafka client
     if (adminClient != null) adminClient.close();
     closeCalled = true;
   }
