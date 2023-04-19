@@ -18,7 +18,7 @@ import zipkin2.codec.Encoding;
 import zipkin2.reporter.okhttp3.OkHttpSender;
 
 /** Spring XML config does not support chained builders. This converts accordingly */
-public class OkHttpSenderFactoryBean extends AbstractFactoryBean {
+public class OkHttpSenderFactoryBean extends AbstractFactoryBean<OkHttpSender> {
 
   String endpoint;
   Encoding encoding;

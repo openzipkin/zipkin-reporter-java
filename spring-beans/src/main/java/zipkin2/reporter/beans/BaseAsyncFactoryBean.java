@@ -17,7 +17,7 @@ import org.springframework.beans.factory.config.AbstractFactoryBean;
 import zipkin2.reporter.ReporterMetrics;
 import zipkin2.reporter.Sender;
 
-abstract class BaseAsyncFactoryBean extends AbstractFactoryBean {
+abstract class BaseAsyncFactoryBean<T> extends AbstractFactoryBean<T> {
   Sender sender;
   ReporterMetrics metrics;
   Integer messageMaxBytes;

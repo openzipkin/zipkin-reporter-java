@@ -19,7 +19,7 @@ import zipkin2.codec.Encoding;
 import zipkin2.reporter.activemq.ActiveMQSender;
 
 /** Spring XML config does not support chained builders. This converts accordingly */
-public class ActiveMQSenderFactoryBean extends AbstractFactoryBean {
+public class ActiveMQSenderFactoryBean extends AbstractFactoryBean<ActiveMQSender> {
 
   String url, queue, username, password;
   String clientIdPrefix = "zipkin", connectionIdPrefix = "zipkin";

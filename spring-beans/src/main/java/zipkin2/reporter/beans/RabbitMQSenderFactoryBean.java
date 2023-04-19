@@ -19,7 +19,7 @@ import zipkin2.codec.Encoding;
 import zipkin2.reporter.amqp.RabbitMQSender;
 
 /** Spring XML config does not support chained builders. This converts accordingly */
-public class RabbitMQSenderFactoryBean extends AbstractFactoryBean {
+public class RabbitMQSenderFactoryBean extends AbstractFactoryBean<RabbitMQSender> {
 
   String addresses, queue;
   Encoding encoding;

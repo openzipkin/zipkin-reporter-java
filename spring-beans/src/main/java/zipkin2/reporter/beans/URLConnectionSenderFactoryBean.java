@@ -18,7 +18,7 @@ import zipkin2.codec.Encoding;
 import zipkin2.reporter.urlconnection.URLConnectionSender;
 
 /** Spring XML config does not support chained builders. This converts accordingly */
-public class URLConnectionSenderFactoryBean extends AbstractFactoryBean {
+public class URLConnectionSenderFactoryBean extends AbstractFactoryBean<URLConnectionSender> {
 
   String endpoint;
   Encoding encoding;
