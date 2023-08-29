@@ -75,8 +75,6 @@ class BasicUsageTest {
     // When
     started.finish();
 
-    Thread.sleep(1000);
-
     // Then
     Awaitility.await().untilAsserted(() -> {
       OkHttpClient client = new Builder()
