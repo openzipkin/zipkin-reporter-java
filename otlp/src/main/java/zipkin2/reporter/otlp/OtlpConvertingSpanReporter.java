@@ -25,7 +25,6 @@ import com.google.protobuf.ByteString;
 import io.opentelemetry.proto.common.v1.AnyValue;
 import io.opentelemetry.proto.common.v1.KeyValue;
 import io.opentelemetry.proto.trace.v1.ResourceSpans;
-import io.opentelemetry.proto.trace.v1.ResourceSpans.Builder;
 import io.opentelemetry.proto.trace.v1.ScopeSpans;
 import io.opentelemetry.proto.trace.v1.Span;
 import io.opentelemetry.proto.trace.v1.Span.SpanKind;
@@ -33,6 +32,10 @@ import io.opentelemetry.proto.trace.v1.TracesData;
 import zipkin2.reporter.Reporter;
 
 final class OtlpConvertingSpanReporter implements Reporter<MutableSpan> {
+
+  private static final String INVALID_TRACE = "00000000000000000000000000000000";
+
+  private static final String INVALID_SPAN = "0000000000000000";
 
   final Reporter<TracesData> delegate;
   final Tag<Throwable> errorTag;
@@ -48,13 +51,13 @@ final class OtlpConvertingSpanReporter implements Reporter<MutableSpan> {
     delegate.report(converted);
   }
 
-  static TracesData convert(MutableSpan span) {
+  TracesData convert(MutableSpan span) {
     TracesData.Builder tracesDataBuilder = TracesData.newBuilder();
     ResourceSpans.Builder resourceSpansBuilder = ResourceSpans.newBuilder();
     ScopeSpans.Builder scopeSpanBuilder = ScopeSpans.newBuilder();
     Span.Builder spanBuilder = Span.newBuilder()
-        .setTraceId(ByteString.fromHex(span.traceId()))
-      .setSpanId(ByteString.fromHex(span.id()))
+        .setTraceId(ByteString.fromHex(idOrInvalidTraceId(span.traceId())))
+      .setSpanId(ByteString.fromHex(idOrInvalidSpanId(span.id())))
       .setName(span.name());
     if (span.parentId() != null) {
         spanBuilder.setParentSpanId(ByteString.fromHex(span.parentId()));
@@ -118,6 +121,14 @@ final class OtlpConvertingSpanReporter implements Reporter<MutableSpan> {
       .build());
     tracesDataBuilder.addResourceSpans(resourceSpansBuilder.build());
     return tracesDataBuilder.build();
+  }
+
+  private static String idOrInvalidTraceId(String id) {
+    return id != null ? id : INVALID_TRACE;
+  }
+
+  private static String idOrInvalidSpanId(String id) {
+    return id != null ? id : INVALID_SPAN;
   }
 
   void maybeAddErrorTag(MutableSpan span) {
