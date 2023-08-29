@@ -148,6 +148,11 @@
         <artifactId>zipkin-reporter-metrics-micrometer</artifactId>
         <version>${project.version}</version>
       </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>zipkin-reporter-brave-otlp</artifactId>
+        <version>${project.version}</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 
