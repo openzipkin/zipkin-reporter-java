@@ -12,7 +12,10 @@
  * the License.
  */
 /**
- * Code ported from OpenTelemetry codebase. Classes in this package are incubating and may change in the future.
+ * This class is internal and is hence not for public use. Its APIs are unstable and can change at
+ * any time.
+ *
+ * Code ported from OpenTelemetry codebase.
  *
  * @author Marcin Grzejszczak
  * @author OpenTelemetry authors

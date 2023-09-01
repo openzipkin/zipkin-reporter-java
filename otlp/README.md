@@ -1,42 +1,24 @@
-# zipkin-otlp-reporter-brave
-This allows you to send spans recorded by Brave 5.12+ with a OTLP reporter.
+# zipkin-reporter-brave-otlp
+This allows you to send spans recorded by Brave 5.12+ to a OTLP reporter over HTTP with PROTO encoding.
 
-To start sending the spans you would need to use GRPC in the following way:
-
-```xml
-<dependency>
-    <groupId>io.grpc</groupId>
-    <artifactId>grpc-protobuf</artifactId>
-    <version>${grpc.version}</version>
-</dependency>
-<dependency>
-    <groupId>io.grpc</groupId>
-    <artifactId>grpc-stub</artifactId>
-    <version>${grpc.version}</version>
-</dependency>
-<dependency>
-    <groupId>io.grpc</groupId>
-    <artifactId>grpc-netty-shaded</artifactId>
-    <version>${grpc.version}</version>
-</dependency>
-```
-
-and then set up the `Reporter` and `SpanHandler` like this
+You can use any sender but remember to use the PROTO3 encoding. You can use the async reporting mechanism as shown below.
 
 ```java
+okHttpSender = OkHttpSender.newBuilder()
+  .encoding(Encoding.PROTO3)
+  .endpoint("http://localhost:4318/v1/traces")
+  .build();
+spanHandler = AsyncOtlpSpanHandler.create(okHttpSender); // don't forget to close!
+tracingBuilder.addSpanHandler(spanHandler);
+```
 
-    SpanHandler otlpSpanHandler = OtlpSpanHandler
-      .create(OtlpReporter.create(ManagedChannelBuilder.forAddress("localhost", 4317)
-      // For demo purposes we disable security
-      .usePlaintext()));
+There's also an option to use a synchronous reporter (which is less effective than the asynchronous version).
 
-    Tracing tracing = Tracing.newBuilder()
-      .currentTraceContext(braveCurrentTraceContext)
-      .supportsJoin(false)
-      .traceId128Bit(true)
-      .sampler(Sampler.ALWAYS_SAMPLE)
-      // Add the SpanHandler
-      .addSpanHandler(otlpSpanHandler)
-      .localServiceName("my-service")
-      .build();
+```java
+okHttpSender = OkHttpSender.newBuilder()
+  .encoding(Encoding.PROTO3)
+  .endpoint("http://localhost:4318/v1/traces")
+  .build();
+reporter = SyncOtlpReporter.create(okHttpSender);
+spanHandler = OtlpSpanHandler.create(reporter);
 ```

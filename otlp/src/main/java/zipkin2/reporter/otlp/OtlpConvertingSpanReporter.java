@@ -13,6 +13,7 @@
  */
 package zipkin2.reporter.otlp;
 
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import brave.Span.Kind;
@@ -25,6 +26,7 @@ import com.google.protobuf.ByteString;
 import io.opentelemetry.proto.common.v1.AnyValue;
 import io.opentelemetry.proto.common.v1.KeyValue;
 import io.opentelemetry.proto.trace.v1.ResourceSpans;
+import io.opentelemetry.proto.trace.v1.ResourceSpans.Builder;
 import io.opentelemetry.proto.trace.v1.ScopeSpans;
 import io.opentelemetry.proto.trace.v1.Span;
 import io.opentelemetry.proto.trace.v1.Span.SpanKind;
@@ -32,10 +34,6 @@ import io.opentelemetry.proto.trace.v1.TracesData;
 import zipkin2.reporter.Reporter;
 
 final class OtlpConvertingSpanReporter implements Reporter<MutableSpan> {
-
-  private static final String INVALID_TRACE = "00000000000000000000000000000000";
-
-  private static final String INVALID_SPAN = "0000000000000000";
 
   final Reporter<TracesData> delegate;
   final Tag<Throwable> errorTag;
@@ -45,19 +43,43 @@ final class OtlpConvertingSpanReporter implements Reporter<MutableSpan> {
     this.errorTag = errorTag;
   }
 
+  public static TracesData convert(List<MutableSpan> spans) {
+    TracesData.Builder tracesDataBuilder = TracesData.newBuilder();
+    Builder resourceSpansBuilder = ResourceSpans.newBuilder();
+    ScopeSpans.Builder scopeSpanBuilder = ScopeSpans.newBuilder();
+    for (MutableSpan mutableSpan : spans) {
+      Span.Builder spanBuilder = builderForSingleSpan(mutableSpan, resourceSpansBuilder);
+      scopeSpanBuilder.addSpans(spanBuilder.build());
+    }
+    resourceSpansBuilder.addScopeSpans(scopeSpanBuilder
+      .build());
+    tracesDataBuilder.addResourceSpans(resourceSpansBuilder.build());
+    return tracesDataBuilder.build();
+  }
+
   @Override public void report(MutableSpan span) {
     maybeAddErrorTag(span);
     TracesData converted = convert(span);
     delegate.report(converted);
   }
 
-  TracesData convert(MutableSpan span) {
+  static TracesData convert(MutableSpan span) {
     TracesData.Builder tracesDataBuilder = TracesData.newBuilder();
-    ResourceSpans.Builder resourceSpansBuilder = ResourceSpans.newBuilder();
+    Builder resourceSpansBuilder = ResourceSpans.newBuilder();
     ScopeSpans.Builder scopeSpanBuilder = ScopeSpans.newBuilder();
+    Span.Builder spanBuilder = builderForSingleSpan(span, resourceSpansBuilder);
+    scopeSpanBuilder.addSpans(spanBuilder
+      .build());
+    resourceSpansBuilder.addScopeSpans(scopeSpanBuilder
+      .build());
+    tracesDataBuilder.addResourceSpans(resourceSpansBuilder.build());
+    return tracesDataBuilder.build();
+  }
+
+  private static Span.Builder builderForSingleSpan(MutableSpan span, Builder resourceSpansBuilder) {
     Span.Builder spanBuilder = Span.newBuilder()
-        .setTraceId(ByteString.fromHex(idOrInvalidTraceId(span.traceId())))
-      .setSpanId(ByteString.fromHex(idOrInvalidSpanId(span.id())))
+        .setTraceId(ByteString.fromHex(span.traceId()))
+      .setSpanId(ByteString.fromHex(span.id()))
       .setName(span.name());
     if (span.parentId() != null) {
         spanBuilder.setParentSpanId(ByteString.fromHex(span.parentId()));
@@ -114,21 +136,7 @@ final class OtlpConvertingSpanReporter implements Reporter<MutableSpan> {
     }
     span.forEachTag(Consumer.INSTANCE, spanBuilder);
     span.forEachAnnotation(Consumer.INSTANCE, spanBuilder);
-
-    scopeSpanBuilder.addSpans(spanBuilder
-      .build());
-    resourceSpansBuilder.addScopeSpans(scopeSpanBuilder
-      .build());
-    tracesDataBuilder.addResourceSpans(resourceSpansBuilder.build());
-    return tracesDataBuilder.build();
-  }
-
-  private static String idOrInvalidTraceId(String id) {
-    return id != null ? id : INVALID_TRACE;
-  }
-
-  private static String idOrInvalidSpanId(String id) {
-    return id != null ? id : INVALID_SPAN;
+    return spanBuilder;
   }
 
   void maybeAddErrorTag(MutableSpan span) {

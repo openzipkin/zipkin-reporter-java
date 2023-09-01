@@ -25,7 +25,7 @@ class JaegerAllInOne extends GenericContainer<JaegerAllInOne> {
 
   static final int JAEGER_ADMIN_PORT = 14269;
 
-  static final int GRPC_OTLP_PORT = 4317;
+  static final int HTTP_OTLP_PORT = 4318;
 
   public JaegerAllInOne() {
     super("jaegertracing/all-in-one:1.48");
@@ -36,11 +36,11 @@ class JaegerAllInOne extends GenericContainer<JaegerAllInOne> {
     waitingFor(new BoundPortHttpWaitStrategy(JAEGER_ADMIN_PORT));
     withExposedPorts(JAEGER_ADMIN_PORT,
       JAEGER_QUERY_PORT,
-      GRPC_OTLP_PORT);
+      HTTP_OTLP_PORT);
   }
 
-  public int getGrpcOtlpPort() {
-    return getMappedPort(GRPC_OTLP_PORT);
+  public int getHttpOtlpPort() {
+    return getMappedPort(HTTP_OTLP_PORT);
   }
 
   public int getQueryPort() {
