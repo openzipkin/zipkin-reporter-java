@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2019 The OpenZipkin Authors
+ * Copyright 2016-2023 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -17,22 +17,30 @@ import java.io.Closeable;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.apache.thrift.TConfiguration;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TBinaryProtocol;
-import org.apache.thrift.transport.TFramedTransport;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransportException;
+import org.apache.thrift.transport.layered.TFramedTransport;
 
 final class ScribeClient implements Closeable {
   static final Logger logger = Logger.getLogger(ScribeClient.class.getName());
   static final byte[] category = new byte[] {'z', 'i', 'p', 'k', 'i', 'n'};
 
-  final TSocket socket;
-  final TBinaryProtocol prot;
+  final String host;
+  final int port;
+  final int socketTimeout;
+  final int connectTimeout;
+
+  volatile TSocket socket;
+  volatile TBinaryProtocol prot;
 
   ScribeClient(String host, int port, int socketTimeout, int connectTimeout) {
-    socket = new TSocket(host, port, socketTimeout, connectTimeout);
-    prot = new TBinaryProtocol(new TFramedTransport(socket));
+    this.host = host;
+    this.port = port;
+    this.socketTimeout = socketTimeout;
+    this.connectTimeout = connectTimeout;
   }
 
   static int messageSizeInBytes(int spanSizeInBytes) {
@@ -47,19 +55,29 @@ final class ScribeClient implements Closeable {
 
   boolean log(List<byte[]> encodedSpans) throws TException {
     try {
+      if (socket == null) {
+        synchronized (this) {
+          if (socket == null) {
+            socket = new TSocket(new TConfiguration(), host, port, socketTimeout, connectTimeout);
+            prot = new TBinaryProtocol(new TFramedTransport(socket));
+          }
+        }
+      }
+
       if (!socket.isOpen()) socket.open();
       InternalScribeCodec.writeLogRequest(category, encodedSpans, ++seqid_, prot);
       prot.getTransport().flush();
       return InternalScribeCodec.readLogResponse(seqid_, prot);
     } catch (TTransportException e) {
       logger.log(Level.FINE, "Transport exception. recreating socket", e);
-      socket.close();
+      close();
       seqid_ = 0;
       throw e;
     }
   }
 
   @Override public void close() {
-    socket.close();
+    TSocket maybe = this.socket;
+    if (maybe != null) maybe.close();
   }
 }
