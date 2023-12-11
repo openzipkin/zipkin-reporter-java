@@ -60,7 +60,7 @@ final class ScribeClient implements Closeable {
   boolean log(List<byte[]> encodedSpans) throws TException {
     try {
       // Starting in version 0.14, TSocket opens a socket inside its
-      // constructor, which we defer vs having to throw exceptions in ours.
+      // constructor, which we defer so that the server can be initially down.
       if (socket == null) {
         synchronized (this) {
           if (socket == null) {
