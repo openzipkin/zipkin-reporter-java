@@ -58,7 +58,7 @@
     <errorprone.version>2.23.0</errorprone.version>
 
     <!-- use the same value in bom/pom.xml -->
-    <zipkin.version>2.23.2</zipkin.version>
+    <zipkin.version>2.24.4</zipkin.version>
     <zipkin-proto3.version>1.0.0</zipkin-proto3.version>
 
     <!-- Do not set this value in bom/pom.xml to avoid cyclic pinning -->
@@ -67,7 +67,8 @@
     <junit.version>4.13.2</junit.version>
     <junit-jupiter.version>5.10.1</junit-jupiter.version>
     <okhttp.version>3.14.9</okhttp.version>
-    <logback.version>1.4.14</logback.version>
+    <!-- use pre slf4j 2 version -->
+    <logback.version>1.2.13</logback.version>
     <testcontainers.version>1.19.3</testcontainers.version>
 
     <license.skip>${skipTests}</license.skip>

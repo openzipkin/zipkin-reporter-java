@@ -30,7 +30,7 @@
     <module.name>zipkin2.reporter.activemq</module.name>
 
     <main.basedir>${project.basedir}/..</main.basedir>
-    <activemq.version>5.16.0</activemq.version>
+    <activemq.version>5.18.3</activemq.version>
 
     <!-- CI should run the "release" profile during tests to ensure no 1.8
          features are in use. -->
