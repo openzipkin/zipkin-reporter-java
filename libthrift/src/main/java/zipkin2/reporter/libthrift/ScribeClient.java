@@ -36,6 +36,10 @@ final class ScribeClient implements Closeable {
   volatile TSocket socket;
   volatile TBinaryProtocol prot;
 
+  /**
+   * This defers opening a socket until the first call to {@link #log}, to
+   * accommodate a server that's down when the client initializes.
+   */
   ScribeClient(String host, int port, int socketTimeout, int connectTimeout) {
     this.host = host;
     this.port = port;
@@ -55,6 +59,8 @@ final class ScribeClient implements Closeable {
 
   boolean log(List<byte[]> encodedSpans) throws TException {
     try {
+      // Starting in version 0.14, TSocket opens a socket inside its
+      // constructor, which we defer vs having to throw exceptions in ours.
       if (socket == null) {
         synchronized (this) {
           if (socket == null) {
