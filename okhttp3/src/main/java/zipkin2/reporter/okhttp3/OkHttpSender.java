@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2020 The OpenZipkin Authors
+ * Copyright 2016-2023 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -234,8 +234,6 @@ public final class OkHttpSender extends Sender {
     return dispatcher;
   }
 
-  // Not lambda as Retrolambda creates an OSGi dependency on jdk.internal.vm.annotation with JDK 14
-  // See https://github.com/luontola/retrolambda/issues/160
   enum OkHttpSenderThreadFactory implements ThreadFactory {
     INSTANCE;
 

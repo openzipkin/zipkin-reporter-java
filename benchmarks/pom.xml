@@ -29,9 +29,7 @@
 
   <properties>
     <main.basedir>${project.basedir}/..</main.basedir>
-    <jmh.version>1.27</jmh.version>
-    <main.java.version>1.8</main.java.version>
-    <main.signature.artifact>java18</main.signature.artifact>
+    <jmh.version>1.37</jmh.version>
   </properties>
 
   <dependencyManagement>
@@ -125,7 +123,7 @@
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
-      <version>4.13.1</version>
+      <version>${junit.version}</version>
     </dependency>
     <dependency>
       <groupId>ch.qos.logback</groupId>
@@ -136,20 +134,9 @@
 
   <build>
     <plugins>
-      <!-- disable retrolambda as we allow language level 1.8 benchmark classes -->
-      <plugin>
-        <groupId>net.orfjackal.retrolambda</groupId>
-        <artifactId>retrolambda-maven-plugin</artifactId>
-        <executions>
-          <execution>
-            <phase>none</phase>
-          </execution>
-        </executions>
-      </plugin>
-
       <plugin>
         <artifactId>maven-shade-plugin</artifactId>
-        <version>3.2.4</version>
+        <version>${maven-shade-plugin.version}</version>
         <executions>
           <execution>
             <phase>package</phase>
