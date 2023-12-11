@@ -234,8 +234,6 @@ public final class OkHttpSender extends Sender {
     return dispatcher;
   }
 
-  // Not lambda as Retrolambda creates an OSGi dependency on jdk.internal.vm.annotation with JDK 14
-  // See https://github.com/luontola/retrolambda/issues/160
   enum OkHttpSenderThreadFactory implements ThreadFactory {
     INSTANCE;
 
