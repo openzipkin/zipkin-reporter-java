@@ -1,4 +1,0 @@
-Import-Package: \
-  *
-Export-Package: \
-  zipkin2.reporter.kafka08
