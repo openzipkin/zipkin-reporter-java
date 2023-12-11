@@ -29,8 +29,6 @@
     <!-- use the same value in ../pom.xml -->
     <zipkin.version>2.23.2</zipkin.version>
     <zipkin-proto3.version>1.0.0</zipkin-proto3.version>
-
-    <nexus-staging-maven-plugin.version>1.6.8</nexus-staging-maven-plugin.version>
   </properties>
 
   <url>https://github.com/openzipkin/zipkin-reporter-java</url>
@@ -159,7 +157,7 @@
           <plugin>
             <groupId>org.sonatype.plugins</groupId>
             <artifactId>nexus-staging-maven-plugin</artifactId>
-            <version>${nexus-staging-maven-plugin.version}</version>
+            <version>1.6.13</version>
             <extensions>true</extensions>
             <configuration>
               <serverId>ossrh</serverId>
@@ -170,12 +168,12 @@
 
           <plugin>
             <artifactId>maven-deploy-plugin</artifactId>
-            <version>3.0.0-M1</version>
+            <version>3.1.1</version>
           </plugin>
 
           <plugin>
             <artifactId>maven-gpg-plugin</artifactId>
-            <version>1.6</version>
+            <version>3.1.0</version>
             <executions>
               <execution>
                 <id>sign-artifacts</id>
