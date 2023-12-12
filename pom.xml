@@ -26,7 +26,6 @@
     <module>bom</module>
     <module>core</module>
     <module>kafka</module>
-    <module>kafka08</module>
     <module>amqp-client</module>
     <module>activemq-client</module>
     <module>urlconnection</module>
