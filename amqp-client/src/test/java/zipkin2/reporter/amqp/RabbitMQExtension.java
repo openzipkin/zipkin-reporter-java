@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2020 The OpenZipkin Authors
+ * Copyright 2016-2023 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -60,7 +60,7 @@ class RabbitMQExtension implements BeforeAllCallback, AfterAllCallback {
   void declareQueue(String queue) {
     ExecResult result;
     try {
-      result = container.execInContainer("rabbitmqadmin", "declare", "queue", "name=" + queue);
+      result = container.execInContainer("amqp-declare-queue", "-q", queue);
     } catch (Throwable e) {
       propagateIfFatal(e);
       throw new TestAbortedException(
@@ -82,11 +82,11 @@ class RabbitMQExtension implements BeforeAllCallback, AfterAllCallback {
   // mostly waiting for https://github.com/testcontainers/testcontainers-java/issues/3537
   static final class RabbitMQContainer extends GenericContainer<RabbitMQContainer> {
     RabbitMQContainer() {
-      super(parse("ghcr.io/openzipkin/rabbitmq-management-alpine:latest"));
+      super(parse("ghcr.io/openzipkin/zipkin-rabbitmq:2.25.0"));
       if ("true".equals(System.getProperty("docker.skip"))) {
         throw new TestAbortedException("${docker.skip} == true");
       }
-      withExposedPorts(RABBIT_PORT); // rabbit's image doesn't expose any port
+      withExposedPorts(RABBIT_PORT);
       waitStrategy = Wait.forLogMessage(".*Server startup complete.*", 1);
       withStartupTimeout(Duration.ofSeconds(60));
     }
