@@ -118,7 +118,7 @@
       <artifactId>kafka-junit</artifactId>
       <!-- This version is tightly coupled to the version of kafka-clients being used.
        https://github.com/charithe/kafka-junit -->
-      <version>4.1.10</version>
+      <version>4.2.10</version>
     </dependency>
     <dependency>
       <groupId>junit</groupId>
