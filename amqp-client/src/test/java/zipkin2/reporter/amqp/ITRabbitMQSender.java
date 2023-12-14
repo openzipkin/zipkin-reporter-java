@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2020 The OpenZipkin Authors
+ * Copyright 2016-2023 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -38,7 +38,7 @@ import static zipkin2.TestObjects.CLIENT_SPAN;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Timeout(60)
-class ITRabbitMQSender {
+public class ITRabbitMQSender { // public for use in src/it
   @RegisterExtension RabbitMQExtension rabbit = new RabbitMQExtension();
 
   @Test void sendsSpans() throws Exception {
