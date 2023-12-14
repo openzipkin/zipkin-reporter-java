@@ -181,7 +181,7 @@ Ex. in your dependencies section, import the BOM like this:
 ```
 
 Now, you can leave off the version when choosing any supported
-instrumentation. Also any indirect use will have versions aligned:
+instrumentation. Also, any indirect use will have versions aligned:
 ```xml
 <dependency>
   <groupId>io.zipkin.reporter2</groupId>

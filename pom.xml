@@ -63,9 +63,8 @@
     <brave.version>5.16.0</brave.version>
 
     <junit-jupiter.version>5.10.1</junit-jupiter.version>
-    <!-- use pre-kotlin version -->
-    <okhttp.version>3.14.9</okhttp.version>
-    <okhttp5.version>5.0.0-alpha.11</okhttp5.version>
+    <assertj.version>3.24.2</assertj.version>
+    <okhttp.version>4.12.0</okhttp.version>
     <!-- use pre slf4j 2 version -->
     <logback.version>1.2.13</logback.version>
     <testcontainers.version>1.19.3</testcontainers.version>
@@ -85,6 +84,7 @@
     <!-- Use same version as https://github.com/openzipkin/docker-java -->
     <maven-help-plugin.version>3.4.0</maven-help-plugin.version>
     <maven-install-plugin.version>3.1.1</maven-install-plugin.version>
+    <maven-invoker-plugin.version>3.6.0</maven-invoker-plugin.version>
     <maven-javadoc-plugin.version>3.6.2</maven-javadoc-plugin.version>
     <maven-jar-plugin.version>3.3.0</maven-jar-plugin.version>
     <maven-release-plugin.version>3.0.1</maven-release-plugin.version>
@@ -175,7 +175,7 @@
     <dependency>
       <groupId>org.assertj</groupId>
       <artifactId>assertj-core</artifactId>
-      <version>3.24.2</version>
+      <version>${assertj.version}</version>
       <scope>test</scope>
     </dependency>
 
@@ -318,6 +318,32 @@
         <plugin>
           <artifactId>maven-shade-plugin</artifactId>
           <version>${maven-shade-plugin.version}</version>
+        </plugin>
+
+        <plugin>
+          <artifactId>maven-invoker-plugin</artifactId>
+          <version>${maven-invoker-plugin.version}</version>
+          <configuration>
+            <cloneProjectsTo>${project.build.directory}/it</cloneProjectsTo>
+            <settingsFile>${main.basedir}/src/it/settings.xml</settingsFile>
+            <profiles>
+              <profile>!release</profile>
+            </profiles>
+            <localRepositoryPath>${project.build.directory}/local-repo</localRepositoryPath>
+            <postBuildHookScript>verify</postBuildHookScript>
+            <addTestClassPath>true</addTestClassPath>
+            <skipInvocation>${skipTests}</skipInvocation>
+            <streamLogs>true</streamLogs>
+            <mavenOpts>-Dorg.slf4j.simpleLogger.defaultLogLevel=WARN</mavenOpts>
+          </configuration>
+          <executions>
+            <execution>
+              <goals>
+                <goal>install</goal>
+                <goal>run</goal>
+              </goals>
+            </execution>
+          </executions>
         </plugin>
       </plugins>
     </pluginManagement>
