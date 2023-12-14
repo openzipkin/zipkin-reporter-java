@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2020 The OpenZipkin Authors
+ * Copyright 2016-2023 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -19,9 +19,9 @@ import brave.propagation.TraceContext;
 import brave.propagation.TraceContextOrSamplingFlags;
 import java.util.ArrayList;
 import java.util.List;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import zipkin2.Span;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -33,7 +33,7 @@ abstract class BasicUsageTest<H extends ZipkinSpanHandler> {
 
   abstract H zipkinSpanHandler(List<Span> spans);
 
-  @Before public void init() {
+  @BeforeEach void init() {
     zipkinSpanHandler = zipkinSpanHandler(spans);
     tracing = Tracing.newBuilder()
         .localServiceName("Aa")
@@ -43,11 +43,11 @@ abstract class BasicUsageTest<H extends ZipkinSpanHandler> {
         .build();
   }
 
-  @After public void close() {
+  @AfterEach void close() {
     tracing.close();
   }
 
-  @Test public void reconfigure() {
+  @Test void reconfigure() {
     tracing.close();
     zipkinSpanHandler.close();
 
@@ -74,7 +74,7 @@ abstract class BasicUsageTest<H extends ZipkinSpanHandler> {
   }
 
   /** This mainly shows endpoints are taken from Brave, and error is back-filled. */
-  @Test public void basicSpan() {
+  @Test void basicSpan() {
     TraceContext context = B3SingleFormat.parseB3SingleFormat(
         "50d980fffa300f29-86154a4ba6e91385-1"
     ).context();
@@ -105,7 +105,7 @@ abstract class BasicUsageTest<H extends ZipkinSpanHandler> {
   }
 
   /** This shows that in practice, we don't report when the user tells us not to! */
-  @Test public void abandonedSpan() {
+  @Test void abandonedSpan() {
     TraceContext context = B3SingleFormat.parseB3SingleFormat(
         "50d980fffa300f29-86154a4ba6e91385-1"
     ).context();
@@ -119,7 +119,7 @@ abstract class BasicUsageTest<H extends ZipkinSpanHandler> {
     assertThat(spans).isEmpty();
   }
 
-  @Test public void unsampledSpan() {
+  @Test void unsampledSpan() {
     brave.Span unsampledRemote =
         tracing.tracer().nextSpan(TraceContextOrSamplingFlags.NOT_SAMPLED).name("test").start(1L);
     assertThat(unsampledRemote.isNoop()).isTrue();

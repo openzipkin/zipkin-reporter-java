@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2020 The OpenZipkin Authors
+ * Copyright 2016-2023 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -16,12 +16,13 @@ package zipkin2.reporter.brave;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import org.junit.Rule;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import zipkin2.Span;
-import zipkin2.junit.ZipkinRule;
+import zipkin2.junit5.ZipkinExtension;
 import zipkin2.reporter.okhttp3.OkHttpSender;
 
 public class BasicUsageTest_Async extends BasicUsageTest<AsyncZipkinSpanHandler> {
-  @Rule public ZipkinRule zipkin = new ZipkinRule();
+  @RegisterExtension public ZipkinExtension zipkin = new ZipkinExtension();
 
   OkHttpSender sender = OkHttpSender.create(zipkin.httpUrl() + "/api/v2/spans");
 
