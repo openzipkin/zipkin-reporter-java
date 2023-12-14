@@ -76,7 +76,7 @@ class ZipkinExtension implements BeforeAllCallback, AfterAllCallback {
   // mostly waiting for https://github.com/testcontainers/testcontainers-java/issues/3537
   static final class ZipkinContainer extends GenericContainer<ZipkinContainer> {
     ZipkinContainer() {
-      super(parse("ghcr.io/openzipkin/zipkin:2.25.0"));
+      super(parse("ghcr.io/openzipkin/zipkin:2.25.1"));
       if ("true".equals(System.getProperty("docker.skip"))) {
         throw new TestAbortedException("${docker.skip} == true");
       }

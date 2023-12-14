@@ -57,7 +57,7 @@
     <errorprone.version>2.23.0</errorprone.version>
 
     <!-- use the same value in bom/pom.xml -->
-    <zipkin.version>2.25.0</zipkin.version>
+    <zipkin.version>2.25.1</zipkin.version>
 
     <!-- Do not set this value in bom/pom.xml to avoid cyclic pinning -->
     <brave.version>5.16.0</brave.version>
