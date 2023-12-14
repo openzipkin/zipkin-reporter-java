@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2019 The OpenZipkin Authors
+ * Copyright 2016-2023 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -19,7 +19,7 @@ import java.util.Base64;
 import java.util.List;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.transport.TIOStreamTransport;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import zipkin2.Endpoint;
 import zipkin2.Span;
 import zipkin2.codec.SpanBytesEncoder;
@@ -30,10 +30,8 @@ import static zipkin2.TestObjects.CLIENT_SPAN;
 import static zipkin2.TestObjects.TODAY;
 import static zipkin2.TestObjects.UTF_8;
 
-public class InternalScribeCodecTest {
-
-  @Test
-  public void base64_matches() {
+class InternalScribeCodecTest {
+  @Test void base64_matches() {
     // testing every padding value
     for (String input : Arrays.asList("abc", "abcd", "abcd", "abcde")) {
       byte[] base64 = Base64.getEncoder().encode(input.getBytes(UTF_8));
@@ -42,8 +40,7 @@ public class InternalScribeCodecTest {
     }
   }
 
-  @Test
-  public void sendsSpansExpectedMetrics() throws Exception {
+  @Test void sendsSpansExpectedMetrics() throws Exception {
     byte[] thrift = SpanBytesEncoder.THRIFT.encode(CLIENT_SPAN);
     List<byte[]> encodedSpans = asList(thrift, thrift);
 
@@ -56,8 +53,7 @@ public class InternalScribeCodecTest {
         .isEqualTo(out.size());
   }
 
-  @Test
-  public void sendsSpanExpectedMetrics() throws Exception {
+  @Test void sendsSpanExpectedMetrics() throws Exception {
     byte[] thrift = SpanBytesEncoder.THRIFT.encode(CLIENT_SPAN);
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     TBinaryProtocol prot = new TBinaryProtocol(new TIOStreamTransport(out));
@@ -71,8 +67,7 @@ public class InternalScribeCodecTest {
         .isEqualTo(out.size());
   }
 
-  @Test
-  public void base64SizeInBytes() {
+  @Test void base64SizeInBytes() {
     Endpoint web = Endpoint.newBuilder().serviceName("web").ip("127.0.0.1").build();
 
     Span span1 =

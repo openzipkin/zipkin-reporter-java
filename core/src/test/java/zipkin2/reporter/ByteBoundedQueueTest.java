@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2019 The OpenZipkin Authors
+ * Copyright 2016-2023 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -15,45 +15,40 @@ package zipkin2.reporter;
 
 import java.util.ArrayList;
 import java.util.List;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class ByteBoundedQueueTest {
+class ByteBoundedQueueTest {
   ByteBoundedQueue<byte[]> queue = new ByteBoundedQueue<>(10, 10);
 
-  @Test
-  public void offer_failsWhenFull_size() {
+  @Test void offer_failsWhenFull_size() {
     for (int i = 0; i < queue.maxSize; i++) {
       assertThat(queue.offer(new byte[1], 1)).isTrue();
     }
     assertThat(queue.offer(new byte[1], 1)).isFalse();
   }
 
-  @Test
-  public void offer_failsWhenFull_sizeInBytes() {
+  @Test void offer_failsWhenFull_sizeInBytes() {
     assertThat(queue.offer(new byte[10], 10)).isTrue();
     assertThat(queue.offer(new byte[1], 1)).isFalse();
   }
 
-  @Test
-  public void offer_updatesCount() {
+  @Test void offer_updatesCount() {
     for (int i = 0; i < queue.maxSize; i++) {
       queue.offer(new byte[1], 1);
     }
     assertThat(queue.count).isEqualTo(10);
   }
 
-  @Test
-  public void offer_sizeInBytes() {
+  @Test void offer_sizeInBytes() {
     for (int i = 0; i < queue.maxSize; i++) {
       queue.offer(new byte[1], 1);
     }
     assertThat(queue.sizeInBytes).isEqualTo(queue.maxSize);
   }
 
-  @Test
-  public void circular() {
+  @Test void circular() {
     ByteBoundedQueue<Integer> queue = new ByteBoundedQueue<>(10, 10);
 
     List<Integer> polled = new ArrayList<>();

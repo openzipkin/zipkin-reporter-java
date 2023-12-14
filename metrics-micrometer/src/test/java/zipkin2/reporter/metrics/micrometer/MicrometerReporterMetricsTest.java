@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2019 The OpenZipkin Authors
+ * Copyright 2016-2023 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -17,16 +17,15 @@ import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class MicrometerReporterMetricsTest {
+class MicrometerReporterMetricsTest {
   MeterRegistry meterRegistry = new SimpleMeterRegistry();
   MicrometerReporterMetrics reporterMetrics = MicrometerReporterMetrics.create(meterRegistry);
 
-  @Test
-  public void expectedMetricsRegistered() {
+  @Test void expectedMetricsRegistered() {
     assertThat(meterRegistry.getMeters())
       .extracting(Meter::getId).extracting(Meter.Id::getName)
       .containsExactlyInAnyOrder(
@@ -40,8 +39,7 @@ public class MicrometerReporterMetricsTest {
       );
   }
 
-  @Test
-  public void incrementMessagesDropped_sameExceptionTypeIsNotTaggedMoreThanOnce() {
+  @Test void incrementMessagesDropped_sameExceptionTypeIsNotTaggedMoreThanOnce() {
     reporterMetrics.incrementMessagesDropped(new RuntimeException("boo"));
     reporterMetrics.incrementMessagesDropped(new RuntimeException("shh"));
     reporterMetrics.incrementMessagesDropped(new IllegalStateException());
@@ -54,8 +52,7 @@ public class MicrometerReporterMetricsTest {
     assertThat(messagesDroppedTotal).isEqualTo(3); // 3 total messages dropped
   }
 
-  @Test
-  public void gaugesSurviveGc() {
+  @Test void gaugesSurviveGc() {
     reporterMetrics.updateQueuedBytes(53);
     reporterMetrics.updateQueuedSpans(2);
 

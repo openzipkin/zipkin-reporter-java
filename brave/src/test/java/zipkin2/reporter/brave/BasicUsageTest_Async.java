@@ -15,13 +15,12 @@ package zipkin2.reporter.brave;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import org.junit.Rule;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import zipkin2.Span;
 import zipkin2.junit5.ZipkinExtension;
 import zipkin2.reporter.okhttp3.OkHttpSender;
 
-public class BasicUsageTest_Async extends BasicUsageTest<AsyncZipkinSpanHandler> {
+class BasicUsageTest_Async extends BasicUsageTest<AsyncZipkinSpanHandler> {
   @RegisterExtension public ZipkinExtension zipkin = new ZipkinExtension();
 
   OkHttpSender sender = OkHttpSender.create(zipkin.httpUrl() + "/api/v2/spans");

@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2020 The OpenZipkin Authors
+ * Copyright 2016-2023 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -14,8 +14,8 @@
 package zipkin2.reporter.beans;
 
 import java.util.concurrent.TimeUnit;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 import zipkin2.codec.Encoding;
 import zipkin2.codec.SpanBytesEncoder;
 import zipkin2.reporter.AsyncReporter;
@@ -24,8 +24,7 @@ import zipkin2.reporter.Sender;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class AsyncReporterFactoryBeanTest {
-
+class AsyncReporterFactoryBeanTest {
   public static Sender SENDER = new FakeSender();
   public static Sender PROTO3_SENDER = new FakeSender(){
     @Override public Encoding encoding() {
@@ -36,11 +35,11 @@ public class AsyncReporterFactoryBeanTest {
 
   XmlBeans context;
 
-  @After public void close() {
+  @AfterEach void close() {
     if (context != null) context.close();
   }
 
-  @Test public void sender() {
+  @Test void sender() {
     context = new XmlBeans(""
         + "<bean id=\"asyncReporter\" class=\"zipkin2.reporter.beans.AsyncReporterFactoryBean\">\n"
         + "  <property name=\"sender\">\n"
@@ -55,7 +54,7 @@ public class AsyncReporterFactoryBeanTest {
         .isEqualTo(SENDER);
   }
 
-  @Test public void metrics() {
+  @Test void metrics() {
     context = new XmlBeans(""
         + "<bean id=\"asyncReporter\" class=\"zipkin2.reporter.beans.AsyncReporterFactoryBean\">\n"
         + "  <property name=\"sender\">\n"
@@ -73,7 +72,7 @@ public class AsyncReporterFactoryBeanTest {
         .isEqualTo(METRICS);
   }
 
-  @Test public void messageMaxBytes() {
+  @Test void messageMaxBytes() {
     context = new XmlBeans(""
         + "<bean id=\"asyncReporter\" class=\"zipkin2.reporter.beans.AsyncReporterFactoryBean\">\n"
         + "  <property name=\"sender\">\n"
@@ -89,7 +88,7 @@ public class AsyncReporterFactoryBeanTest {
         .isEqualTo(512);
   }
 
-  @Test public void messageTimeout() {
+  @Test void messageTimeout() {
     context = new XmlBeans(""
         + "<bean id=\"asyncReporter\" class=\"zipkin2.reporter.beans.AsyncReporterFactoryBean\">\n"
         + "  <property name=\"sender\">\n"
@@ -104,7 +103,7 @@ public class AsyncReporterFactoryBeanTest {
         .isEqualTo(TimeUnit.MILLISECONDS.toNanos(500));
   }
 
-  @Test public void closeTimeout() {
+  @Test void closeTimeout() {
     context = new XmlBeans(""
         + "<bean id=\"asyncReporter\" class=\"zipkin2.reporter.beans.AsyncReporterFactoryBean\">\n"
         + "  <property name=\"sender\">\n"
@@ -120,7 +119,7 @@ public class AsyncReporterFactoryBeanTest {
         .isEqualTo(TimeUnit.MILLISECONDS.toNanos(500));
   }
 
-  @Test public void queuedMaxSpans() {
+  @Test void queuedMaxSpans() {
     context = new XmlBeans(""
         + "<bean id=\"asyncReporter\" class=\"zipkin2.reporter.beans.AsyncReporterFactoryBean\">\n"
         + "  <property name=\"sender\">\n"
@@ -136,7 +135,7 @@ public class AsyncReporterFactoryBeanTest {
         .isEqualTo(10);
   }
 
-  @Test public void queuedMaxBytes() {
+  @Test void queuedMaxBytes() {
     context = new XmlBeans(""
         + "<bean id=\"asyncReporter\" class=\"zipkin2.reporter.beans.AsyncReporterFactoryBean\">\n"
         + "  <property name=\"sender\">\n"
@@ -152,7 +151,7 @@ public class AsyncReporterFactoryBeanTest {
         .isEqualTo(512);
   }
 
-  @Test public void sender_proto3() {
+  @Test void sender_proto3() {
     context = new XmlBeans(""
         + "<bean id=\"asyncReporter\" class=\"zipkin2.reporter.beans.AsyncReporterFactoryBean\">\n"
         + "  <property name=\"sender\">\n"
@@ -167,7 +166,7 @@ public class AsyncReporterFactoryBeanTest {
         .isEqualTo(SpanBytesEncoder.PROTO3);
   }
 
-  @Test public void encoder() {
+  @Test void encoder() {
     context = new XmlBeans(""
         + "<bean id=\"asyncReporter\" class=\"zipkin2.reporter.beans.AsyncReporterFactoryBean\">\n"
         + "  <property name=\"sender\">\n"

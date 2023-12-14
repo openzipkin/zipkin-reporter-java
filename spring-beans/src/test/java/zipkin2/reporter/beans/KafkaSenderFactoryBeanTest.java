@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2020 The OpenZipkin Authors
+ * Copyright 2016-2023 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -14,21 +14,22 @@
 package zipkin2.reporter.beans;
 
 import java.util.Arrays;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 import zipkin2.codec.Encoding;
 import zipkin2.reporter.kafka.KafkaSender;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
-public class KafkaSenderFactoryBeanTest {
+class KafkaSenderFactoryBeanTest {
   XmlBeans context;
 
-  @After public void close() {
+  @AfterEach void close() {
     if (context != null) context.close();
   }
 
-  @Test public void bootstrapServers() {
+  @Test void bootstrapServers() {
     context = new XmlBeans(""
         + "<bean id=\"sender\" class=\"zipkin2.reporter.beans.KafkaSenderFactoryBean\">\n"
         + "  <property name=\"bootstrapServers\" value=\"localhost:9092\"/>\n"
@@ -42,7 +43,7 @@ public class KafkaSenderFactoryBeanTest {
             .build());
   }
 
-  @Test public void topic() {
+  @Test void topic() {
     context = new XmlBeans(""
         + "<bean id=\"sender\" class=\"zipkin2.reporter.beans.KafkaSenderFactoryBean\">\n"
         + "  <property name=\"bootstrapServers\" value=\"localhost:9092\"/>\n"
@@ -57,7 +58,7 @@ public class KafkaSenderFactoryBeanTest {
             .topic("zipkin2").build());
   }
 
-  @Test public void messageMaxBytes() {
+  @Test void messageMaxBytes() {
     context = new XmlBeans(""
         + "<bean id=\"sender\" class=\"zipkin2.reporter.beans.KafkaSenderFactoryBean\">\n"
         + "  <property name=\"bootstrapServers\" value=\"localhost:9092\"/>\n"
@@ -70,7 +71,7 @@ public class KafkaSenderFactoryBeanTest {
         .isEqualTo(1024);
   }
 
-  @Test public void encoding() {
+  @Test void encoding() {
     context = new XmlBeans(""
         + "<bean id=\"sender\" class=\"zipkin2.reporter.beans.KafkaSenderFactoryBean\">\n"
         + "  <property name=\"bootstrapServers\" value=\"localhost:9092\"/>\n"
@@ -83,16 +84,18 @@ public class KafkaSenderFactoryBeanTest {
         .isEqualTo(Encoding.PROTO3);
   }
 
-  @Test(expected = IllegalStateException.class) public void close_closesSender() {
-    context = new XmlBeans(""
-        + "<bean id=\"sender\" class=\"zipkin2.reporter.beans.KafkaSenderFactoryBean\">\n"
-        + "  <property name=\"bootstrapServers\" value=\"localhost:9092\"/>\n"
-        + "</bean>"
-    );
+  @Test void close_closesSender() {
+    assertThrows(IllegalStateException.class, () -> {
+      context = new XmlBeans(""
+          + "<bean id=\"sender\" class=\"zipkin2.reporter.beans.KafkaSenderFactoryBean\">\n"
+          + "  <property name=\"bootstrapServers\" value=\"localhost:9092\"/>\n"
+          + "</bean>"
+      );
 
-    KafkaSender sender = context.getBean("sender", KafkaSender.class);
-    context.close();
+      KafkaSender sender = context.getBean("sender", KafkaSender.class);
+      context.close();
 
-    sender.sendSpans(Arrays.asList(new byte[] {'{', '}'}));
+      sender.sendSpans(Arrays.asList(new byte[]{'{', '}'}));
+    });
   }
 }

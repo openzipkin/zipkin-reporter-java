@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2021 The OpenZipkin Authors
+ * Copyright 2016-2023 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -56,12 +56,12 @@ class ITKafkaSender {
 
   KafkaSender sender;
 
-  @BeforeEach public void open() {
+  @BeforeEach void open() {
     sender = KafkaSender.create(kafka.bootstrapServer());
     kafka.prepareTopics(sender.topic, 1);
   }
 
-  @AfterEach public void close() {
+  @AfterEach void close() {
     sender.close();
   }
 

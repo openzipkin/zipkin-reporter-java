@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2020 The OpenZipkin Authors
+ * Copyright 2016-2023 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -13,9 +13,6 @@
  */
 package zipkin2.reporter;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.failBecauseExceptionWasNotThrown;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -28,10 +25,8 @@ import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
-
-import org.junit.After;
-import org.junit.Test;
-
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 import zipkin2.Span;
 import zipkin2.TestObjects;
 import zipkin2.codec.BytesEncoder;
@@ -39,7 +34,11 @@ import zipkin2.codec.Encoding;
 import zipkin2.codec.SpanBytesEncoder;
 import zipkin2.reporter.AsyncReporter.BoundedAsyncReporter;
 
-public class AsyncReporterTest {
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.failBecauseExceptionWasNotThrown;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+class AsyncReporterTest {
 
   Span span = TestObjects.CLIENT_SPAN;
   int sizeInBytesOfSingleSpanMessage =
@@ -49,13 +48,11 @@ public class AsyncReporterTest {
   AsyncReporter<Span> reporter;
   InMemoryReporterMetrics metrics = new InMemoryReporterMetrics();
 
-  @After
-  public void close() {
+  @AfterEach void close() {
     if (reporter != null) reporter.close();
   }
 
-  @Test
-  public void messageMaxBytes_defaultsToSender() {
+  @Test void messageMaxBytes_defaultsToSender() {
     AtomicInteger sentSpans = new AtomicInteger();
     reporter = AsyncReporter.builder(FakeSender.create()
         .onSpans(spans -> sentSpans.addAndGet(spans.size()))
@@ -70,8 +67,7 @@ public class AsyncReporterTest {
     assertThat(sentSpans.get()).isEqualTo(1);
   }
 
-  @Test
-  public void messageMaxBytes_dropsWhenOverqueuing() {
+  @Test void messageMaxBytes_dropsWhenOverqueuing() {
     AtomicInteger sentSpans = new AtomicInteger();
     reporter = AsyncReporter.builder(FakeSender.create()
         .onSpans(spans -> sentSpans.addAndGet(spans.size())))
@@ -86,8 +82,7 @@ public class AsyncReporterTest {
     assertThat(sentSpans.get()).isEqualTo(1);
   }
 
-  @Test
-  public void messageMaxBytes_dropsWhenTooLarge() {
+  @Test void messageMaxBytes_dropsWhenTooLarge() {
     AtomicInteger sentSpans = new AtomicInteger();
     reporter = AsyncReporter.builder(FakeSender.create()
         .onSpans(spans -> sentSpans.addAndGet(spans.size())))
@@ -101,8 +96,7 @@ public class AsyncReporterTest {
     assertThat(sentSpans.get()).isEqualTo(0);
   }
 
-  @Test
-  public void queuedMaxSpans_dropsWhenOverqueuing() {
+  @Test void queuedMaxSpans_dropsWhenOverqueuing() {
     AtomicInteger sentSpans = new AtomicInteger();
     reporter = AsyncReporter.builder(FakeSender.create()
         .onSpans(spans -> sentSpans.addAndGet(spans.size())))
@@ -117,8 +111,7 @@ public class AsyncReporterTest {
     assertThat(sentSpans.get()).isEqualTo(1);
   }
 
-  @Test
-  public void report_incrementsMetrics() {
+  @Test void report_incrementsMetrics() {
     reporter = AsyncReporter.builder(FakeSender.create())
         .metrics(metrics)
         .messageTimeout(0, TimeUnit.MILLISECONDS)
@@ -130,8 +123,7 @@ public class AsyncReporterTest {
     assertThat(metrics.spanBytes()).isEqualTo(SpanBytesEncoder.JSON_V2.encode(span).length * 2);
   }
 
-  @Test
-  public void report_incrementsSpansDropped() {
+  @Test void report_incrementsSpansDropped() {
     reporter = AsyncReporter.builder(FakeSender.create())
         .queuedMaxSpans(1)
         .metrics(metrics)
@@ -145,8 +137,7 @@ public class AsyncReporterTest {
     assertThat(metrics.spansDropped()).isEqualTo(1);
   }
 
-  @Test
-  public void flush_incrementsMetrics() {
+  @Test void flush_incrementsMetrics() {
     reporter = AsyncReporter.builder(FakeSender.create())
         .metrics(metrics)
         .messageMaxBytes(sizeInBytesOfSingleSpanMessage)
@@ -170,8 +161,7 @@ public class AsyncReporterTest {
     assertThat(metrics.messageBytes()).isEqualTo(sizeInBytesOfSingleSpanMessage * 2);
   }
 
-  @Test
-  public void flush_incrementsMessagesDropped() {
+  @Test void flush_incrementsMessagesDropped() {
     reporter = AsyncReporter.builder(FakeSender.create()
         .onSpans(spans -> {
           throw new RuntimeException();
@@ -186,8 +176,7 @@ public class AsyncReporterTest {
     assertThat(metrics.messagesDropped()).isEqualTo(1);
   }
 
-  @Test
-  public void flush_logsFirstErrorAsWarn() {
+  @Test void flush_logsFirstErrorAsWarn() {
     List<LogRecord> logRecords = new ArrayList<>();
     Handler testHandler = new Handler() {
       @Override
@@ -229,8 +218,7 @@ public class AsyncReporterTest {
   }
 
   /** It can take up to the messageTimeout past the first span to send */
-  @Test
-  public void messageTimeout_flushesWhenTimeoutExceeded() throws InterruptedException {
+  @Test void messageTimeout_flushesWhenTimeoutExceeded() throws InterruptedException {
     CountDownLatch sentSpans = new CountDownLatch(1);
     reporter = AsyncReporter.builder(FakeSender.create()
         .onSpans(spans -> sentSpans.countDown()))
@@ -244,8 +232,7 @@ public class AsyncReporterTest {
         .isTrue();
   }
 
-  @Test
-  public void messageTimeout_disabled() throws InterruptedException {
+  @Test void messageTimeout_disabled() throws InterruptedException {
     CountDownLatch sentSpans = new CountDownLatch(1);
     reporter = AsyncReporter.builder(FakeSender.create()
         .onSpans(spans -> sentSpans.countDown()))
@@ -260,8 +247,7 @@ public class AsyncReporterTest {
         .isFalse();
   }
 
-  @Test
-  public void senderThread_threadHasAPrettyName() throws InterruptedException {
+  @Test void senderThread_threadHasAPrettyName() throws InterruptedException {
     BlockingQueue<String> threadName = new LinkedBlockingQueue<>();
     reporter = AsyncReporter.builder(FakeSender.create()
         .onSpans(spans -> threadName.offer(Thread.currentThread().getName())))
@@ -274,8 +260,7 @@ public class AsyncReporterTest {
         .isEqualTo("AsyncReporter{FakeSender}");
   }
 
-  @Test
-  public void close_close_stopsFlushThread() throws InterruptedException {
+  @Test void close_close_stopsFlushThread() throws InterruptedException {
     reporter = AsyncReporter.builder(FakeSender.create())
         .metrics(metrics)
         .messageTimeout(2, TimeUnit.MILLISECONDS)
@@ -294,20 +279,20 @@ public class AsyncReporterTest {
         .isTrue();
   }
 
-  @Test(expected = IllegalStateException.class)
-  public void flush_throwsOnClose() {
-    reporter = AsyncReporter.builder(FakeSender.create())
-        .metrics(metrics)
-        .messageTimeout(0, TimeUnit.MILLISECONDS)
-        .build();
+  @Test void flush_throwsOnClose() {
+    assertThrows(IllegalStateException.class, () -> {
+      reporter = AsyncReporter.builder(FakeSender.create())
+          .metrics(metrics)
+          .messageTimeout(0, TimeUnit.MILLISECONDS)
+          .build();
 
-    reporter.report(span);
-    reporter.close(); // close while there's a pending span
-    reporter.flush();
+      reporter.report(span);
+      reporter.close(); // close while there's a pending span
+      reporter.flush();
+    });
   }
 
-  @Test
-  public void report_doesntThrowWhenClosed() {
+  @Test void report_doesntThrowWhenClosed() {
     reporter = AsyncReporter.builder(FakeSender.create())
         .metrics(metrics)
         .messageTimeout(0, TimeUnit.MILLISECONDS)
@@ -328,8 +313,7 @@ public class AsyncReporterTest {
     }
   });
 
-  @Test
-  public void senderThread_dropsOnSenderClose_flushThread() throws InterruptedException {
+  @Test void senderThread_dropsOnSenderClose_flushThread() throws InterruptedException {
     reporter = AsyncReporter.builder(sleepingSender)
         .metrics(metrics)
         .messageMaxBytes(sizeInBytesOfSingleSpanMessage)
@@ -347,8 +331,7 @@ public class AsyncReporterTest {
         .isEqualTo(ClosedSenderException.class);
   }
 
-  @Test
-  public void senderThread_dropsOnReporterClose_flushThread() throws InterruptedException {
+  @Test void senderThread_dropsOnReporterClose_flushThread() throws InterruptedException {
     CountDownLatch received = new CountDownLatch(1);
     CountDownLatch sent = new CountDownLatch(1);
     reporter = AsyncReporter.builder(FakeSender.create()
@@ -373,8 +356,7 @@ public class AsyncReporterTest {
     assertThat(metrics.spansDropped()).isEqualTo(1);
   }
 
-  @Test
-  public void blocksToClearPendingSpans() throws InterruptedException {
+  @Test void blocksToClearPendingSpans() throws InterruptedException {
     reporter = AsyncReporter.builder(FakeSender.create())
         .metrics(metrics)
         .messageTimeout(30, TimeUnit.SECONDS)
@@ -389,8 +371,7 @@ public class AsyncReporterTest {
     assertThat(metrics.spansDropped()).isEqualTo(0);
   }
 
-  @Test
-  public void quitsBlockingWhenOverTimeout() throws InterruptedException {
+  @Test void quitsBlockingWhenOverTimeout() throws InterruptedException {
     reporter = AsyncReporter.builder(FakeSender.create()
         .onSpans(spans -> {
           // note: we don't yet have a hook to cancel a sender, so this will remain in-flight
@@ -416,8 +397,7 @@ public class AsyncReporterTest {
         .isLessThan(TimeUnit.MILLISECONDS.toNanos(10)); // give wiggle room
   }
 
-  @Test
-  public void flush_incrementsMetricsAndThrowsWhenClosed() {
+  @Test void flush_incrementsMetricsAndThrowsWhenClosed() {
     reporter = AsyncReporter.builder(sleepingSender)
         .metrics(metrics)
         .messageTimeout(0, TimeUnit.MILLISECONDS)
@@ -434,8 +414,7 @@ public class AsyncReporterTest {
     }
   }
 
-  @Test
-  public void flush_incrementsMetricsAndThrowsWhenSenderClosed() {
+  @Test void flush_incrementsMetricsAndThrowsWhenSenderClosed() {
     reporter = AsyncReporter.builder(sleepingSender)
         .metrics(metrics)
         .messageTimeout(0, TimeUnit.MILLISECONDS)
@@ -453,7 +432,7 @@ public class AsyncReporterTest {
     }
   }
 
-  @Test public void build_threadFactory() {
+  @Test void build_threadFactory() {
     Thread thread = new Thread();
     reporter = AsyncReporter.builder(FakeSender.create())
       .threadFactory(r -> thread)
@@ -470,13 +449,13 @@ public class AsyncReporterTest {
     thread.interrupt();
   }
 
-  @Test public void build_proto3() {
+  @Test void build_proto3() {
     AsyncReporter.builder(FakeSender.create().encoding(Encoding.PROTO3))
         .messageTimeout(0, TimeUnit.MILLISECONDS)
         .build();
   }
 
-  @Test public void build_proto3_withCustomBytesEncoder() {
+  @Test void build_proto3_withCustomBytesEncoder() {
     AsyncReporter.builder(FakeSender.create().encoding(Encoding.PROTO3))
         .messageTimeout(0, TimeUnit.MILLISECONDS)
         // there's no builtin protobuf format of zipkin spans, yet, so there's no encoder
@@ -499,13 +478,13 @@ public class AsyncReporterTest {
         });
   }
 
-  @Test public void build_thrift() {
+  @Test void build_thrift() {
     AsyncReporter.builder(FakeSender.create().encoding(Encoding.THRIFT))
         .messageTimeout(0, TimeUnit.MILLISECONDS)
         .build();
   }
 
-  @Test public void build_thrift_withCustomBytesEncoder() {
+  @Test void build_thrift_withCustomBytesEncoder() {
     AsyncReporter.builder(FakeSender.create().encoding(Encoding.THRIFT))
         .messageTimeout(0, TimeUnit.MILLISECONDS)
         // there's no builtin protobuf format of zipkin spans, yet, so there's no encoder

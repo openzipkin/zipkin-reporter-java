@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2020 The OpenZipkin Authors
+ * Copyright 2016-2023 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -13,7 +13,7 @@
  */
 package zipkin2.reporter.amqp;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import zipkin2.CheckResult;
 import zipkin2.reporter.AsyncReporter;
 import zipkin2.reporter.ClosedSenderException;
@@ -24,19 +24,19 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static zipkin2.TestObjects.CLIENT_SPAN;
 import static zipkin2.reporter.amqp.ITRabbitMQSender.send;
 
-public class RabbitMQSenderTest {
+class RabbitMQSenderTest {
   // We can be pretty certain RabbitMQ isn't running on localhost port 80
   RabbitMQSender sender = RabbitMQSender.newBuilder()
       .connectionTimeout(100).addresses("localhost:80").build();
 
-  @Test public void checkFalseWhenRabbitMQIsDown() {
+  @Test void checkFalseWhenRabbitMQIsDown() {
     CheckResult check = sender.check();
     assertThat(check.ok()).isFalse();
     assertThat(check.error())
         .isInstanceOf(RuntimeException.class);
   }
 
-  @Test public void illegalToSendWhenClosed() throws Exception {
+  @Test void illegalToSendWhenClosed() throws Exception {
     sender.close();
 
     assertThatThrownBy(() -> send(sender, CLIENT_SPAN, CLIENT_SPAN))
@@ -49,7 +49,7 @@ public class RabbitMQSenderTest {
    * tools, care should be taken to ensure the toString() output is a reasonable length and does not
    * contain sensitive information.
    */
-  @Test public void toStringContainsOnlySummaryInformation() {
+  @Test void toStringContainsOnlySummaryInformation() {
     assertThat(sender).hasToString(
         "RabbitMQSender{addresses=[localhost:80], queue=zipkin}"
     );

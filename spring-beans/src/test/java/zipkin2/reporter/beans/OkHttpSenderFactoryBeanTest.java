@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2019 The OpenZipkin Authors
+ * Copyright 2016-2023 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -15,21 +15,22 @@ package zipkin2.reporter.beans;
 
 import java.util.Arrays;
 import okhttp3.HttpUrl;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 import zipkin2.codec.Encoding;
 import zipkin2.reporter.okhttp3.OkHttpSender;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
-public class OkHttpSenderFactoryBeanTest {
+class OkHttpSenderFactoryBeanTest {
   XmlBeans context;
 
-  @After public void close() {
+  @AfterEach void close() {
     if (context != null) context.close();
   }
 
-  @Test public void endpoint() {
+  @Test void endpoint() {
     context = new XmlBeans(""
         + "<bean id=\"sender\" class=\"zipkin2.reporter.beans.OkHttpSenderFactoryBean\">\n"
         + "  <property name=\"endpoint\" value=\"http://localhost:9411/api/v2/spans\"/>\n"
@@ -41,7 +42,7 @@ public class OkHttpSenderFactoryBeanTest {
         .isEqualTo(HttpUrl.parse("http://localhost:9411/api/v2/spans"));
   }
 
-  @Test public void connectTimeout() {
+  @Test void connectTimeout() {
     context = new XmlBeans(""
         + "<bean id=\"sender\" class=\"zipkin2.reporter.beans.OkHttpSenderFactoryBean\">\n"
         + "  <property name=\"endpoint\" value=\"http://localhost:9411/api/v2/spans\"/>\n"
@@ -54,7 +55,7 @@ public class OkHttpSenderFactoryBeanTest {
         .isEqualTo(1000);
   }
 
-  @Test public void writeTimeout() {
+  @Test void writeTimeout() {
     context = new XmlBeans(""
         + "<bean id=\"sender\" class=\"zipkin2.reporter.beans.OkHttpSenderFactoryBean\">\n"
         + "  <property name=\"endpoint\" value=\"http://localhost:9411/api/v2/spans\"/>\n"
@@ -67,7 +68,7 @@ public class OkHttpSenderFactoryBeanTest {
         .isEqualTo(1000);
   }
 
-  @Test public void readTimeout() {
+  @Test void readTimeout() {
     context = new XmlBeans(""
         + "<bean id=\"sender\" class=\"zipkin2.reporter.beans.OkHttpSenderFactoryBean\">\n"
         + "  <property name=\"endpoint\" value=\"http://localhost:9411/api/v2/spans\"/>\n"
@@ -80,7 +81,7 @@ public class OkHttpSenderFactoryBeanTest {
         .isEqualTo(1000);
   }
 
-  @Test public void maxRequests() {
+  @Test void maxRequests() {
     context = new XmlBeans(""
         + "<bean id=\"sender\" class=\"zipkin2.reporter.beans.OkHttpSenderFactoryBean\">\n"
         + "  <property name=\"endpoint\" value=\"http://localhost:9411/api/v2/spans\"/>\n"
@@ -93,7 +94,7 @@ public class OkHttpSenderFactoryBeanTest {
         .isEqualTo(4);
   }
 
-  @Test public void compressionEnabled() {
+  @Test void compressionEnabled() {
     context = new XmlBeans(""
         + "<bean id=\"sender\" class=\"zipkin2.reporter.beans.OkHttpSenderFactoryBean\">\n"
         + "  <property name=\"endpoint\" value=\"http://localhost:9411/api/v2/spans\"/>\n"
@@ -106,7 +107,7 @@ public class OkHttpSenderFactoryBeanTest {
         .isEqualTo(false);
   }
 
-  @Test public void messageMaxBytes() {
+  @Test void messageMaxBytes() {
     context = new XmlBeans(""
         + "<bean id=\"sender\" class=\"zipkin2.reporter.beans.OkHttpSenderFactoryBean\">\n"
         + "  <property name=\"endpoint\" value=\"http://localhost:9411/api/v2/spans\"/>\n"
@@ -119,7 +120,7 @@ public class OkHttpSenderFactoryBeanTest {
         .isEqualTo(1024);
   }
 
-  @Test public void encoding() {
+  @Test void encoding() {
     context = new XmlBeans(""
         + "<bean id=\"sender\" class=\"zipkin2.reporter.beans.OkHttpSenderFactoryBean\">\n"
         + "  <property name=\"endpoint\" value=\"http://localhost:9411/api/v2/spans\"/>\n"
@@ -132,16 +133,18 @@ public class OkHttpSenderFactoryBeanTest {
         .isEqualTo(Encoding.PROTO3);
   }
 
-  @Test(expected = IllegalStateException.class) public void close_closesSender() {
-    context = new XmlBeans(""
-        + "<bean id=\"sender\" class=\"zipkin2.reporter.beans.OkHttpSenderFactoryBean\">\n"
-        + "  <property name=\"endpoint\" value=\"http://localhost:9411/api/v2/spans\"/>\n"
-        + "</bean>"
-    );
+  @Test void close_closesSender() {
+    assertThrows(IllegalStateException.class, () -> {
+      context = new XmlBeans(""
+          + "<bean id=\"sender\" class=\"zipkin2.reporter.beans.OkHttpSenderFactoryBean\">\n"
+          + "  <property name=\"endpoint\" value=\"http://localhost:9411/api/v2/spans\"/>\n"
+          + "</bean>"
+      );
 
-    OkHttpSender sender = context.getBean("sender", OkHttpSender.class);
-    context.close();
+      OkHttpSender sender = context.getBean("sender", OkHttpSender.class);
+      context.close();
 
-    sender.sendSpans(Arrays.asList(new byte[] {'{', '}'}));
+      sender.sendSpans(Arrays.asList(new byte[]{'{', '}'}));
+    });
   }
 }

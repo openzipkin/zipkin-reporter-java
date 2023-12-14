@@ -38,7 +38,7 @@ import static zipkin2.TestObjects.CLIENT_SPAN;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Timeout(60)
-public class ITActiveMQSender {
+class ITActiveMQSender {
   @RegisterExtension ActiveMQExtension activemq = new ActiveMQExtension();
 
   @Test void checkPasses() {

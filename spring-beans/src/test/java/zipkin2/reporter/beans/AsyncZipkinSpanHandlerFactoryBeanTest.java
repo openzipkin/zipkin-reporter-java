@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2020 The OpenZipkin Authors
+ * Copyright 2016-2023 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -16,8 +16,8 @@ package zipkin2.reporter.beans;
 import brave.Tag;
 import brave.propagation.TraceContext;
 import java.util.concurrent.TimeUnit;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 import zipkin2.reporter.ReporterMetrics;
 import zipkin2.reporter.Sender;
 import zipkin2.reporter.brave.AsyncZipkinSpanHandler;
@@ -25,7 +25,7 @@ import zipkin2.reporter.brave.ZipkinSpanHandler;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class AsyncZipkinSpanHandlerFactoryBeanTest {
+class AsyncZipkinSpanHandlerFactoryBeanTest {
   public static final Tag<Throwable> ERROR_TAG = new Tag<Throwable>("error") {
     @Override protected String parseValue(Throwable throwable, TraceContext traceContext) {
       return null;
@@ -36,11 +36,11 @@ public class AsyncZipkinSpanHandlerFactoryBeanTest {
 
   XmlBeans context;
 
-  @After public void close() {
+  @AfterEach void close() {
     if (context != null) context.close();
   }
 
-  @Test public void errorTag() {
+  @Test void errorTag() {
     context = new XmlBeans(""
         + "<bean id=\"zipkinSpanHandler\" class=\"zipkin2.reporter.beans.AsyncZipkinSpanHandlerFactoryBean\">\n"
         + "  <property name=\"sender\">\n"
@@ -58,7 +58,7 @@ public class AsyncZipkinSpanHandlerFactoryBeanTest {
         .isSameAs(ERROR_TAG);
   }
 
-  @Test public void alwaysReportSpans() {
+  @Test void alwaysReportSpans() {
     context = new XmlBeans(""
         + "<bean id=\"zipkinSpanHandler\" class=\"zipkin2.reporter.beans.AsyncZipkinSpanHandlerFactoryBean\">\n"
         + "  <property name=\"sender\">\n"
@@ -75,7 +75,7 @@ public class AsyncZipkinSpanHandlerFactoryBeanTest {
   }
 
   // below copied from AsyncReporterFactoryBean
-  @Test public void sender() {
+  @Test void sender() {
     context = new XmlBeans(""
         + "<bean id=\"zipkinSpanHandler\" class=\"zipkin2.reporter.beans.AsyncZipkinSpanHandlerFactoryBean\">\n"
         + "  <property name=\"sender\">\n"
@@ -90,7 +90,7 @@ public class AsyncZipkinSpanHandlerFactoryBeanTest {
         .isEqualTo(SENDER);
   }
 
-  @Test public void metrics() {
+  @Test void metrics() {
     context = new XmlBeans(""
         + "<bean id=\"zipkinSpanHandler\" class=\"zipkin2.reporter.beans.AsyncZipkinSpanHandlerFactoryBean\">\n"
         + "  <property name=\"sender\">\n"
@@ -108,7 +108,7 @@ public class AsyncZipkinSpanHandlerFactoryBeanTest {
         .isEqualTo(METRICS);
   }
 
-  @Test public void messageMaxBytes() {
+  @Test void messageMaxBytes() {
     context = new XmlBeans(""
         + "<bean id=\"zipkinSpanHandler\" class=\"zipkin2.reporter.beans.AsyncZipkinSpanHandlerFactoryBean\">\n"
         + "  <property name=\"sender\">\n"
@@ -124,7 +124,7 @@ public class AsyncZipkinSpanHandlerFactoryBeanTest {
         .isEqualTo(512);
   }
 
-  @Test public void messageTimeout() {
+  @Test void messageTimeout() {
     context = new XmlBeans(""
         + "<bean id=\"zipkinSpanHandler\" class=\"zipkin2.reporter.beans.AsyncZipkinSpanHandlerFactoryBean\">\n"
         + "  <property name=\"sender\">\n"
@@ -139,7 +139,7 @@ public class AsyncZipkinSpanHandlerFactoryBeanTest {
         .isEqualTo(TimeUnit.MILLISECONDS.toNanos(500));
   }
 
-  @Test public void closeTimeout() {
+  @Test void closeTimeout() {
     context = new XmlBeans(""
         + "<bean id=\"zipkinSpanHandler\" class=\"zipkin2.reporter.beans.AsyncZipkinSpanHandlerFactoryBean\">\n"
         + "  <property name=\"sender\">\n"
@@ -155,7 +155,7 @@ public class AsyncZipkinSpanHandlerFactoryBeanTest {
         .isEqualTo(TimeUnit.MILLISECONDS.toNanos(500));
   }
 
-  @Test public void queuedMaxSpans() {
+  @Test void queuedMaxSpans() {
     context = new XmlBeans(""
         + "<bean id=\"zipkinSpanHandler\" class=\"zipkin2.reporter.beans.AsyncZipkinSpanHandlerFactoryBean\">\n"
         + "  <property name=\"sender\">\n"
@@ -171,7 +171,7 @@ public class AsyncZipkinSpanHandlerFactoryBeanTest {
         .isEqualTo(10);
   }
 
-  @Test public void queuedMaxBytes() {
+  @Test void queuedMaxBytes() {
     context = new XmlBeans(""
         + "<bean id=\"zipkinSpanHandler\" class=\"zipkin2.reporter.beans.AsyncZipkinSpanHandlerFactoryBean\">\n"
         + "  <property name=\"sender\">\n"

@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2020 The OpenZipkin Authors
+ * Copyright 2016-2023 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -15,15 +15,14 @@ package zipkin2.reporter;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.failBecauseExceptionWasNotThrown;
 
-public class AwaitableCallbackTest {
-
-  @Test public void awaitIsUninterruptable() {
+class AwaitableCallbackTest {
+  @Test void awaitIsUninterruptable() {
     AtomicBoolean returned = new AtomicBoolean();
     AwaitableCallback captor = new AwaitableCallback();
     Thread thread = new Thread(() -> {
@@ -39,14 +38,14 @@ public class AwaitableCallbackTest {
     assertThat(returned.get()).isFalse();
   }
 
-  @Test public void onSuccessReturns() {
+  @Test void onSuccessReturns() {
     AwaitableCallback captor = new AwaitableCallback();
     captor.onSuccess(null);
 
     captor.await();
   }
 
-  @Test public void onError_propagatesRuntimeException() {
+  @Test void onError_propagatesRuntimeException() {
     AwaitableCallback captor = new AwaitableCallback();
     captor.onError(new IllegalStateException());
 
@@ -54,7 +53,7 @@ public class AwaitableCallbackTest {
       .isInstanceOf(IllegalStateException.class);
   }
 
-  @Test public void onError_propagatesError() {
+  @Test void onError_propagatesError() {
     AwaitableCallback captor = new AwaitableCallback();
     captor.onError(new LinkageError());
 
@@ -62,7 +61,7 @@ public class AwaitableCallbackTest {
       .isInstanceOf(LinkageError.class);
   }
 
-  @Test public void onError_doesntSetInterrupted() {
+  @Test void onError_doesntSetInterrupted() {
     AwaitableCallback captor = new AwaitableCallback();
     captor.onError(new InterruptedException());
 
@@ -75,7 +74,7 @@ public class AwaitableCallbackTest {
     }
   }
 
-  @Test public void onError_wrapsCheckedExceptions() {
+  @Test void onError_wrapsCheckedExceptions() {
     AwaitableCallback captor = new AwaitableCallback();
     captor.onError(new IOException());
 
@@ -84,7 +83,7 @@ public class AwaitableCallbackTest {
       .hasCauseInstanceOf(IOException.class);
   }
 
-  @Test public void onError_wrapsCustomThrowable() {
+  @Test void onError_wrapsCustomThrowable() {
     AwaitableCallback captor = new AwaitableCallback();
     class MyThrowable extends Throwable {
     }

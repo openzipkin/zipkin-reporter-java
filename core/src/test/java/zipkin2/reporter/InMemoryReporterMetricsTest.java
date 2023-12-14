@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2019 The OpenZipkin Authors
+ * Copyright 2016-2023 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -13,13 +13,12 @@
  */
 package zipkin2.reporter;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class InMemoryReporterMetricsTest {
-  @Test
-  public void incrementMessagesDropped_sameExceptionTypeIsNotCountedMoreThanOnce() {
+class InMemoryReporterMetricsTest {
+  @Test void incrementMessagesDropped_sameExceptionTypeIsNotCountedMoreThanOnce() {
     InMemoryReporterMetrics inMemoryReporterMetrics = new InMemoryReporterMetrics();
 
     inMemoryReporterMetrics.incrementMessagesDropped(new RuntimeException());
@@ -31,8 +30,7 @@ public class InMemoryReporterMetricsTest {
     assertThat(inMemoryReporterMetrics.messagesDroppedByCause().size()).isEqualTo(2);
   }
 
-  @Test
-  public void incrementMessagesDropped_multipleOccurrencesOfSameExceptionTypeAreCounted() {
+  @Test void incrementMessagesDropped_multipleOccurrencesOfSameExceptionTypeAreCounted() {
     InMemoryReporterMetrics inMemoryReporterMetrics = new InMemoryReporterMetrics();
 
     inMemoryReporterMetrics.incrementMessagesDropped(new RuntimeException());
