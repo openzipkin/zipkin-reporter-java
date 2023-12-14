@@ -13,10 +13,7 @@
  */
 package zipkin2.reporter;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.concurrent.TimeUnit;
-import okio.Okio;
 import org.openjdk.jmh.annotations.AuxCounters;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -109,12 +106,12 @@ public abstract class SenderBenchmarks {
   protected abstract Sender createSender() throws Exception;
 
   @Setup(Level.Iteration)
-  public void fillQueue() throws IOException {
+  public void fillQueue() {
     while (reporter.pending.offer(clientSpan, clientSpanBytes.length));
   }
 
   @TearDown(Level.Iteration)
-  public void clearQueue() throws IOException {
+  public void clearQueue() {
     reporter.pending.clear();
   }
 
@@ -136,14 +133,5 @@ public abstract class SenderBenchmarks {
   }
 
   protected abstract void afterSenderClose() throws Exception;
-
-  static byte[] spanFromResource(String jsonResource) {
-    InputStream stream = SenderBenchmarks.class.getResourceAsStream(jsonResource);
-    try {
-      return Okio.buffer(Okio.source(stream)).readByteArray();
-    } catch (IOException e) {
-      throw new AssertionError(e);
-    }
-  }
 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2019 The OpenZipkin Authors
+ * Copyright 2016-2023 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -13,27 +13,59 @@
  */
 package zipkin2.reporter;
 
-import com.github.charithe.kafka.EphemeralKafkaBroker;
-import com.github.charithe.kafka.KafkaJunitRule;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.Properties;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.InternetProtocol;
+import org.testcontainers.containers.output.Slf4jLogConsumer;
+import org.testcontainers.containers.wait.strategy.Wait;
 import zipkin2.reporter.kafka.KafkaSender;
 
+import static org.apache.kafka.clients.consumer.ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG;
+import static org.apache.kafka.clients.consumer.ConsumerConfig.GROUP_ID_CONFIG;
+import static org.testcontainers.utility.DockerImageName.parse;
+
 public class KafkaSenderBenchmarks extends SenderBenchmarks {
-  EphemeralKafkaBroker broker = EphemeralKafkaBroker.create();
-  KafkaJunitRule kafka;
+  static final Logger LOGGER = LoggerFactory.getLogger(KafkaContainer.class);
+  static final int KAFKA_PORT = 19092;
+
+  static final class KafkaContainer extends GenericContainer<KafkaContainer> {
+    KafkaContainer() {
+      super(parse("ghcr.io/openzipkin/zipkin-kafka:2.25.1"));
+      waitStrategy = Wait.forHealthcheck();
+      // Kafka broker listener port (19092) needs to be exposed for test cases to access it.
+      addFixedExposedPort(KAFKA_PORT, KAFKA_PORT, InternetProtocol.TCP);
+      withLogConsumer(new Slf4jLogConsumer(LOGGER));
+    }
+
+    String bootstrapServer() {
+      return getHost() + ":" + getMappedPort(KAFKA_PORT);
+    }
+  }
+
+  KafkaContainer kafka;
   KafkaConsumer<byte[], byte[]> consumer;
 
-  @Override protected Sender createSender() throws Exception {
-    broker.start();
-    kafka = new KafkaJunitRule(broker).waitForStartup();
-    consumer = kafka.helper().createByteConsumer();
+  @Override protected Sender createSender() {
+    kafka = new KafkaContainer();
+    kafka.start();
+
+    Properties config = new Properties();
+    config.put(BOOTSTRAP_SERVERS_CONFIG, kafka.bootstrapServer());
+    config.put(GROUP_ID_CONFIG, "zipkin");
+
+    consumer =
+      new KafkaConsumer<>(config, new ByteArrayDeserializer(), new ByteArrayDeserializer());
     consumer.subscribe(Collections.singletonList("zipkin"));
 
     new Thread(() -> {
@@ -45,11 +77,11 @@ public class KafkaSenderBenchmarks extends SenderBenchmarks {
       }
     }).start();
 
-    return KafkaSender.create(broker.getBrokerList().get());
+    return KafkaSender.create(kafka.bootstrapServer());
   }
 
-  @Override protected void afterSenderClose() throws Exception {
-    broker.stop();
+  @Override protected void afterSenderClose() {
+    kafka.stop();
   }
 
   // Convenience main entry-point
