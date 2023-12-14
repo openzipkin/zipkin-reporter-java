@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2019 The OpenZipkin Authors
+ * Copyright 2016-2023 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -32,7 +32,7 @@ import zipkin2.reporter.Sender;
  * This sends (usually json v2) encoded spans to an ActiveMQ queue.
  *
  * <h3>Usage</h3>
- *
+ * <p>
  * This type is designed for {@link AsyncReporter.Builder#builder(Sender) the async reporter}.
  *
  * <p>Here's a simple configuration, configured for json:
@@ -132,7 +132,6 @@ public final class ActiveMQSender extends Sender {
   }
 
   /** get and close are typically called from different threads */
-  volatile ActiveMQConn conn;
   volatile boolean closeCalled;
 
   @Override public Encoding encoding() {

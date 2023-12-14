@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2020 The OpenZipkin Authors
+ * Copyright 2016-2023 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -16,14 +16,12 @@ package zipkin2.reporter.activemq;
 import java.io.IOException;
 import java.util.stream.Stream;
 import javax.jms.BytesMessage;
-import org.apache.activemq.ActiveMQConnectionFactory;
-import org.apache.activemq.junit.EmbeddedActiveMQBroker;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestName;
+import javax.jms.MessageConsumer;
+import javax.jms.Queue;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import zipkin2.Call;
 import zipkin2.CheckResult;
 import zipkin2.Span;
@@ -38,90 +36,72 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static zipkin2.TestObjects.CLIENT_SPAN;
 
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@Timeout(60)
 public class ITActiveMQSender {
-  @ClassRule public static EmbeddedActiveMQBroker activemq = new EmbeddedActiveMQBroker();
-  @Rule public TestName testName = new TestName();
+  @RegisterExtension ActiveMQExtension activemq = new ActiveMQExtension();
 
-  ActiveMQSender sender;
-
-  @Before public void start() {
-    sender = builder().build();
+  @Test void checkPasses() {
+    try (ActiveMQSender sender = activemq.newSenderBuilder("checkPasses").build()) {
+      assertThat(sender.check().ok()).isTrue();
+    }
   }
 
-  @After public void stop() throws IOException {
-    sender.close();
-  }
-
-  @Test public void checkPasses() {
-    assertThat(sender.check().ok()).isTrue();
-  }
-
-  @Test public void checkFalseWhenBrokerIsDown() throws IOException {
-    sender.close();
-    ActiveMQConnectionFactory connectionFactory = new ActiveMQConnectionFactory();
+  @Test void checkFalseWhenBrokerIsDown() {
     // we can be pretty certain ActiveMQ isn't running on localhost port 80
-    connectionFactory.setBrokerURL("tcp://localhost:80");
-    sender = builder().connectionFactory(connectionFactory).build();
-
-    CheckResult check = sender.check();
-    assertThat(check.ok()).isFalse();
-    assertThat(check.error()).isInstanceOf(IOException.class);
+    try (ActiveMQSender sender = ActiveMQSender.create("tcp://localhost:80")) {
+      CheckResult check = sender.check();
+      assertThat(check.ok()).isFalse();
+      assertThat(check.error()).isInstanceOf(IOException.class);
+    }
   }
 
-  @Test public void sendFailsWithInvalidActiveMqServer() throws Exception {
-    sender.close();
-    ActiveMQConnectionFactory connectionFactory = new ActiveMQConnectionFactory();
+  @Test void sendFailsWithInvalidActiveMqServer() {
     // we can be pretty certain ActiveMQ isn't running on localhost port 80
-    connectionFactory.setBrokerURL("tcp://localhost:80");
-    sender = builder().connectionFactory(connectionFactory).build();
-
-    assertThatThrownBy(() -> send(CLIENT_SPAN, CLIENT_SPAN).execute())
-      .isInstanceOf(IOException.class)
-      .hasMessageContaining("Unable to establish connection to ActiveMQ broker");
+    try (ActiveMQSender sender = ActiveMQSender.create("tcp://localhost:80")) {
+      assertThatThrownBy(() -> send(sender, CLIENT_SPAN, CLIENT_SPAN).execute()).isInstanceOf(
+          IOException.class)
+        .hasMessageContaining("Unable to establish connection to ActiveMQ broker");
+    }
   }
 
-  @Test public void sendsSpans() throws Exception {
-    send(CLIENT_SPAN, CLIENT_SPAN).execute();
+  @Test void sendsSpans() throws Exception {
+    try (ActiveMQSender sender = activemq.newSenderBuilder("sendsSpans").build()) {
+      send(sender, CLIENT_SPAN, CLIENT_SPAN).execute();
 
-    assertThat(SpanBytesDecoder.JSON_V2.decodeList(readMessage()))
-      .containsExactly(CLIENT_SPAN, CLIENT_SPAN);
+      assertThat(SpanBytesDecoder.JSON_V2.decodeList(readMessage(sender))).containsExactly(
+        CLIENT_SPAN, CLIENT_SPAN);
+    }
   }
 
-  @Test public void sendsSpans_PROTO3() throws Exception {
-    sender.close();
-    sender = builder().encoding(Encoding.PROTO3).build();
+  @Test void sendsSpans_PROTO3() throws Exception {
+    try (ActiveMQSender sender = activemq.newSenderBuilder("sendsSpans_PROTO3")
+      .encoding(Encoding.PROTO3)
+      .build()) {
+      send(sender, CLIENT_SPAN, CLIENT_SPAN).execute();
 
-    send(CLIENT_SPAN, CLIENT_SPAN).execute();
-
-    assertThat(SpanBytesDecoder.PROTO3.decodeList(readMessage()))
-      .containsExactly(CLIENT_SPAN, CLIENT_SPAN);
+      assertThat(SpanBytesDecoder.PROTO3.decodeList(readMessage(sender))).containsExactly(
+        CLIENT_SPAN, CLIENT_SPAN);
+    }
   }
 
-  @Test public void sendsSpans_THRIFT() throws Exception {
-    sender.close();
-    sender = builder().encoding(Encoding.THRIFT).build();
+  @Test void sendsSpans_THRIFT() throws Exception {
+    try (ActiveMQSender sender = activemq.newSenderBuilder("sendsSpans_THRIFT")
+      .encoding(Encoding.THRIFT)
+      .build()) {
+      send(sender, CLIENT_SPAN, CLIENT_SPAN).execute();
 
-    send(CLIENT_SPAN, CLIENT_SPAN).execute();
-
-    assertThat(SpanBytesDecoder.THRIFT.decodeList(readMessage()))
-      .containsExactly(CLIENT_SPAN, CLIENT_SPAN);
+      assertThat(SpanBytesDecoder.THRIFT.decodeList(readMessage(sender))).containsExactly(
+        CLIENT_SPAN, CLIENT_SPAN);
+    }
   }
 
-  @Test public void sendsSpansToCorrectQueue() throws Exception {
-    sender.close();
-    sender = builder().queue("customzipkinqueue").build();
-
-    send(CLIENT_SPAN, CLIENT_SPAN).execute();
-
-    assertThat(SpanBytesDecoder.JSON_V2.decodeList(readMessage()))
-      .containsExactly(CLIENT_SPAN, CLIENT_SPAN);
-  }
-
-  @Test public void illegalToSendWhenClosed() {
-    sender.close();
-
-    assertThatThrownBy(() -> send(CLIENT_SPAN, CLIENT_SPAN).execute())
-      .isInstanceOf(IllegalStateException.class);
+  @Test void illegalToSendWhenClosed() {
+    try (ActiveMQSender sender = activemq.newSenderBuilder("illegalToSendWhenClosed").build()) {
+      sender.close();
+      assertThatThrownBy(() -> send(sender, CLIENT_SPAN, CLIENT_SPAN).execute()).isInstanceOf(
+        IllegalStateException.class);
+    }
   }
 
   /**
@@ -130,13 +110,14 @@ public class ITActiveMQSender {
    * tools, care should be taken to ensure the toString() output is a reasonable length and does not
    * contain sensitive information.
    */
-  @Test public void toStringContainsOnlySummaryInformation() {
-    assertThat(sender).hasToString(String.format("ActiveMQSender{brokerURL=%s, queue=%s}",
-      activemq.getVmURL(), testName.getMethodName())
-    );
+  @Test void toStringContainsOnlySummaryInformation() {
+    try (ActiveMQSender sender = activemq.newSenderBuilder("toString").build()) {
+      assertThat(sender).hasToString(
+        String.format("ActiveMQSender{brokerURL=%s, queue=toString}", activemq.brokerURL()));
+    }
   }
 
-  Call<Void> send(Span... spans) {
+  Call<Void> send(ActiveMQSender sender, Span... spans) {
     SpanBytesEncoder bytesEncoder;
     switch (sender.encoding()) {
       case JSON:
@@ -154,17 +135,14 @@ public class ITActiveMQSender {
     return sender.sendSpans(Stream.of(spans).map(bytesEncoder::encode).collect(toList()));
   }
 
-  private byte[] readMessage() throws Exception {
-    BytesMessage message = activemq.peekBytesMessage(sender.lazyInit.queue);
-    byte[] result = new byte[(int) message.getBodyLength()];
-    message.readBytes(result);
-    return result;
-  }
-
-  ActiveMQSender.Builder builder() {
-    return ActiveMQSender.newBuilder()
-      .connectionFactory(activemq.createConnectionFactory())
-      // prevent test flakes by having each run in an individual queue
-      .queue(testName.getMethodName());
+  byte[] readMessage(ActiveMQSender sender) throws Exception {
+    ActiveMQConn conn = sender.lazyInit.get();
+    Queue queue = conn.sender.getQueue();
+    try (MessageConsumer consumer = conn.session.createConsumer(queue)) {
+      BytesMessage message = (BytesMessage) consumer.receive(1000L);
+      byte[] result = new byte[(int) message.getBodyLength()];
+      message.readBytes(result);
+      return result;
+    }
   }
 }
