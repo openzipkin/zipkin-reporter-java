@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class HttpCallTest {
+public class HttpCallTest { // public for use in src/it
   @Test void parseResponse_closesBody() throws Exception {
 
     // It is difficult to prove close was called, this approach looks at an underlying stream

@@ -44,7 +44,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.failBecauseExceptionWasNotThrown;
 import static zipkin2.TestObjects.CLIENT_SPAN;
 
-class OkHttpSenderTest {
+public class OkHttpSenderTest { // public for use in src/it
   MockWebServer server = new MockWebServer();
 
   @AfterEach void closeServer() throws IOException {
