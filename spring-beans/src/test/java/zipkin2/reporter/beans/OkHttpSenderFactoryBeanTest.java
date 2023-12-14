@@ -51,7 +51,7 @@ class OkHttpSenderFactoryBeanTest {
     );
 
     assertThat(context.getBean("sender", OkHttpSender.class))
-        .extracting("client.connectTimeout")
+        .extracting("client.connectTimeoutMillis")
         .isEqualTo(1000);
   }
 
@@ -64,7 +64,7 @@ class OkHttpSenderFactoryBeanTest {
     );
 
     assertThat(context.getBean("sender", OkHttpSender.class))
-        .extracting("client.writeTimeout")
+        .extracting("client.writeTimeoutMillis")
         .isEqualTo(1000);
   }
 
@@ -77,7 +77,7 @@ class OkHttpSenderFactoryBeanTest {
     );
 
     assertThat(context.getBean("sender", OkHttpSender.class))
-        .extracting("client.readTimeout")
+        .extracting("client.readTimeoutMillis")
         .isEqualTo(1000);
   }
 
