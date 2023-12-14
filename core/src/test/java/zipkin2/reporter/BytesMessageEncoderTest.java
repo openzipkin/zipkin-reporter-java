@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2019 The OpenZipkin Authors
+ * Copyright 2016-2023 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -15,26 +15,25 @@ package zipkin2.reporter;
 
 import java.util.Arrays;
 import java.util.List;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class BytesMessageEncoderTest {
-
-  @Test public void emptyList_json() {
+class BytesMessageEncoderTest {
+  @Test void emptyList_json() {
     List<byte[]> encoded = Arrays.asList();
     assertThat(BytesMessageEncoder.JSON.encode(encoded))
         .containsExactly('[', ']');
   }
 
-  @Test public void singletonList_json() {
+  @Test void singletonList_json() {
     List<byte[]> encoded = Arrays.asList(new byte[] {'{', '}'});
 
     assertThat(BytesMessageEncoder.JSON.encode(encoded))
         .containsExactly('[', '{', '}', ']');
   }
 
-  @Test public void multiItemList_json() {
+  @Test void multiItemList_json() {
     List<byte[]> encoded = Arrays.asList(
         "{\"k\":\"1\"}".getBytes(),
         "{\"k\":\"2\"}".getBytes(),
@@ -44,20 +43,20 @@ public class BytesMessageEncoderTest {
         .isEqualTo("[{\"k\":\"1\"},{\"k\":\"2\"},{\"k\":\"3\"}]");
   }
 
-  @Test public void emptyList_proto3() {
+  @Test void emptyList_proto3() {
     List<byte[]> encoded = Arrays.asList();
     assertThat(BytesMessageEncoder.PROTO3.encode(encoded))
         .isEmpty();
   }
 
-  @Test public void singletonList_proto3() {
+  @Test void singletonList_proto3() {
     List<byte[]> encoded = Arrays.asList(new byte[] {1, 1, 'a'});
 
     assertThat(BytesMessageEncoder.PROTO3.encode(encoded))
         .containsExactly(1, 1, 'a');
   }
 
-  @Test public void multiItemList_proto3() {
+  @Test void multiItemList_proto3() {
     List<byte[]> encoded = Arrays.asList(
         new byte[] {1, 1, 'a'},
         new byte[] {1, 1, 'b'},

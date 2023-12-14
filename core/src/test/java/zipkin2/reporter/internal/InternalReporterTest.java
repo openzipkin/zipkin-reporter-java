@@ -14,7 +14,7 @@
 package zipkin2.reporter.internal;
 
 import java.util.List;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import zipkin2.codec.BytesEncoder;
 import zipkin2.codec.Encoding;
 import zipkin2.reporter.AsyncReporter;
@@ -23,7 +23,7 @@ import zipkin2.reporter.Sender;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class InternalReporterTest {
+class InternalReporterTest {
   Sender sender = FakeSender.create();
   BytesEncoder<String> bytesEncoder = new BytesEncoder<String>() {
     @Override public Encoding encoding() {
@@ -49,7 +49,7 @@ public class InternalReporterTest {
    * created as the there is no ambiguity on whether {@link AsyncReporter.Builder#build()} or {@link
    * AsyncReporter.Builder#build(BytesEncoder)} was called.
    */
-  @Test public void toBuilder() {
+  @Test void toBuilder() {
     AsyncReporter<String> input = AsyncReporter.builder(sender).build(bytesEncoder);
     assertThat(InternalReporter.instance.toBuilder(input).build(bytesEncoder))
         .usingRecursiveComparison()

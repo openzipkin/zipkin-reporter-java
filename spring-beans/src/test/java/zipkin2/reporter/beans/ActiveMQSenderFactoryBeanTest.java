@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2019 The OpenZipkin Authors
+ * Copyright 2016-2023 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -14,21 +14,22 @@
 package zipkin2.reporter.beans;
 
 import java.util.Arrays;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 import zipkin2.codec.Encoding;
 import zipkin2.reporter.activemq.ActiveMQSender;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
-public class ActiveMQSenderFactoryBeanTest {
+class ActiveMQSenderFactoryBeanTest {
   XmlBeans context;
 
-  @After public void close() {
+  @AfterEach void close() {
     if (context != null) context.close();
   }
 
-  @Test public void url() {
+  @Test void url() {
     String brokerUrl = "ssl://abcd.mq.ap-southeast-1.amazonaws.com:61617";
     context = new XmlBeans(""
       + "<bean id=\"sender\" class=\"zipkin2.reporter.beans.ActiveMQSenderFactoryBean\">\n"
@@ -41,7 +42,7 @@ public class ActiveMQSenderFactoryBeanTest {
       .isEqualTo(brokerUrl);
   }
 
-  @Test public void connectionIdPrefix() {
+  @Test void connectionIdPrefix() {
     String connectionIdPrefix = "zipkin-reporter2";
     context = new XmlBeans(""
       + "<bean id=\"sender\" class=\"zipkin2.reporter.beans.ActiveMQSenderFactoryBean\">\n"
@@ -55,7 +56,7 @@ public class ActiveMQSenderFactoryBeanTest {
       .isEqualTo(connectionIdPrefix);
   }
 
-  @Test public void clientIdPrefix() {
+  @Test void clientIdPrefix() {
     String clientIdPrefix = "zipkin-reporter2";
     context = new XmlBeans(""
       + "<bean id=\"sender\" class=\"zipkin2.reporter.beans.ActiveMQSenderFactoryBean\">\n"
@@ -69,7 +70,7 @@ public class ActiveMQSenderFactoryBeanTest {
       .isEqualTo(clientIdPrefix);
   }
 
-  @Test public void queue() {
+  @Test void queue() {
     context = new XmlBeans(""
       + "<bean id=\"sender\" class=\"zipkin2.reporter.beans.ActiveMQSenderFactoryBean\">\n"
       + "  <property name=\"url\" value=\"tcp://localhost:61616\"/>\n"
@@ -82,7 +83,7 @@ public class ActiveMQSenderFactoryBeanTest {
       .isEqualTo("zipkin2");
   }
 
-  @Test public void usernamePassword() {
+  @Test void usernamePassword() {
     context = new XmlBeans(""
       + "<bean id=\"sender\" class=\"zipkin2.reporter.beans.ActiveMQSenderFactoryBean\">\n"
       + "  <property name=\"url\" value=\"tcp://localhost:61616\"/>\n"
@@ -96,7 +97,7 @@ public class ActiveMQSenderFactoryBeanTest {
       .containsExactly("foo", "bar");
   }
 
-  @Test public void messageMaxBytes() {
+  @Test void messageMaxBytes() {
     context = new XmlBeans(""
       + "<bean id=\"sender\" class=\"zipkin2.reporter.beans.ActiveMQSenderFactoryBean\">\n"
       + "  <property name=\"url\" value=\"tcp://localhost:61616\"/>\n"
@@ -109,7 +110,7 @@ public class ActiveMQSenderFactoryBeanTest {
       .isEqualTo(1024);
   }
 
-  @Test public void encoding() {
+  @Test void encoding() {
     context = new XmlBeans(""
       + "<bean id=\"sender\" class=\"zipkin2.reporter.beans.ActiveMQSenderFactoryBean\">\n"
       + "  <property name=\"url\" value=\"tcp://localhost:61616\"/>\n"
@@ -122,16 +123,18 @@ public class ActiveMQSenderFactoryBeanTest {
       .isEqualTo(Encoding.PROTO3);
   }
 
-  @Test(expected = IllegalStateException.class) public void close_closesSender() {
-    context = new XmlBeans(""
-      + "<bean id=\"sender\" class=\"zipkin2.reporter.beans.ActiveMQSenderFactoryBean\">\n"
-      + "  <property name=\"url\" value=\"tcp://localhost:61616\"/>\n"
-      + "</bean>"
-    );
+  @Test void close_closesSender() {
+    assertThrows(IllegalStateException.class, () -> {
+      context = new XmlBeans(""
+          + "<bean id=\"sender\" class=\"zipkin2.reporter.beans.ActiveMQSenderFactoryBean\">\n"
+          + "  <property name=\"url\" value=\"tcp://localhost:61616\"/>\n"
+          + "</bean>"
+      );
 
-    ActiveMQSender sender = context.getBean("sender", ActiveMQSender.class);
-    context.close();
+      ActiveMQSender sender = context.getBean("sender", ActiveMQSender.class);
+      context.close();
 
-    sender.sendSpans(Arrays.asList(new byte[] {'{', '}'}));
+      sender.sendSpans(Arrays.asList(new byte[]{'{', '}'}));
+    });
   }
 }

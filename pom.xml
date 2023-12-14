@@ -62,7 +62,6 @@
     <!-- Do not set this value in bom/pom.xml to avoid cyclic pinning -->
     <brave.version>5.16.0</brave.version>
 
-    <junit.version>4.13.2</junit.version>
     <junit-jupiter.version>5.10.1</junit-jupiter.version>
     <!-- use pre-kotlin version -->
     <okhttp.version>3.14.9</okhttp.version>
@@ -160,39 +159,8 @@
          io.zipkin.reporter2:zipkin-reporter or zipkin-reporter-brave difficult to unravel. -->
 
     <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>${junit.version}</version>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
-      <version>${junit-jupiter.version}</version>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>org.junit.vintage</groupId>
-      <artifactId>junit-vintage-engine</artifactId>
-      <version>${junit-jupiter.version}</version>
-      <scope>test</scope>
-    </dependency>
-
-    <!-- Current versions of JUnit5 provide the above junit-jupiter artifact for convenience, but we
-         may still have transitive dependencies on these older artifacts and have to make sure
-         they're all using the same version. -->
-    <dependency>
-      <groupId>org.junit.jupiter</groupId>
-      <artifactId>junit-jupiter-api</artifactId>
-      <version>${junit-jupiter.version}</version>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>org.junit.jupiter</groupId>
-      <artifactId>junit-jupiter-engine</artifactId>
       <version>${junit-jupiter.version}</version>
       <scope>test</scope>
     </dependency>

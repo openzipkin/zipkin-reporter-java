@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2020 The OpenZipkin Authors
+ * Copyright 2016-2023 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -25,8 +25,8 @@ import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
 import okhttp3.mockwebserver.SocketPolicy;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 import zipkin2.Call;
 import zipkin2.Callback;
 import zipkin2.Span;
@@ -44,20 +44,24 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.failBecauseExceptionWasNotThrown;
 import static zipkin2.TestObjects.CLIENT_SPAN;
 
-public class OkHttpSenderTest {
-  @Rule public MockWebServer server = new MockWebServer();
+class OkHttpSenderTest {
+  MockWebServer server = new MockWebServer();
+
+  @AfterEach void closeServer() throws IOException {
+    server.close();
+  }
 
   String endpoint = server.url("/api/v2/spans").toString();
   OkHttpSender sender =
       OkHttpSender.newBuilder().endpoint(endpoint).compressionEnabled(false).build();
 
-  @Test public void badUrlIsAnIllegalArgument() {
+  @Test void badUrlIsAnIllegalArgument() {
     assertThatThrownBy(() -> OkHttpSender.create("htp://localhost:9411/api/v1/spans"))
       .isInstanceOf(IllegalArgumentException.class)
       .hasMessageStartingWith("invalid POST url: ");
   }
 
-  @Test public void canCustomizeClient() throws Exception {
+  @Test void canCustomizeClient() throws Exception {
     sender.close();
     OkHttpSender.Builder builder = sender.toBuilder();
     AtomicBoolean called = new AtomicBoolean();
@@ -74,7 +78,7 @@ public class OkHttpSenderTest {
     assertThat(called.get()).isTrue();
   }
 
-  @Test public void sendsSpans() throws Exception {
+  @Test void sendsSpans() throws Exception {
     server.enqueue(new MockResponse());
 
     send(CLIENT_SPAN, CLIENT_SPAN).execute();
@@ -87,7 +91,7 @@ public class OkHttpSenderTest {
         .containsExactly(CLIENT_SPAN, CLIENT_SPAN);
   }
 
-  @Test public void sendsSpans_PROTO3() throws Exception {
+  @Test void sendsSpans_PROTO3() throws Exception {
     sender = sender.toBuilder().encoding(Encoding.PROTO3).build();
 
     server.enqueue(new MockResponse());
@@ -102,7 +106,7 @@ public class OkHttpSenderTest {
         .containsExactly(CLIENT_SPAN, CLIENT_SPAN);
   }
 
-  @Test public void sendsSpans_THRIFT() throws Exception {
+  @Test void sendsSpans_THRIFT() throws Exception {
     sender = sender.toBuilder().encoding(Encoding.THRIFT).build();
 
     server.enqueue(new MockResponse());
@@ -117,7 +121,7 @@ public class OkHttpSenderTest {
         .containsExactly(CLIENT_SPAN, CLIENT_SPAN);
   }
 
-  @Test public void compression() throws Exception {
+  @Test void compression() throws Exception {
     List<RecordedRequest> requests = new ArrayList<>();
     for (boolean compressionEnabled : asList(true, false)) {
       sender = sender.toBuilder().compressionEnabled(compressionEnabled).build();
@@ -135,7 +139,7 @@ public class OkHttpSenderTest {
         .isLessThan(requests.get(1).getBodySize());
   }
 
-  @Test public void ensuresProxiesDontTrace() throws Exception {
+  @Test void ensuresProxiesDontTrace() throws Exception {
     server.enqueue(new MockResponse());
 
     send(CLIENT_SPAN, CLIENT_SPAN).execute();
@@ -144,7 +148,7 @@ public class OkHttpSenderTest {
     assertThat(server.takeRequest().getHeader("b3")).isEqualTo("0");
   }
 
-  @Test public void mediaTypeBasedOnSpanEncoding() throws Exception {
+  @Test void mediaTypeBasedOnSpanEncoding() throws Exception {
     server.enqueue(new MockResponse());
 
     send(CLIENT_SPAN, CLIENT_SPAN).execute();
@@ -154,7 +158,7 @@ public class OkHttpSenderTest {
         .isEqualTo("application/json");
   }
 
-  @Test public void closeWhileRequestInFlight_cancelsRequest() throws Exception {
+  @Test void closeWhileRequestInFlight_cancelsRequest() throws Exception {
     server.shutdown(); // shutdown the normal zipkin rule
     sender.close();
 
@@ -193,7 +197,7 @@ public class OkHttpSenderTest {
   /**
    * Each message by default is up to 5MiB, make sure these go out of process as soon as they can.
    */
-  @Test public void messagesSendImmediately() throws Exception {
+  @Test void messagesSendImmediately() throws Exception {
     server.shutdown(); // shutdown the normal zipkin rule
     sender.close();
 
@@ -230,7 +234,7 @@ public class OkHttpSenderTest {
     }
   }
 
-  @Test public void closeWhileRequestInFlight_graceful() throws Exception {
+  @Test void closeWhileRequestInFlight_graceful() throws Exception {
     server.shutdown(); // shutdown the normal zipkin rule
     sender.close();
 
@@ -260,7 +264,7 @@ public class OkHttpSenderTest {
     }
   }
 
-  @Test public void noExceptionWhenServerErrors() {
+  @Test void noExceptionWhenServerErrors() {
     server.enqueue(new MockResponse().setResponseCode(500));
 
     send().enqueue(new Callback<Void>() {
@@ -272,14 +276,14 @@ public class OkHttpSenderTest {
     });
   }
 
-  @Test public void outOfBandCancel() {
+  @Test void outOfBandCancel() {
     HttpCall call = (HttpCall) send(CLIENT_SPAN, CLIENT_SPAN);
     call.cancel();
 
     assertThat(call.isCanceled()).isTrue();
   }
 
-  @Test public void check_ok() {
+  @Test void check_ok() {
     server.enqueue(new MockResponse());
 
     assertThat(sender.check().ok()).isTrue();
@@ -287,13 +291,13 @@ public class OkHttpSenderTest {
     assertThat(server.getRequestCount()).isEqualTo(1);
   }
 
-  @Test public void check_fail() {
+  @Test void check_fail() {
     server.enqueue(new MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_START));
 
     assertThat(sender.check().ok()).isFalse();
   }
 
-  @Test public void illegalToSendWhenClosed() {
+  @Test void illegalToSendWhenClosed() {
     sender.close();
 
     assertThatThrownBy(() -> send(CLIENT_SPAN))
@@ -306,11 +310,11 @@ public class OkHttpSenderTest {
    * tools, care should be taken to ensure the toString() output is a reasonable length and does not
    * contain sensitive information.
    */
-  @Test public void toStringContainsOnlySenderTypeAndEndpoint() {
+  @Test void toStringContainsOnlySenderTypeAndEndpoint() {
     assertThat(sender.toString()).isEqualTo("OkHttpSender{" + endpoint + "}");
   }
 
-  @Test public void bugGuardCache() {
+  @Test void bugGuardCache() {
     assertThat(sender.client.cache())
         .withFailMessage("senders should not open a disk cache")
         .isNull();

@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2020 The OpenZipkin Authors
+ * Copyright 2016-2023 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -18,8 +18,8 @@ import brave.handler.MutableSpan;
 import brave.propagation.TraceContext;
 import java.util.ArrayList;
 import java.util.Objects;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import zipkin2.Annotation;
 import zipkin2.Endpoint;
 import zipkin2.Span;
@@ -32,7 +32,7 @@ import static brave.Span.Kind.SERVER;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 
-public class ConvertingSpanReporterTest {
+class ConvertingSpanReporterTest {
   static class ListSpanReporter extends ArrayList<Span> implements Reporter<Span> {
     @Override public void report(Span span) {
       add(span);
@@ -44,7 +44,7 @@ public class ConvertingSpanReporterTest {
   TraceContext context = TraceContext.newBuilder().traceId(1).spanId(2).sampled(true).build();
   MutableSpan defaultSpan;
 
-  @Before public void init() {
+  @BeforeEach void init() {
     defaultSpan = new MutableSpan(context, null);
     defaultSpan.localServiceName("Aa");
     defaultSpan.localIp("1.2.3.4");
@@ -52,7 +52,7 @@ public class ConvertingSpanReporterTest {
     spanReporter = new ConvertingSpanReporter(spans, Tags.ERROR);
   }
 
-  @Test public void generateKindMap() {
+  @Test void generateKindMap() {
     assertThat(ConvertingSpanReporter.generateKindMap()).containsExactly(
         entry(CLIENT, Span.Kind.CLIENT),
         entry(SERVER, Span.Kind.SERVER),
@@ -61,7 +61,7 @@ public class ConvertingSpanReporterTest {
     );
   }
 
-  @Test public void equalsAndHashCode() {
+  @Test void equalsAndHashCode() {
     assertThat(spanReporter)
         .hasSameHashCodeAs(spans)
         .isEqualTo(new ConvertingSpanReporter(spans, Tags.ERROR));
@@ -74,7 +74,7 @@ public class ConvertingSpanReporterTest {
         .isNotEqualTo(otherReporter.hashCode());
   }
 
-  @Test public void convertsSampledSpan() {
+  @Test void convertsSampledSpan() {
     MutableSpan span = new MutableSpan(context, null);
     spanReporter.report(span);
 
@@ -86,7 +86,7 @@ public class ConvertingSpanReporterTest {
     );
   }
 
-  @Test public void convertsDebugSpan() {
+  @Test void convertsDebugSpan() {
     TraceContext context = TraceContext.newBuilder().traceId(1).spanId(2).debug(true).build();
     MutableSpan span = new MutableSpan(context, null);
     spanReporter.report(span);
@@ -100,7 +100,7 @@ public class ConvertingSpanReporterTest {
     );
   }
 
-  @Test public void minimumDurationIsOne() {
+  @Test void minimumDurationIsOne() {
     MutableSpan span = new MutableSpan(context, null);
 
     span.startTimestamp(1L);
@@ -110,7 +110,7 @@ public class ConvertingSpanReporterTest {
     assertThat(spans.get(0).duration()).isEqualTo(1L);
   }
 
-  @Test public void replacesTag() {
+  @Test void replacesTag() {
     MutableSpan span = new MutableSpan(context, null);
 
     span.tag("1", "1");
@@ -130,7 +130,7 @@ public class ConvertingSpanReporterTest {
 
   Throwable ERROR = new RuntimeException();
 
-  @Test public void backfillsErrorTag() {
+  @Test void backfillsErrorTag() {
     MutableSpan span = new MutableSpan(context, null);
 
     span.error(ERROR);
@@ -141,7 +141,7 @@ public class ConvertingSpanReporterTest {
         .containsOnly(entry("error", "RuntimeException"));
   }
 
-  @Test public void doesntOverwriteErrorTag() {
+  @Test void doesntOverwriteErrorTag() {
     MutableSpan span = new MutableSpan(context, null);
 
     span.error(ERROR);
@@ -153,7 +153,7 @@ public class ConvertingSpanReporterTest {
         .containsOnly(entry("error", ""));
   }
 
-  @Test public void addsAnnotations() {
+  @Test void addsAnnotations() {
     MutableSpan span = new MutableSpan(context, null);
 
     span.startTimestamp(1L);
@@ -166,19 +166,19 @@ public class ConvertingSpanReporterTest {
         .containsOnly(Annotation.create(2L, "foo"));
   }
 
-  @Test public void finished_client() {
+  @Test void finished_client() {
     finish(brave.Span.Kind.CLIENT, Span.Kind.CLIENT);
   }
 
-  @Test public void finished_server() {
+  @Test void finished_server() {
     finish(brave.Span.Kind.SERVER, Span.Kind.SERVER);
   }
 
-  @Test public void finished_producer() {
+  @Test void finished_producer() {
     finish(brave.Span.Kind.PRODUCER, Span.Kind.PRODUCER);
   }
 
-  @Test public void finished_consumer() {
+  @Test void finished_consumer() {
     finish(brave.Span.Kind.CONSUMER, Span.Kind.CONSUMER);
   }
 
@@ -197,19 +197,19 @@ public class ConvertingSpanReporterTest {
     assertThat(zipkinSpan.kind()).isEqualTo(span2Kind);
   }
 
-  @Test public void flushed_client() {
+  @Test void flushed_client() {
     flush(brave.Span.Kind.CLIENT, Span.Kind.CLIENT);
   }
 
-  @Test public void flushed_server() {
+  @Test void flushed_server() {
     flush(brave.Span.Kind.SERVER, Span.Kind.SERVER);
   }
 
-  @Test public void flushed_producer() {
+  @Test void flushed_producer() {
     flush(brave.Span.Kind.PRODUCER, Span.Kind.PRODUCER);
   }
 
-  @Test public void flushed_consumer() {
+  @Test void flushed_consumer() {
     flush(brave.Span.Kind.CONSUMER, Span.Kind.CONSUMER);
   }
 
@@ -228,7 +228,7 @@ public class ConvertingSpanReporterTest {
     assertThat(zipkinSpan.kind()).isEqualTo(span2Kind);
   }
 
-  @Test public void remoteEndpoint() {
+  @Test void remoteEndpoint() {
     MutableSpan span = new MutableSpan(context, null);
 
     Endpoint endpoint = Endpoint.newBuilder()
@@ -250,7 +250,7 @@ public class ConvertingSpanReporterTest {
   }
 
   // This prevents the server startTimestamp from overwriting the client one on the collector
-  @Test public void writeTo_sharedStatus() {
+  @Test void writeTo_sharedStatus() {
     MutableSpan span = new MutableSpan(context, null);
 
     span.setShared();
@@ -264,7 +264,7 @@ public class ConvertingSpanReporterTest {
         .isTrue();
   }
 
-  @Test public void flushUnstartedNeitherSetsTimestampNorDuration() {
+  @Test void flushUnstartedNeitherSetsTimestampNorDuration() {
     MutableSpan flushed = new MutableSpan(context, null);
     flushed.finishTimestamp(0L);
 

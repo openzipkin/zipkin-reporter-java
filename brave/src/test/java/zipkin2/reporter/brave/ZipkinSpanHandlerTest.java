@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2020 The OpenZipkin Authors
+ * Copyright 2016-2023 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -19,15 +19,15 @@ import brave.handler.SpanHandler;
 import brave.propagation.TraceContext;
 import java.util.ArrayList;
 import java.util.Objects;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import zipkin2.reporter.Reporter;
 
 import static brave.handler.SpanHandler.Cause.FINISHED;
 import static brave.handler.SpanHandler.Cause.FLUSHED;
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class ZipkinSpanHandlerTest {
+class ZipkinSpanHandlerTest {
   static class ListMutableSpanReporter extends ArrayList<MutableSpan>
       implements Reporter<MutableSpan> {
     @Override public void report(MutableSpan span) {
@@ -40,7 +40,7 @@ public class ZipkinSpanHandlerTest {
   TraceContext context = TraceContext.newBuilder().traceId(1).spanId(2).sampled(true).build();
   MutableSpan defaultSpan;
 
-  @Before public void init() {
+  @BeforeEach void init() {
     defaultSpan = new MutableSpan();
     defaultSpan.localServiceName("Aa");
     defaultSpan.localIp("1.2.3.4");
@@ -48,12 +48,12 @@ public class ZipkinSpanHandlerTest {
     handler = new ZipkinSpanHandler(spans, Tags.ERROR, false);
   }
 
-  @Test public void noopIsNoop() {
+  @Test void noopIsNoop() {
     assertThat(ZipkinSpanHandler.create(Reporter.NOOP))
         .isSameAs(SpanHandler.NOOP);
   }
 
-  @Test public void equalsAndHashCode() {
+  @Test void equalsAndHashCode() {
     assertThat(handler)
         .hasSameHashCodeAs(spans)
         .isEqualTo(new ZipkinSpanHandler(spans, Tags.ERROR, false));
@@ -66,14 +66,14 @@ public class ZipkinSpanHandlerTest {
         .isNotEqualTo(otherHandler.hashCode());
   }
 
-  @Test public void reportsSampledSpan() {
+  @Test void reportsSampledSpan() {
     MutableSpan span = new MutableSpan(context, null);
     handler.end(context, span, FINISHED);
 
     assertThat(spans.get(0)).isSameAs(span);
   }
 
-  @Test public void reportsDebugSpan() {
+  @Test void reportsDebugSpan() {
     TraceContext context = TraceContext.newBuilder().traceId(1).spanId(2).debug(true).build();
     MutableSpan span = new MutableSpan(context, null);
     handler.end(context, span, FINISHED);
@@ -81,18 +81,18 @@ public class ZipkinSpanHandlerTest {
     assertThat(spans.get(0)).isSameAs(span);
   }
 
-  @Test public void reportsFlushedSpan() {
+  @Test void reportsFlushedSpan() {
     MutableSpan span = new MutableSpan(context, null);
     handler.end(context, span, FLUSHED);
 
     assertThat(spans.get(0)).isSameAs(span);
   }
 
-  @Test public void doesnNotHandleAbandoned() {
+  @Test void doesnNotHandleAbandoned() {
     assertThat(handler.handlesAbandoned()).isFalse();
   }
 
-  @Test public void doesntReportUnsampledSpan() {
+  @Test void doesntReportUnsampledSpan() {
     TraceContext context =
         TraceContext.newBuilder().traceId(1).spanId(2).sampled(false).sampledLocal(true).build();
     handler.end(context, new MutableSpan(context, null), FINISHED);
@@ -100,7 +100,7 @@ public class ZipkinSpanHandlerTest {
     assertThat(spans).isEmpty();
   }
 
-  @Test public void alwaysReportSpans_reportsUnsampledSpan() {
+  @Test void alwaysReportSpans_reportsUnsampledSpan() {
     handler = new ZipkinSpanHandler(spans, Tags.ERROR, true);
 
     TraceContext context =
@@ -110,7 +110,7 @@ public class ZipkinSpanHandlerTest {
     assertThat(spans).isNotEmpty();
   }
 
-  @Test public void alwaysReportSpans_doesNotHandleAbandoned() {
+  @Test void alwaysReportSpans_doesNotHandleAbandoned() {
     handler = new ZipkinSpanHandler(spans, Tags.ERROR, true);
     assertThat(handler.handlesAbandoned()).isFalse();
   }

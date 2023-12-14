@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2020 The OpenZipkin Authors
+ * Copyright 2016-2023 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -15,8 +15,8 @@ package zipkin2.reporter.beans;
 
 import brave.Tag;
 import brave.propagation.TraceContext;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 import zipkin2.reporter.Reporter;
 import zipkin2.reporter.Sender;
 import zipkin2.reporter.brave.ZipkinSpanHandler;
@@ -24,7 +24,7 @@ import zipkin2.reporter.urlconnection.URLConnectionSender;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class ZipkinSpanHandlerFactoryBeanTest {
+class ZipkinSpanHandlerFactoryBeanTest {
   public static final Tag<Throwable> ERROR_TAG = new Tag<Throwable>("error") {
     @Override protected String parseValue(Throwable throwable, TraceContext traceContext) {
       return null;
@@ -33,11 +33,11 @@ public class ZipkinSpanHandlerFactoryBeanTest {
 
   XmlBeans context;
 
-  @After public void close() {
+  @AfterEach void close() {
     if (context != null) context.close();
   }
 
-  @Test public void spanReporter() {
+  @Test void spanReporter() {
     context = new XmlBeans(""
         + "<bean id=\"zipkinSpanHandler\" class=\"zipkin2.reporter.beans.ZipkinSpanHandlerFactoryBean\">\n"
         + "  <property name=\"spanReporter\">\n"
@@ -51,7 +51,7 @@ public class ZipkinSpanHandlerFactoryBeanTest {
         .isEqualTo(Reporter.CONSOLE);
   }
 
-  @Test public void errorTag() {
+  @Test void errorTag() {
     context = new XmlBeans(""
         + "<bean id=\"zipkinSpanHandler\" class=\"zipkin2.reporter.beans.ZipkinSpanHandlerFactoryBean\">\n"
         + "  <property name=\"spanReporter\">\n"
@@ -68,7 +68,7 @@ public class ZipkinSpanHandlerFactoryBeanTest {
         .isSameAs(ERROR_TAG);
   }
 
-  @Test public void alwaysReportSpans() {
+  @Test void alwaysReportSpans() {
     context = new XmlBeans(""
         + "<bean id=\"zipkinSpanHandler\" class=\"zipkin2.reporter.beans.ZipkinSpanHandlerFactoryBean\">\n"
         + "  <property name=\"spanReporter\">\n"

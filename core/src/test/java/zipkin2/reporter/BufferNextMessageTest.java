@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2020 The OpenZipkin Authors
+ * Copyright 2016-2023 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -13,14 +13,13 @@
  */
 package zipkin2.reporter;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import zipkin2.codec.Encoding;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class BufferNextMessageTest {
-
-  @Test public void empty_json() {
+class BufferNextMessageTest {
+  @Test void empty_json() {
     BufferNextMessage<Integer> pending = BufferNextMessage.create(Encoding.JSON, 10, 0L);
 
     assertThat(pending.bufferFull)
@@ -29,7 +28,7 @@ public class BufferNextMessageTest {
         .isEqualTo(2 /* [] */);
   }
 
-  @Test public void offer_json() {
+  @Test void offer_json() {
     BufferNextMessage<Integer> pending = BufferNextMessage.create(Encoding.JSON, 10, 0L);
     pending.offer(1, 1);
 
@@ -46,7 +45,7 @@ public class BufferNextMessageTest {
         .isEqualTo(5 /* [1,2] */);
   }
 
-  @Test public void offerWhenFull_json() {
+  @Test void offerWhenFull_json() {
     BufferNextMessage<Integer> pending = BufferNextMessage.create(Encoding.JSON, 10, 0L);
     for (int i = 0; i < 4; i++) {
       assertThat(pending.offer(i, 1))
@@ -66,7 +65,7 @@ public class BufferNextMessageTest {
     assertThat(pending.bufferFull).isTrue();
   }
 
-  @Test public void drain_json() {
+  @Test void drain_json() {
     BufferNextMessage<Integer> pending = BufferNextMessage.create(Encoding.JSON, 10, 0L);
     for (int i = 0; i < 4; i++) {
       pending.offer(i, 1);
@@ -81,7 +80,7 @@ public class BufferNextMessageTest {
     );
   }
 
-  @Test public void drain_incrementally_json() {
+  @Test void drain_incrementally_json() {
     BufferNextMessage<Integer> pending = BufferNextMessage.create(Encoding.JSON, 10, 0L);
     for (int i = 0; i < 4; i++) {
       pending.offer(i, 1);
@@ -104,7 +103,7 @@ public class BufferNextMessageTest {
         .isEqualTo(3 /* [3] */);
   }
 
-  @Test public void empty_proto3() {
+  @Test void empty_proto3() {
     BufferNextMessage<Integer> pending = BufferNextMessage.create(Encoding.PROTO3, 10, 0L);
 
     assertThat(pending.bufferFull)
@@ -113,7 +112,7 @@ public class BufferNextMessageTest {
         .isZero();
   }
 
-  @Test public void offer_proto3() {
+  @Test void offer_proto3() {
     BufferNextMessage<Character> pending = BufferNextMessage.create(Encoding.PROTO3, 10, 0L);
     pending.offer('a', 1);
 
@@ -130,7 +129,7 @@ public class BufferNextMessageTest {
         .isEqualTo(2 /* ab */);
   }
 
-  @Test public void offerWhenFull_proto3() {
+  @Test void offerWhenFull_proto3() {
     BufferNextMessage<Integer> pending = BufferNextMessage.create(Encoding.PROTO3, 10, 0L);
     for (int i = 0; i < 3; i++) {
       assertThat(pending.offer(i, 3))
@@ -150,7 +149,7 @@ public class BufferNextMessageTest {
     assertThat(pending.bufferFull).isTrue();
   }
 
-  @Test public void drain_proto3() {
+  @Test void drain_proto3() {
     BufferNextMessage<Integer> pending = BufferNextMessage.create(Encoding.PROTO3, 10, 0L);
     for (int i = 0; i < 4; i++) {
       pending.offer(i, 1);
@@ -165,7 +164,7 @@ public class BufferNextMessageTest {
     );
   }
 
-  @Test public void drain_incrementally_proto3() {
+  @Test void drain_incrementally_proto3() {
     BufferNextMessage<Integer> pending = BufferNextMessage.create(Encoding.PROTO3, 10, 0L);
     for (int i = 0; i < 4; i++) {
       pending.offer(i, 1);

@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2019 The OpenZipkin Authors
+ * Copyright 2016-2023 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -15,22 +15,23 @@ package zipkin2.reporter.beans;
 
 import com.rabbitmq.client.Address;
 import java.util.Arrays;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 import zipkin2.codec.Encoding;
 import zipkin2.reporter.amqp.RabbitMQSender;
 
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
-public class RabbitMQSenderFactoryBeanTest {
+class RabbitMQSenderFactoryBeanTest {
   XmlBeans context;
 
-  @After public void close() {
+  @AfterEach void close() {
     if (context != null) context.close();
   }
 
-  @Test public void addresses() {
+  @Test void addresses() {
     context = new XmlBeans(""
         + "<bean id=\"sender\" class=\"zipkin2.reporter.beans.RabbitMQSenderFactoryBean\">\n"
         + "  <property name=\"addresses\" value=\"localhost\"/>\n"
@@ -42,7 +43,7 @@ public class RabbitMQSenderFactoryBeanTest {
         .isEqualTo(asList(new Address("localhost")));
   }
 
-  @Test public void queue() {
+  @Test void queue() {
     context = new XmlBeans(""
         + "<bean id=\"sender\" class=\"zipkin2.reporter.beans.RabbitMQSenderFactoryBean\">\n"
         + "  <property name=\"addresses\" value=\"localhost\"/>\n"
@@ -55,7 +56,7 @@ public class RabbitMQSenderFactoryBeanTest {
         .isEqualTo("zipkin2");
   }
 
-  @Test public void connectionTimeout() {
+  @Test void connectionTimeout() {
     context = new XmlBeans(""
         + "<bean id=\"sender\" class=\"zipkin2.reporter.beans.RabbitMQSenderFactoryBean\">\n"
         + "  <property name=\"addresses\" value=\"localhost\"/>\n"
@@ -68,7 +69,7 @@ public class RabbitMQSenderFactoryBeanTest {
         .isEqualTo(0);
   }
 
-  @Test public void virtualHost() {
+  @Test void virtualHost() {
     context = new XmlBeans(""
         + "<bean id=\"sender\" class=\"zipkin2.reporter.beans.RabbitMQSenderFactoryBean\">\n"
         + "  <property name=\"addresses\" value=\"localhost\"/>\n"
@@ -81,7 +82,7 @@ public class RabbitMQSenderFactoryBeanTest {
         .isEqualTo("zipkin3");
   }
 
-  @Test public void usernamePassword() {
+  @Test void usernamePassword() {
     context = new XmlBeans(""
         + "<bean id=\"sender\" class=\"zipkin2.reporter.beans.RabbitMQSenderFactoryBean\">\n"
         + "  <property name=\"addresses\" value=\"localhost\"/>\n"
@@ -95,7 +96,7 @@ public class RabbitMQSenderFactoryBeanTest {
         .isEqualTo(asList("foo", "bar"));
   }
 
-  @Test public void messageMaxBytes() {
+  @Test void messageMaxBytes() {
     context = new XmlBeans(""
         + "<bean id=\"sender\" class=\"zipkin2.reporter.beans.RabbitMQSenderFactoryBean\">\n"
         + "  <property name=\"addresses\" value=\"localhost\"/>\n"
@@ -108,7 +109,7 @@ public class RabbitMQSenderFactoryBeanTest {
         .isEqualTo(1024);
   }
 
-  @Test public void encoding() {
+  @Test void encoding() {
     context = new XmlBeans(""
         + "<bean id=\"sender\" class=\"zipkin2.reporter.beans.RabbitMQSenderFactoryBean\">\n"
         + "  <property name=\"addresses\" value=\"localhost\"/>\n"
@@ -121,16 +122,18 @@ public class RabbitMQSenderFactoryBeanTest {
         .isEqualTo(Encoding.PROTO3);
   }
 
-  @Test(expected = IllegalStateException.class) public void close_closesSender() {
-    context = new XmlBeans(""
-        + "<bean id=\"sender\" class=\"zipkin2.reporter.beans.RabbitMQSenderFactoryBean\">\n"
-        + "  <property name=\"addresses\" value=\"localhost\"/>\n"
-        + "</bean>"
-    );
+  @Test void close_closesSender() {
+    assertThrows(IllegalStateException.class, () -> {
+      context = new XmlBeans(""
+          + "<bean id=\"sender\" class=\"zipkin2.reporter.beans.RabbitMQSenderFactoryBean\">\n"
+          + "  <property name=\"addresses\" value=\"localhost\"/>\n"
+          + "</bean>"
+      );
 
-    RabbitMQSender sender = context.getBean("sender", RabbitMQSender.class);
-    context.close();
+      RabbitMQSender sender = context.getBean("sender", RabbitMQSender.class);
+      context.close();
 
-    sender.sendSpans(asList(new byte[] {'{', '}'}));
+      sender.sendSpans(asList(new byte[]{'{', '}'}));
+    });
   }
 }
