@@ -333,6 +333,7 @@
             <postBuildHookScript>verify</postBuildHookScript>
             <addTestClassPath>true</addTestClassPath>
             <skipInvocation>${skipTests}</skipInvocation>
+            <!-- don't log when "downloading" from local repo -->
             <streamLogs>true</streamLogs>
             <mavenOpts>-Dorg.slf4j.simpleLogger.defaultLogLevel=WARN</mavenOpts>
           </configuration>
