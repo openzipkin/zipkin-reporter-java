@@ -65,8 +65,7 @@
     <junit-jupiter.version>5.10.1</junit-jupiter.version>
     <assertj.version>3.24.2</assertj.version>
     <okhttp.version>4.12.0</okhttp.version>
-    <!-- use pre slf4j 2 version -->
-    <logback.version>1.2.13</logback.version>
+    <log4j.version>2.22.0</log4j.version>
     <testcontainers.version>1.19.3</testcontainers.version>
 
     <license.skip>${skipTests}</license.skip>
@@ -179,10 +178,32 @@
       <scope>test</scope>
     </dependency>
 
+    <!-- Main code uses jul and tests log with log4j -->
     <dependency>
-      <groupId>ch.qos.logback</groupId>
-      <artifactId>logback-classic</artifactId>
-      <version>${logback.version}</version>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-core</artifactId>
+      <version>${log4j.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <!-- route jul over log4j2 during integration tests -->
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-jul</artifactId>
+      <version>${log4j.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <!-- route log4j over log4j2 during integration tests -->
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-1.2-api</artifactId>
+      <version>${log4j.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <!-- route slf4j over log4j2 during integration tests -->
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-slf4j-impl</artifactId>
+      <version>${log4j.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -330,11 +351,12 @@
               <profile>!release</profile>
             </profiles>
             <localRepositoryPath>${project.build.directory}/local-repo</localRepositoryPath>
+            <!--- Don't use addTestClassPath as it interferes with the classpath -->
             <postBuildHookScript>verify</postBuildHookScript>
-            <addTestClassPath>true</addTestClassPath>
             <skipInvocation>${skipTests}</skipInvocation>
-            <!-- don't log when "downloading" from local repo -->
             <streamLogs>true</streamLogs>
+            <!-- Silences repetitive "downloading" logs from the local repo.
+                 Note: this also silences logs about integration test runs! -->
             <mavenOpts>-Dorg.slf4j.simpleLogger.defaultLogLevel=WARN</mavenOpts>
           </configuration>
           <executions>
@@ -384,10 +406,6 @@
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
         <version>${maven-surefire-plugin.version}</version>
-        <configuration>
-          <!-- Ensures root cause ends up in the console -->
-          <trimStackTrace>false</trimStackTrace>
-        </configuration>
       </plugin>
 
       <plugin>
@@ -408,6 +426,9 @@
           <reuseForks>false</reuseForks>
           <!-- workaround to SUREFIRE-1831 -->
           <useModulePath>false</useModulePath>
+          <systemPropertyVariables>
+            <java.util.logging.manager>org.apache.logging.log4j.jul.LogManager</java.util.logging.manager>
+          </systemPropertyVariables>
         </configuration>
       </plugin>
 
@@ -459,7 +480,7 @@
             <maven_release>SCRIPT_STYLE</maven_release>
           </mapping>
           <excludes>
-            <exclude>**/logback.xml</exclude>
+            <exclude>**/log4j2.properties</exclude>
             <exclude>.editorconfig</exclude>
             <exclude>.gitattributes</exclude>
             <exclude>.gitignore</exclude>

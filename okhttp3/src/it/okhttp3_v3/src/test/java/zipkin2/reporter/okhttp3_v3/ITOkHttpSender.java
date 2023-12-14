@@ -11,7 +11,7 @@
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
  */
-package zipkin2.reporter.okhttp3.okhttp3_v3;
+package zipkin2.reporter.okhttp3_v3;
 
-public class HttpCallTest extends zipkin2.reporter.okhttp3.HttpCallTest {
+public class ITOkHttpSender extends zipkin2.reporter.okhttp3.ITOkHttpSender {
 }

@@ -30,6 +30,9 @@
     <module.name>zipkin2.reporter.activemq</module.name>
 
     <main.basedir>${project.basedir}/..</main.basedir>
+    <!-- Be conscious about a 6.x upgrade: 5.x and 6.x types are incompatible
+         as the former uses javax.jms and latter jakarta.jms. It could be
+         better to make an activemq-client6 module. -->
     <activemq.version>5.18.3</activemq.version>
 
     <!-- CI should run the "release" profile during tests to ensure no 1.8
