@@ -68,26 +68,54 @@
       <artifactId>zipkin-tests</artifactId>
       <version>@zipkin.version@</version>
     </dependency>
+
+    <!-- route jul over log4j2 during integration tests -->
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-core</artifactId>
+      <version>@log4j.version@</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-jul</artifactId>
+      <version>@log4j.version@</version>
+    </dependency>
   </dependencies>
 
   <build>
     <sourceDirectory>@project.build.testSourceDirectory@</sourceDirectory>
+    <testResources>
+      <testResource>
+        <directory>@project.basedir@/src/test/resources</directory>
+      </testResource>
+    </testResources>
     <plugins>
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
         <version>@maven-compiler-plugin.version@</version>
         <configuration>
           <includes>
-            <include>**/*Test.java</include>
+            <include>**/IT*.java</include>
           </includes>
         </configuration>
       </plugin>
       <plugin>
+        <!-- Use surefire to run the ITs until someone figures out how to get invoker to run
+             failsafe -->
         <artifactId>maven-surefire-plugin</artifactId>
         <version>@maven-surefire-plugin.version@</version>
         <configuration>
-          <!-- Ensures root cause ends up in the console -->
-          <trimStackTrace>false</trimStackTrace>
+          <failIfNoTests>true</failIfNoTests>
+          <includes>
+            <include>**/IT*.java</include>
+          </includes>
+          <!-- Try to prevent flakes in CI -->
+          <reuseForks>false</reuseForks>
+          <!-- workaround to SUREFIRE-1831 -->
+          <useModulePath>false</useModulePath>
+          <systemPropertyVariables>
+            <java.util.logging.manager>org.apache.logging.log4j.jul.LogManager</java.util.logging.manager>
+          </systemPropertyVariables>
         </configuration>
       </plugin>
     </plugins>

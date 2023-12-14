@@ -11,21 +11,18 @@
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
  */
-package zipkin2.reporter.okhttp3;
+package zipkin2.reporter.urlconnection;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
-import okhttp3.mockwebserver.Dispatcher;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
 import okhttp3.mockwebserver.SocketPolicy;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import zipkin2.Call;
 import zipkin2.Callback;
@@ -34,48 +31,35 @@ import zipkin2.codec.Encoding;
 import zipkin2.codec.SpanBytesDecoder;
 import zipkin2.codec.SpanBytesEncoder;
 import zipkin2.reporter.AsyncReporter;
-import zipkin2.reporter.AwaitableCallback;
 import zipkin2.reporter.Sender;
 
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.failBecauseExceptionWasNotThrown;
 import static zipkin2.TestObjects.CLIENT_SPAN;
 
-public class OkHttpSenderTest { // public for use in src/it
+class ITURLConnectionSender {
   MockWebServer server = new MockWebServer();
 
   @AfterEach void closeServer() throws IOException {
     server.close();
   }
 
+  URLConnectionSender sender;
   String endpoint = server.url("/api/v2/spans").toString();
-  OkHttpSender sender =
-      OkHttpSender.newBuilder().endpoint(endpoint).compressionEnabled(false).build();
 
-  @Test void badUrlIsAnIllegalArgument() {
-    assertThatThrownBy(() -> OkHttpSender.create("htp://localhost:9411/api/v1/spans"))
-      .isInstanceOf(IllegalArgumentException.class)
-      .hasMessageStartingWith("invalid POST url: ");
+  @BeforeEach void setUp() {
+    sender = URLConnectionSender.newBuilder()
+        .endpoint(endpoint)
+        .compressionEnabled(false)
+        .build();
   }
 
-  @Test void canCustomizeClient() throws Exception {
-    sender.close();
-    OkHttpSender.Builder builder = sender.toBuilder();
-    AtomicBoolean called = new AtomicBoolean();
-    builder.clientBuilder().addInterceptor(chain -> {
-      called.set(true);
-      return chain.proceed(chain.request());
-    });
-    sender = builder.build();
-
-    server.enqueue(new MockResponse());
-
-    send(CLIENT_SPAN, CLIENT_SPAN).execute();
-
-    assertThat(called.get()).isTrue();
+  @Test void badUrlIsAnIllegalArgument() {
+    assertThatThrownBy(() -> URLConnectionSender.create("htp://localhost:9411/api/v1/spans"))
+      .isInstanceOf(IllegalArgumentException.class)
+      .hasMessage("unknown protocol: htp");
   }
 
   @Test void sendsSpans() throws Exception {
@@ -158,112 +142,6 @@ public class OkHttpSenderTest { // public for use in src/it
         .isEqualTo("application/json");
   }
 
-  @Test void closeWhileRequestInFlight_cancelsRequest() throws Exception {
-    server.shutdown(); // shutdown the normal zipkin rule
-    sender.close();
-
-    MockWebServer server = new MockWebServer();
-    server.setDispatcher(new Dispatcher() {
-      @Override public MockResponse dispatch(RecordedRequest request) throws InterruptedException {
-        Thread.sleep(2000); // lingers after the one-second grace
-        return new MockResponse();
-      }
-    });
-    try {
-      sender = OkHttpSender.create(server.url("/api/v1/spans").toString());
-
-      AwaitableCallback callback = new AwaitableCallback();
-
-      Call<Void> call = sender.sendSpans(asList(SpanBytesEncoder.JSON_V2.encode(CLIENT_SPAN)));
-      new Thread(() ->
-        call.enqueue(callback)
-      ).start();
-      Thread.sleep(100); // make sure the thread starts
-
-      sender.close(); // close while request is in flight
-
-      try {
-        callback.await();
-        failBecauseExceptionWasNotThrown(RuntimeException.class);
-      } catch (RuntimeException e) {
-        // throws because the request still in flight after a second was canceled
-        assertThat(e.getCause()).isInstanceOf(IOException.class);
-      }
-    } finally {
-      server.shutdown();
-    }
-  }
-
-  /**
-   * Each message by default is up to 5MiB, make sure these go out of process as soon as they can.
-   */
-  @Test void messagesSendImmediately() throws Exception {
-    server.shutdown(); // shutdown the normal zipkin rule
-    sender.close();
-
-    CountDownLatch latch = new CountDownLatch(1);
-    MockWebServer server = new MockWebServer();
-    server.setDispatcher(new Dispatcher() {
-      AtomicInteger count = new AtomicInteger();
-
-      @Override public MockResponse dispatch(RecordedRequest request) throws InterruptedException {
-        if (count.incrementAndGet() == 1) {
-          latch.await();
-        } else {
-          latch.countDown();
-        }
-        return new MockResponse();
-      }
-    });
-    try (OkHttpSender sender = OkHttpSender.create(server.url("/api/v1/spans").toString())) {
-
-      AwaitableCallback callback1 = new AwaitableCallback();
-      AwaitableCallback callback2 = new AwaitableCallback();
-
-      Thread t = new Thread(() -> {
-        sender.sendSpans(asList(SpanBytesEncoder.JSON_V2.encode(CLIENT_SPAN))).enqueue(callback1);
-        sender.sendSpans(asList(SpanBytesEncoder.JSON_V2.encode(CLIENT_SPAN))).enqueue(callback2);
-      });
-      t.start();
-      t.join();
-
-      callback1.await();
-      callback2.await();
-    } finally {
-      server.shutdown();
-    }
-  }
-
-  @Test void closeWhileRequestInFlight_graceful() throws Exception {
-    server.shutdown(); // shutdown the normal zipkin rule
-    sender.close();
-
-    MockWebServer server = new MockWebServer();
-    server.setDispatcher(new Dispatcher() {
-      @Override public MockResponse dispatch(RecordedRequest request) throws InterruptedException {
-        Thread.sleep(700); // finishes within the one-second grace
-        return new MockResponse();
-      }
-    });
-    try {
-      sender = OkHttpSender.create(server.url("/api/v1/spans").toString());
-
-      AwaitableCallback callback = new AwaitableCallback();
-
-      Call<Void> call = sender.sendSpans(asList(SpanBytesEncoder.JSON_V2.encode(CLIENT_SPAN)));
-      new Thread(() ->
-        call.enqueue(callback)
-      ).start();
-      Thread.sleep(100); // make sure the thread starts
-
-      sender.close(); // close while request is in flight
-
-      callback.await(); // shouldn't throw as request completed w/in a second
-    } finally {
-      server.shutdown();
-    }
-  }
-
   @Test void noExceptionWhenServerErrors() {
     server.enqueue(new MockResponse().setResponseCode(500));
 
@@ -274,13 +152,6 @@ public class OkHttpSenderTest { // public for use in src/it
       @Override public void onError(Throwable throwable) {
       }
     });
-  }
-
-  @Test void outOfBandCancel() {
-    HttpCall call = (HttpCall) send(CLIENT_SPAN, CLIENT_SPAN);
-    call.cancel();
-
-    assertThat(call.isCanceled()).isTrue();
   }
 
   @Test void check_ok() {
@@ -300,7 +171,7 @@ public class OkHttpSenderTest { // public for use in src/it
   @Test void illegalToSendWhenClosed() {
     sender.close();
 
-    assertThatThrownBy(() -> send(CLIENT_SPAN))
+    assertThatThrownBy(() -> send(CLIENT_SPAN).execute())
       .isInstanceOf(IllegalStateException.class);
   }
 
@@ -311,13 +182,7 @@ public class OkHttpSenderTest { // public for use in src/it
    * contain sensitive information.
    */
   @Test void toStringContainsOnlySenderTypeAndEndpoint() {
-    assertThat(sender.toString()).isEqualTo("OkHttpSender{" + endpoint + "}");
-  }
-
-  @Test void bugGuardCache() {
-    assertThat(sender.client.cache())
-        .withFailMessage("senders should not open a disk cache")
-        .isNull();
+    assertThat(sender.toString()).isEqualTo("URLConnectionSender{" + endpoint + "}");
   }
 
   Call<Void> send(Span... spans) {

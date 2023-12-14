@@ -88,6 +88,7 @@
               <artifactId>mockwebserver</artifactId>
               <version>${old-okhttp.version}</version>
               <repositoryType>MAIN</repositoryType>
+              <type>jar</type>
             </DynamicDependency>
           </dynamicDependencies>
         </configuration>

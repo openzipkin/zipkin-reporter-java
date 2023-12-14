@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2019 The OpenZipkin Authors
+ * Copyright 2016-2023 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -34,7 +34,8 @@ import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
 import zipkin2.CheckResult;
 import zipkin2.Span;
-import zipkin2.codec.SpanBytesDecoder;
+import zipkin2.TestObjects;
+import zipkin2.codec.SpanBytesEncoder;
 
 /**
  * This benchmark reports spans as fast as possible. The sender clears the queue as fast as
@@ -59,14 +60,17 @@ public abstract class SenderBenchmarks {
 
   public int messageMaxBytes;
 
-  static final byte[] clientSpanBytes = spanFromResource("/zipkin2-client.json");
-  static final Span clientSpan = SpanBytesDecoder.JSON_V2.decodeOne(clientSpanBytes);
-
+  static final Span clientSpan = TestObjects.CLIENT_SPAN;
+  static final byte[] clientSpanBytes = SpanBytesEncoder.JSON_V2.encode(clientSpan);
   static final InMemoryReporterMetrics metrics = new InMemoryReporterMetrics();
 
   @AuxCounters
   @State(Scope.Thread)
   public static class InMemoryReporterMetricsAsCounters {
+
+    static {
+      System.setProperty("java.util.logging.manager", "org.apache.logging.log4j.jul.LogManager");
+    }
 
     public long spans() {
       return metrics.spans() - metrics.spansDropped();
