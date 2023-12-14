@@ -114,11 +114,9 @@
     </dependency>
 
     <dependency>
-      <groupId>com.github.charithe</groupId>
-      <artifactId>kafka-junit</artifactId>
-      <!-- This version is tightly coupled to the version of kafka-clients being used.
-       https://github.com/charithe/kafka-junit -->
-      <version>4.2.10</version>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers</artifactId>
+      <version>${testcontainers.version}</version>
     </dependency>
 
     <!-- Main code uses jul and tests log with log4j -->
