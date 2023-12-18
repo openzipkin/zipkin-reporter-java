@@ -34,6 +34,9 @@
     <amqp-client.version>5.20.0</amqp-client.version>
     <!-- Last pre-1.8 version -->
     <old-amqp-client.version>4.12.0</old-amqp-client.version>
+
+    <!-- amqp-client 4.x is Java 1.6 bytecode -->
+    <main.signature.artifact>java16</main.signature.artifact>
   </properties>
 
   <dependencies>
@@ -95,7 +98,6 @@
       <properties>
         <!-- amqp-client 4.x is Java 1.6 bytecode -->
         <main.java.version>1.6</main.java.version>
-        <main.signature.artifact>java16</main.signature.artifact>
       </properties>
       <build>
         <plugins>

@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2020 The OpenZipkin Authors
+ * Copyright 2016-2023 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -16,7 +16,6 @@ package zipkin2.reporter.amqp;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.DefaultConsumer;
 import java.io.IOException;
-import org.junit.AssumptionViolatedException;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
@@ -35,7 +34,7 @@ public class RabbitMQSenderBenchmarks extends SenderBenchmarks {
 
     CheckResult check = result.check();
     if (!check.ok()) {
-      throw new AssumptionViolatedException(check.error().getMessage(), check.error());
+      throw new IllegalStateException(check.error().getMessage(), check.error());
     }
 
     channel = result.localChannel();
