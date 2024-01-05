@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2023 The OpenZipkin Authors
+ * Copyright 2016-2024 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -41,7 +41,7 @@ public class KafkaSenderBenchmarks extends SenderBenchmarks {
 
   static final class KafkaContainer extends GenericContainer<KafkaContainer> {
     KafkaContainer() {
-      super(parse("ghcr.io/openzipkin/zipkin-kafka:2.25.2"));
+      super(parse("ghcr.io/openzipkin/zipkin-kafka:2.26.0"));
       waitStrategy = Wait.forHealthcheck();
       // Kafka broker listener port (19092) needs to be exposed for test cases to access it.
       addFixedExposedPort(KAFKA_PORT, KAFKA_PORT, InternetProtocol.TCP);
