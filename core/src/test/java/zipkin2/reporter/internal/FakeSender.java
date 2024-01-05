@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2020 The OpenZipkin Authors
+ * Copyright 2016-2024 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -11,31 +11,29 @@
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
  */
-package zipkin2.reporter;
+package zipkin2.reporter.internal;
 
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
-import zipkin2.Call;
-import zipkin2.CheckResult;
 import zipkin2.Span;
 import zipkin2.codec.BytesDecoder;
-import zipkin2.codec.BytesEncoder;
-import zipkin2.codec.Encoding;
 import zipkin2.codec.SpanBytesDecoder;
-import zipkin2.codec.SpanBytesEncoder;
+import zipkin2.reporter.BytesEncoder;
+import zipkin2.reporter.BytesMessageEncoder;
+import zipkin2.reporter.Call;
+import zipkin2.reporter.ClosedSenderException;
+import zipkin2.reporter.Encoding;
+import zipkin2.reporter.Sender;
+import zipkin2.reporter.SpanBytesEncoder;
 
 public final class FakeSender extends Sender {
+
   public static FakeSender create() {
-    return new FakeSender(
-        Encoding.JSON,
-        Integer.MAX_VALUE,
-        BytesMessageEncoder.forEncoding(Encoding.JSON),
-        SpanBytesEncoder.JSON_V2,
-        SpanBytesDecoder.JSON_V2,
-        spans -> {
-        }
-    );
+    return new FakeSender(Encoding.JSON, Integer.MAX_VALUE,
+      BytesMessageEncoder.forEncoding(Encoding.JSON), SpanBytesEncoder.JSON_V2,
+      SpanBytesDecoder.JSON_V2, spans -> {
+    });
   }
 
   final Encoding encoding;
@@ -45,14 +43,8 @@ public final class FakeSender extends Sender {
   final BytesDecoder<Span> decoder;
   final Consumer<List<Span>> onSpans;
 
-  FakeSender(
-      Encoding encoding,
-      int messageMaxBytes,
-      BytesMessageEncoder messageEncoder,
-      BytesEncoder<Span> encoder,
-      BytesDecoder<Span> decoder,
-      Consumer<List<Span>> onSpans
-  ) {
+  FakeSender(Encoding encoding, int messageMaxBytes, BytesMessageEncoder messageEncoder,
+    BytesEncoder<Span> encoder, BytesDecoder<Span> decoder, Consumer<List<Span>> onSpans) {
     this.encoding = encoding;
     this.messageMaxBytes = messageMaxBytes;
     this.messageEncoder = messageEncoder;
@@ -62,36 +54,18 @@ public final class FakeSender extends Sender {
   }
 
   FakeSender encoding(Encoding encoding) {
-    return new FakeSender(
-        encoding,
-        messageMaxBytes,
-        messageEncoder, // invalid but not needed, yet
-        encoder, // invalid but not needed, yet
-        decoder, // invalid but not needed, yet
-        onSpans
-    );
+    return new FakeSender(encoding, messageMaxBytes, messageEncoder, // invalid but not needed, yet
+      encoder, // invalid but not needed, yet
+      decoder, // invalid but not needed, yet
+      onSpans);
   }
 
   FakeSender onSpans(Consumer<List<Span>> onSpans) {
-    return new FakeSender(
-        encoding,
-        messageMaxBytes,
-        messageEncoder,
-        encoder,
-        decoder,
-        onSpans
-    );
+    return new FakeSender(encoding, messageMaxBytes, messageEncoder, encoder, decoder, onSpans);
   }
 
   FakeSender messageMaxBytes(int messageMaxBytes) {
-    return new FakeSender(
-        encoding,
-        messageMaxBytes,
-        messageEncoder,
-        encoder,
-        decoder,
-        onSpans
-    );
+    return new FakeSender(encoding, messageMaxBytes, messageEncoder, encoder, decoder, onSpans);
   }
 
   @Override public Encoding encoding() {
@@ -115,15 +89,9 @@ public final class FakeSender extends Sender {
 
   @Override public Call<Void> sendSpans(List<byte[]> encodedSpans) {
     if (closeCalled) throw new ClosedSenderException();
-    List<Span> decoded = encodedSpans.stream()
-        .map(s -> decoder.decodeOne(s))
-        .collect(Collectors.toList());
+    List<Span> decoded = encodedSpans.stream().map(decoder::decodeOne).collect(Collectors.toList());
     onSpans.accept(decoded);
     return Call.create(null);
-  }
-
-  @Override public CheckResult check() {
-    return CheckResult.OK;
   }
 
   @Override public void close() {

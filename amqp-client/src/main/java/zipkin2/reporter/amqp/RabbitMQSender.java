@@ -21,16 +21,16 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeoutException;
-import zipkin2.Call;
-import zipkin2.Callback;
-import zipkin2.CheckResult;
-import zipkin2.codec.Encoding;
 import zipkin2.reporter.AsyncReporter;
 import zipkin2.reporter.BytesMessageEncoder;
+import zipkin2.reporter.Call;
+import zipkin2.reporter.Callback;
+import zipkin2.reporter.CheckResult;
 import zipkin2.reporter.ClosedSenderException;
+import zipkin2.reporter.Encoding;
 import zipkin2.reporter.Sender;
 
-import static zipkin2.Call.propagateIfFatal;
+import static zipkin2.reporter.Call.propagateIfFatal;
 
 /**
  * This sends (usually json v2) encoded spans to a RabbitMQ queue.
@@ -189,7 +189,7 @@ public final class RabbitMQSender extends Sender {
     connectionFactory = builder.connectionFactory.clone();
   }
 
-  public final Builder toBuilder() {
+  public Builder toBuilder() {
     return new Builder(this);
   }
 
@@ -231,7 +231,7 @@ public final class RabbitMQSender extends Sender {
     }
   }
 
-  @Override public final String toString() {
+  @Override public String toString() {
     return "RabbitMQSender{addresses=" + addresses + ", queue=" + queue + "}";
   }
 

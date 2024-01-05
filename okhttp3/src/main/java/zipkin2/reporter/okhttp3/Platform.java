@@ -16,7 +16,7 @@ package zipkin2.reporter.okhttp3;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 
-/** Taken from {@code zipkin2.internal.Platform} to avoid needing to shade over a single method. */
+/** Taken from {@code zipkin2.reporter.internal.Platform} to avoid needing to shade over a single method. */
 abstract class Platform {
   private static final Platform PLATFORM = findPlatform();
 

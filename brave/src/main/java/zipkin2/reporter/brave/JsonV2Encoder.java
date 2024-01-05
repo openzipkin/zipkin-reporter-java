@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2020 The OpenZipkin Authors
+ * Copyright 2016-2024 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -16,9 +16,8 @@ package zipkin2.reporter.brave;
 import brave.Tag;
 import brave.handler.MutableSpan;
 import brave.handler.MutableSpanBytesEncoder;
-import java.util.List;
-import zipkin2.codec.BytesEncoder;
-import zipkin2.codec.Encoding;
+import zipkin2.reporter.BytesEncoder;
+import zipkin2.reporter.Encoding;
 
 final class JsonV2Encoder implements BytesEncoder<MutableSpan> {
   final MutableSpanBytesEncoder delegate;
@@ -37,9 +36,5 @@ final class JsonV2Encoder implements BytesEncoder<MutableSpan> {
 
   @Override public byte[] encode(MutableSpan span) {
     return delegate.encode(span);
-  }
-
-  @Override public byte[] encodeList(List<MutableSpan> spans) {
-    return delegate.encodeList(spans);
   }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2020 The OpenZipkin Authors
+ * Copyright 2016-2024 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -15,19 +15,14 @@ package zipkin2.reporter;
 
 import java.util.Collections;
 import java.util.List;
-import zipkin2.Call;
-import zipkin2.Component;
-import zipkin2.codec.BytesEncoder;
-import zipkin2.codec.Encoding;
-import zipkin2.reporter.internal.InternalReporter;
 
 /**
  * Sends a list of encoded spans to a transport such as http or Kafka. Usually, this involves
  * encoding them into a message and enqueueing them for transport over http or Kafka. The typical
  * end recipient is a zipkin collector.
  *
- * <p>Unless mentioned otherwise, senders are not thread-safe. They were designed to be used by
- * {@link AsyncReporter}, which has a single reporting thread.
+ * <p>Unless mentioned otherwise, senders are not thread-safe. They were designed to be used by a
+ * single reporting thread.
  *
  * <p>Those looking to initialize eagerly should call {@link #check()}. This can be used to reduce
  * latency on the first send operation, or to fail fast.
@@ -40,9 +35,11 @@ import zipkin2.reporter.internal.InternalReporter;
  * scribe will likely write each span as a separate log line.
  *
  * <p>This accepts a list of {@link BytesEncoder#encode(Object) encoded spans}, as opposed a list of
- * spans like {@link zipkin2.Span}. This allows senders to be re-usable as model shapes change. This
+ * spans like {@code zipkin2.Span}. This allows senders to be re-usable as model shapes change. This
  * also allows them to use their most natural message type. For example, kafka would more naturally
  * send messages as byte arrays.
+ *
+ * @since 3.0
  */
 public abstract class Sender extends Component {
 
@@ -52,7 +49,7 @@ public abstract class Sender extends Component {
   /**
    * Maximum bytes sendable per message including overhead. This can be calculated using {@link
    * #messageSizeInBytes(List)}
-   *
+   * <p>
    * Defaults to 500KB as a conservative default. You may get better or reduced performance
    * by changing this value based on, e.g., machine size or network bandwidth in your
    * infrastructure. Finding a perfect value will require trying out different values in production,
@@ -77,7 +74,6 @@ public abstract class Sender extends Component {
    * <p>Always override this, which is only abstract as added after version 2.0
    *
    * @param encodedSizeInBytes the {@link BytesEncoder#sizeInBytes(Object) encoded size} of a span
-   * @since 2.2
    */
   public int messageSizeInBytes(int encodedSizeInBytes) {
     return messageSizeInBytes(Collections.singletonList(new byte[encodedSizeInBytes]));
@@ -90,12 +86,4 @@ public abstract class Sender extends Component {
    * @throws IllegalStateException if {@link #close() close} was called.
    */
   public abstract Call<Void> sendSpans(List<byte[]> encodedSpans);
-
-  static {
-    InternalReporter.instance = new InternalReporter() {
-      @Override public AsyncReporter.Builder toBuilder(AsyncReporter<?> asyncReporter) {
-        return ((AsyncReporter.BoundedAsyncReporter) asyncReporter).toBuilder();
-      }
-    };
-  }
 }

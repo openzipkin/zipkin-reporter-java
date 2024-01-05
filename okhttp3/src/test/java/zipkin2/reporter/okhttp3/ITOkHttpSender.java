@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2023 The OpenZipkin Authors
+ * Copyright 2016-2024 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -27,14 +27,14 @@ import okhttp3.mockwebserver.RecordedRequest;
 import okhttp3.mockwebserver.SocketPolicy;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import zipkin2.Call;
-import zipkin2.Callback;
 import zipkin2.Span;
-import zipkin2.codec.Encoding;
 import zipkin2.codec.SpanBytesDecoder;
-import zipkin2.codec.SpanBytesEncoder;
+import zipkin2.reporter.SpanBytesEncoder;
 import zipkin2.reporter.AsyncReporter;
 import zipkin2.reporter.AwaitableCallback;
+import zipkin2.reporter.Call;
+import zipkin2.reporter.Callback;
+import zipkin2.reporter.Encoding;
 import zipkin2.reporter.Sender;
 
 import static java.util.Arrays.asList;
@@ -53,7 +53,7 @@ public class ITOkHttpSender { // public for use in src/it
 
   String endpoint = server.url("/api/v2/spans").toString();
   OkHttpSender sender =
-      OkHttpSender.newBuilder().endpoint(endpoint).compressionEnabled(false).build();
+    OkHttpSender.newBuilder().endpoint(endpoint).compressionEnabled(false).build();
 
   @Test void badUrlIsAnIllegalArgument() {
     assertThatThrownBy(() -> OkHttpSender.create("htp://localhost:9411/api/v1/spans"))
@@ -88,7 +88,7 @@ public class ITOkHttpSender { // public for use in src/it
 
     // Now, let's read back the spans we sent!
     assertThat(SpanBytesDecoder.JSON_V2.decodeList(server.takeRequest().getBody().readByteArray()))
-        .containsExactly(CLIENT_SPAN, CLIENT_SPAN);
+      .containsExactly(CLIENT_SPAN, CLIENT_SPAN);
   }
 
   @Test void sendsSpans_PROTO3() throws Exception {
@@ -103,7 +103,7 @@ public class ITOkHttpSender { // public for use in src/it
 
     // Now, let's read back the spans we sent!
     assertThat(SpanBytesDecoder.PROTO3.decodeList(server.takeRequest().getBody().readByteArray()))
-        .containsExactly(CLIENT_SPAN, CLIENT_SPAN);
+      .containsExactly(CLIENT_SPAN, CLIENT_SPAN);
   }
 
   @Test void sendsSpans_THRIFT() throws Exception {
@@ -118,7 +118,7 @@ public class ITOkHttpSender { // public for use in src/it
 
     // Now, let's read back the spans we sent!
     assertThat(SpanBytesDecoder.THRIFT.decodeList(server.takeRequest().getBody().readByteArray()))
-        .containsExactly(CLIENT_SPAN, CLIENT_SPAN);
+      .containsExactly(CLIENT_SPAN, CLIENT_SPAN);
   }
 
   @Test void compression() throws Exception {
@@ -136,7 +136,7 @@ public class ITOkHttpSender { // public for use in src/it
 
     // we expect the first compressed request to be smaller than the uncompressed one.
     assertThat(requests.get(0).getBodySize())
-        .isLessThan(requests.get(1).getBodySize());
+      .isLessThan(requests.get(1).getBodySize());
   }
 
   @Test void ensuresProxiesDontTrace() throws Exception {
@@ -155,7 +155,7 @@ public class ITOkHttpSender { // public for use in src/it
 
     // block until the request arrived
     assertThat(server.takeRequest().getHeader("Content-Type"))
-        .isEqualTo("application/json");
+      .isEqualTo("application/json");
   }
 
   @Test void closeWhileRequestInFlight_cancelsRequest() throws Exception {
@@ -316,8 +316,8 @@ public class ITOkHttpSender { // public for use in src/it
 
   @Test void bugGuardCache() {
     assertThat(sender.client.cache())
-        .withFailMessage("senders should not open a disk cache")
-        .isNull();
+      .withFailMessage("senders should not open a disk cache")
+      .isNull();
   }
 
   Call<Void> send(Span... spans) {

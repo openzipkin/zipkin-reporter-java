@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2019 The OpenZipkin Authors
+ * Copyright 2016-2024 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -11,9 +11,8 @@
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
  */
-package zipkin2.reporter;
+package zipkin2.reporter.internal;
 
-import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import org.openjdk.jmh.annotations.AuxCounters;
@@ -34,7 +33,9 @@ import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Warmup;
 import zipkin2.Span;
 import zipkin2.TestObjects;
-import zipkin2.codec.Encoding;
+import zipkin2.reporter.Encoding;
+import zipkin2.reporter.InMemoryReporterMetrics;
+import zipkin2.reporter.SpanBytesEncoder;
 
 @Measurement(iterations = 5, time = 1)
 @Warmup(iterations = 10, time = 1)
@@ -85,10 +86,10 @@ public class AsyncReporterBenchmarks {
 
   @Setup(Level.Trial)
   public void setup() {
-    reporter = AsyncReporter.builder(new NoopSender(encoding))
-        .messageMaxBytes(1000000) // example default from Kafka message.max.bytes
-        .metrics(metrics)
-        .build();
+    reporter = AsyncReporter.newBuilder(new NoopSender(encoding))
+      .messageMaxBytes(1000000) // example default from Kafka message.max.bytes
+      .metrics(metrics)
+      .build(SpanBytesEncoder.JSON_V2);
   }
 
   @Benchmark @Group("no_contention") @GroupThreads(1)
@@ -107,7 +108,7 @@ public class AsyncReporterBenchmarks {
   }
 
   @TearDown(Level.Iteration)
-  public void clear() throws IOException {
+  public void clear() {
     spanBacklog.addAndGet(((AsyncReporter.BoundedAsyncReporter) reporter).pending.clear());
   }
 }

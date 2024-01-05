@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2019 The OpenZipkin Authors
+ * Copyright 2016-2024 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -13,8 +13,6 @@
  */
 package zipkin2.reporter;
 
-import zipkin2.Span;
-
 /**
  * Spans are created in instrumentation, transported out-of-band, and eventually persisted.
  * Reporters sends spans (or encoded spans) recorded by instrumentation out of process.
@@ -24,16 +22,16 @@ import zipkin2.Span;
  * zipkin2.Span).
  */
 public interface Reporter<S> {
-  Reporter<Span> NOOP = new Reporter<Span>() {
-    @Override public void report(Span span) {
+  Reporter<zipkin2.Span> NOOP = new Reporter<zipkin2.Span>() {
+    @Override public void report(zipkin2.Span span) {
     }
 
     @Override public String toString() {
       return "NoopReporter{}";
     }
   };
-  Reporter<Span> CONSOLE = new Reporter<Span>() {
-    @Override public void report(Span span) {
+  Reporter<zipkin2.Span> CONSOLE = new Reporter<zipkin2.Span>() {
+    @Override public void report(zipkin2.Span span) {
       System.out.println(span.toString());
     }
 

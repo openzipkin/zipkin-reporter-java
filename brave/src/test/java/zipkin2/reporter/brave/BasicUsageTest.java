@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2023 The OpenZipkin Authors
+ * Copyright 2016-2024 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -36,11 +36,11 @@ abstract class BasicUsageTest<H extends ZipkinSpanHandler> {
   @BeforeEach void init() {
     zipkinSpanHandler = zipkinSpanHandler(spans);
     tracing = Tracing.newBuilder()
-        .localServiceName("Aa")
-        .localIp("1.2.3.4")
-        .localPort(80)
-        .addSpanHandler(zipkinSpanHandler)
-        .build();
+      .localServiceName("Aa")
+      .localIp("1.2.3.4")
+      .localPort(80)
+      .addSpanHandler(zipkinSpanHandler)
+      .build();
   }
 
   @AfterEach void close() {
@@ -53,15 +53,15 @@ abstract class BasicUsageTest<H extends ZipkinSpanHandler> {
 
     zipkinSpanHandler = (H) zipkinSpanHandler.toBuilder().alwaysReportSpans(true).build();
     tracing = Tracing.newBuilder()
-        .localServiceName("Aa")
-        .localIp("1.2.3.4")
-        .localPort(80)
-        .addSpanHandler(zipkinSpanHandler)
-        .alwaysSampleLocal()
-        .build();
+      .localServiceName("Aa")
+      .localIp("1.2.3.4")
+      .localPort(80)
+      .addSpanHandler(zipkinSpanHandler)
+      .alwaysSampleLocal()
+      .build();
 
     brave.Span unsampledRemote =
-        tracing.tracer().nextSpan(TraceContextOrSamplingFlags.NOT_SAMPLED).name("test").start(1L);
+      tracing.tracer().nextSpan(TraceContextOrSamplingFlags.NOT_SAMPLED).name("test").start(1L);
     assertThat(unsampledRemote.isNoop()).isFalse();
     assertThat(unsampledRemote.context().sampled()).isFalse();
     assertThat(unsampledRemote.context().sampledLocal()).isTrue();
@@ -76,27 +76,27 @@ abstract class BasicUsageTest<H extends ZipkinSpanHandler> {
   /** This mainly shows endpoints are taken from Brave, and error is back-filled. */
   @Test void basicSpan() {
     TraceContext context = B3SingleFormat.parseB3SingleFormat(
-        "50d980fffa300f29-86154a4ba6e91385-1"
+      "50d980fffa300f29-86154a4ba6e91385-1"
     ).context();
 
     tracing.tracer().toSpan(context).name("test")
-        .start(1L)
-        .error(new RuntimeException("this cake is a lie"))
-        .finish(3L);
+      .start(1L)
+      .error(new RuntimeException("this cake is a lie"))
+      .finish(3L);
 
     triggerReport();
 
     assertThat(spans.get(0)).hasToString(
-        "{\"traceId\":\"50d980fffa300f29\","
-            + "\"id\":\"86154a4ba6e91385\","
-            + "\"name\":\"test\","
-            + "\"timestamp\":1,"
-            + "\"duration\":2,"
-            + "\"localEndpoint\":{"
-            + "\"serviceName\":\"aa\","
-            + "\"ipv4\":\"1.2.3.4\","
-            + "\"port\":80},"
-            + "\"tags\":{\"error\":\"this cake is a lie\"}}"
+      "{\"traceId\":\"50d980fffa300f29\","
+        + "\"id\":\"86154a4ba6e91385\","
+        + "\"name\":\"test\","
+        + "\"timestamp\":1,"
+        + "\"duration\":2,"
+        + "\"localEndpoint\":{"
+        + "\"serviceName\":\"aa\","
+        + "\"ipv4\":\"1.2.3.4\","
+        + "\"port\":80},"
+        + "\"tags\":{\"error\":\"this cake is a lie\"}}"
     );
   }
 
@@ -107,12 +107,12 @@ abstract class BasicUsageTest<H extends ZipkinSpanHandler> {
   /** This shows that in practice, we don't report when the user tells us not to! */
   @Test void abandonedSpan() {
     TraceContext context = B3SingleFormat.parseB3SingleFormat(
-        "50d980fffa300f29-86154a4ba6e91385-1"
+      "50d980fffa300f29-86154a4ba6e91385-1"
     ).context();
 
     tracing.tracer().toSpan(context).name("test")
-        .start(1L)
-        .abandon(); // whoops.. don't need this one!
+      .start(1L)
+      .abandon(); // whoops.. don't need this one!
 
     triggerReport();
 
@@ -121,7 +121,7 @@ abstract class BasicUsageTest<H extends ZipkinSpanHandler> {
 
   @Test void unsampledSpan() {
     brave.Span unsampledRemote =
-        tracing.tracer().nextSpan(TraceContextOrSamplingFlags.NOT_SAMPLED).name("test").start(1L);
+      tracing.tracer().nextSpan(TraceContextOrSamplingFlags.NOT_SAMPLED).name("test").start(1L);
     assertThat(unsampledRemote.isNoop()).isTrue();
     assertThat(unsampledRemote.context().sampled()).isFalse();
     assertThat(unsampledRemote.context().sampledLocal()).isFalse();

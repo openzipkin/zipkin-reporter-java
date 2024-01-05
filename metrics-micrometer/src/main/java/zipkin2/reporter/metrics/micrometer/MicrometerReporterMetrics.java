@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2019 The OpenZipkin Authors
+ * Copyright 2016-2024 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -18,10 +18,9 @@ import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Tags;
-import zipkin2.reporter.ReporterMetrics;
-
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
+import zipkin2.reporter.ReporterMetrics;
 
 /**
  * Implementation of {@link ReporterMetrics} with Micrometer.

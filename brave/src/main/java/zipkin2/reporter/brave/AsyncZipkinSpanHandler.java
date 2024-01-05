@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2020 The OpenZipkin Authors
+ * Copyright 2016-2024 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -14,15 +14,14 @@
 package zipkin2.reporter.brave;
 
 import brave.Tag;
+import brave.handler.MutableSpan;
 import brave.handler.SpanHandler;
-import java.io.Closeable;
 import java.io.Flushable;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
-import zipkin2.reporter.AsyncReporter;
 import zipkin2.reporter.ReporterMetrics;
 import zipkin2.reporter.Sender;
-import zipkin2.reporter.internal.InternalReporter;
+import zipkin2.reporter.internal.AsyncReporter;
 
 /**
  * A {@link brave.handler.SpanHandler} that queues spans on {@link #end} to bundle and send as a
@@ -40,8 +39,7 @@ import zipkin2.reporter.internal.InternalReporter;
  * @see brave.Tracing.Builder#addSpanHandler(SpanHandler)
  * @since 2.14
  */
-public final class AsyncZipkinSpanHandler extends ZipkinSpanHandler
-    implements Closeable, Flushable {
+public final class AsyncZipkinSpanHandler extends ZipkinSpanHandler implements Flushable {
   /** @since 2.14 */
   public static AsyncZipkinSpanHandler create(Sender sender) {
     return newBuilder(sender).build();
@@ -53,7 +51,7 @@ public final class AsyncZipkinSpanHandler extends ZipkinSpanHandler
     return new Builder(sender);
   }
 
-  @Override public Builder toBuilder() {
+  public Builder toBuilder() {
     return new Builder(this);
   }
 
@@ -61,14 +59,14 @@ public final class AsyncZipkinSpanHandler extends ZipkinSpanHandler
   public static final class Builder extends ZipkinSpanHandler.Builder {
     final AsyncReporter.Builder delegate;
 
-    Builder(AsyncZipkinSpanHandler zipkinSpanHandler) {
-      super(zipkinSpanHandler);
-      delegate = InternalReporter.instance.toBuilder(
-          (AsyncReporter<?>) zipkinSpanHandler.spanReporter);
+    Builder(AsyncZipkinSpanHandler handler) {
+      this.delegate = ((AsyncReporter<MutableSpan>) handler.spanReporter).toBuilder();
+      this.alwaysReportSpans = handler.alwaysReportSpans;
+      this.errorTag = handler.errorTag;
     }
 
     Builder(Sender sender) {
-      this.delegate = AsyncReporter.builder(sender);
+      this.delegate = AsyncReporter.newBuilder(sender);
     }
 
     /**
@@ -149,15 +147,18 @@ public final class AsyncZipkinSpanHandler extends ZipkinSpanHandler
   }
 
   AsyncZipkinSpanHandler(Builder builder) {
-    super(builder.delegate.build(new JsonV2Encoder(builder.errorTag)),
-        builder.errorTag, builder.alwaysReportSpans);
+    super(
+      builder.delegate.build(new JsonV2Encoder(builder.errorTag)),
+      builder.errorTag,
+      builder.alwaysReportSpans
+    );
   }
 
   @Override public void flush() {
-    ((AsyncReporter) spanReporter).flush();
+    ((AsyncReporter<MutableSpan>) spanReporter).flush();
   }
 
   @Override public void close() {
-    ((AsyncReporter) spanReporter).close();
+    ((AsyncReporter<MutableSpan>) spanReporter).close();
   }
 }

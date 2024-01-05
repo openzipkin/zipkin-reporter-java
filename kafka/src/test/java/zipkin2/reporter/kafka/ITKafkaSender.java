@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2023 The OpenZipkin Authors
+ * Copyright 2016-2024 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -34,13 +34,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.extension.RegisterExtension;
-import zipkin2.Call;
-import zipkin2.CheckResult;
 import zipkin2.Span;
-import zipkin2.codec.Encoding;
 import zipkin2.codec.SpanBytesDecoder;
-import zipkin2.codec.SpanBytesEncoder;
+import zipkin2.reporter.SpanBytesEncoder;
 import zipkin2.reporter.AsyncReporter;
+import zipkin2.reporter.Call;
+import zipkin2.reporter.CheckResult;
+import zipkin2.reporter.Encoding;
 import zipkin2.reporter.Sender;
 
 import static java.util.stream.Collectors.toList;

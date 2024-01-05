@@ -20,7 +20,7 @@
   <parent>
     <groupId>io.zipkin.reporter2</groupId>
     <artifactId>zipkin-reporter-parent</artifactId>
-    <version>2.17.3-SNAPSHOT</version>
+    <version>3.0.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>zipkin-sender-kafka</artifactId>
@@ -38,6 +38,14 @@
       <groupId>${project.groupId}</groupId>
       <artifactId>zipkin-reporter</artifactId>
       <version>${project.version}</version>
+      <!-- Senders don't use zipkin types. Excluding allows brave users to
+           avoid them by default. -->
+      <exclusions>
+        <exclusion>
+          <groupId>io.zipkin.zipkin2</groupId>
+          <artifactId>zipkin</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
 
     <dependency>

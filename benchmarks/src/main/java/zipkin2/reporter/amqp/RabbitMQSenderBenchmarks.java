@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2023 The OpenZipkin Authors
+ * Copyright 2016-2024 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -20,9 +20,9 @@ import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
-import zipkin2.CheckResult;
+import zipkin2.reporter.CheckResult;
 import zipkin2.reporter.Sender;
-import zipkin2.reporter.SenderBenchmarks;
+import zipkin2.reporter.internal.SenderBenchmarks;
 
 public class RabbitMQSenderBenchmarks extends SenderBenchmarks {
   private Channel channel;

@@ -20,7 +20,7 @@
   <parent>
     <groupId>io.zipkin.reporter2</groupId>
     <artifactId>zipkin-reporter-parent</artifactId>
-    <version>2.17.3-SNAPSHOT</version>
+    <version>3.0.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>zipkin-reporter</artifactId>
@@ -34,6 +34,8 @@
   </properties>
 
   <dependencies>
+    <!-- This dependency can be excluded for those not using
+         zipkin2.reporter.AsyncReporter, which uses zipkin2 types. -->
     <dependency>
       <groupId>io.zipkin.zipkin2</groupId>
       <artifactId>zipkin</artifactId>

@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2023 The OpenZipkin Authors
+ * Copyright 2016-2024 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -11,7 +11,7 @@
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
  */
-package zipkin2.reporter;
+package zipkin2.reporter.internal;
 
 import java.util.concurrent.TimeUnit;
 import org.openjdk.jmh.annotations.AuxCounters;
@@ -29,10 +29,12 @@ import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
-import zipkin2.CheckResult;
 import zipkin2.Span;
 import zipkin2.TestObjects;
-import zipkin2.codec.SpanBytesEncoder;
+import zipkin2.reporter.CheckResult;
+import zipkin2.reporter.InMemoryReporterMetrics;
+import zipkin2.reporter.Sender;
+import zipkin2.reporter.SpanBytesEncoder;
 
 /**
  * This benchmark reports spans as fast as possible. The sender clears the queue as fast as
@@ -88,6 +90,7 @@ public abstract class SenderBenchmarks {
   }
 
   Sender sender;
+
   AsyncReporter.BoundedAsyncReporter<Span> reporter;
 
   @Setup(Level.Trial)
@@ -97,17 +100,17 @@ public abstract class SenderBenchmarks {
     CheckResult senderCheck = sender.check();
     if (!senderCheck.ok()) throw senderCheck.error();
 
-    reporter = (AsyncReporter.BoundedAsyncReporter<Span>) AsyncReporter.builder(sender)
-        .messageMaxBytes(messageMaxBytes)
-        .queuedMaxSpans(TARGET_BACKLOG)
-        .metrics(metrics).build();
+    reporter = (AsyncReporter.BoundedAsyncReporter<Span>) AsyncReporter.newBuilder(sender)
+      .messageMaxBytes(messageMaxBytes)
+      .queuedMaxSpans(TARGET_BACKLOG)
+      .metrics(metrics).build(SpanBytesEncoder.JSON_V2);
   }
 
   protected abstract Sender createSender() throws Exception;
 
   @Setup(Level.Iteration)
   public void fillQueue() {
-    while (reporter.pending.offer(clientSpan, clientSpanBytes.length));
+    while (reporter.pending.offer(clientSpan, clientSpanBytes.length)) ;
   }
 
   @TearDown(Level.Iteration)

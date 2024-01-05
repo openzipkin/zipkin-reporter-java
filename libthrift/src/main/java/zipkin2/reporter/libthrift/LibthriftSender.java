@@ -17,11 +17,11 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import org.apache.thrift.TException;
-import zipkin2.Call;
-import zipkin2.Callback;
-import zipkin2.CheckResult;
-import zipkin2.codec.Encoding;
+import zipkin2.reporter.Call;
+import zipkin2.reporter.Callback;
+import zipkin2.reporter.CheckResult;
 import zipkin2.reporter.ClosedSenderException;
+import zipkin2.reporter.Encoding;
 import zipkin2.reporter.Sender;
 
 /**
@@ -71,6 +71,7 @@ public final class LibthriftSender extends Sender {
       this.socketTimeout = socketTimeout;
       return this;
     }
+
     /** Default 10 * 1000 milliseconds. 0 implies no timeout. */
     public Builder connectTimeout(int connectTimeout) {
       this.connectTimeout = connectTimeout;
@@ -87,7 +88,8 @@ public final class LibthriftSender extends Sender {
       return new LibthriftSender(this);
     }
 
-    Builder() {}
+    Builder() {
+    }
   }
 
   final String host;
