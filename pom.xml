@@ -223,13 +223,6 @@
             <!-- Add dependencies indirectly referenced by build plugins -->
             <dynamicDependencies>
               <DynamicDependency>
-                <groupId>org.codehaus.mojo.signature</groupId>
-                <artifactId>${main.signature.artifact}</artifactId>
-                <version>1.0</version>
-                <type>signature</type>
-                <repositoryType>MAIN</repositoryType>
-              </DynamicDependency>
-              <DynamicDependency>
                 <groupId>com.mycila</groupId>
                 <artifactId>license-maven-plugin-git</artifactId>
                 <version>${license-maven-plugin.version}</version>
