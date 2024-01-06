@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2019 The OpenZipkin Authors
+ * Copyright 2016-2024 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -19,23 +19,22 @@ import zipkin2.codec.Encoding;
 
 /** Use of this type happens off the application's main thread. This type is not thread-safe */
 abstract class BufferNextMessage<S> implements SpanWithSizeConsumer<S> {
-
   static <S> BufferNextMessage<S> create(Encoding encoding, int maxBytes, long timeoutNanos) {
     switch (encoding) {
       case JSON:
-        return new BufferNextJsonMessage<>(maxBytes, timeoutNanos);
+        return new BufferNextJsonMessage<S>(maxBytes, timeoutNanos);
       case THRIFT:
-        return new BufferNextThriftMessage<>(maxBytes, timeoutNanos);
+        return new BufferNextThriftMessage<S>(maxBytes, timeoutNanos);
       case PROTO3:
-        return new BufferNextProto3Message<>(maxBytes, timeoutNanos);
+        return new BufferNextProto3Message<S>(maxBytes, timeoutNanos);
     }
     throw new UnsupportedOperationException("encoding: " + encoding);
   }
 
   final int maxBytes;
   final long timeoutNanos;
-  final ArrayList<S> spans = new ArrayList<>();
-  final ArrayList<Integer> sizes = new ArrayList<>();
+  final ArrayList<S> spans = new ArrayList<S>();
+  final ArrayList<Integer> sizes = new ArrayList<Integer>();
 
   long deadlineNanoTime;
   int messageSizeInBytes;

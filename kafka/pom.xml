@@ -31,9 +31,6 @@
     <module.name>zipkin2.reporter.kafka</module.name>
 
     <main.basedir>${project.basedir}/..</main.basedir>
-
-    <!-- Kafka 0.11+ is Java 1.7 bytecode -->
-    <main.signature.artifact>java17</main.signature.artifact>
   </properties>
 
   <dependencies>
@@ -63,7 +60,9 @@
       <id>release</id>
       <properties>
         <!-- Kafka 0.11+ is Java 1.7 bytecode -->
-        <main.java.version>1.7</main.java.version>
+        <maven.compiler.source>1.7</maven.compiler.source>
+        <maven.compiler.target>1.7</maven.compiler.target>
+        <maven.compiler.release>7</maven.compiler.release>
       </properties>
       <build>
         <plugins>

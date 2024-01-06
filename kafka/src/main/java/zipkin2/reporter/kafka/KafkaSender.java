@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2023 The OpenZipkin Authors
+ * Copyright 2016-2024 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -13,7 +13,6 @@
  */
 package zipkin2.reporter.kafka;
 
-import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -323,15 +322,15 @@ public final class KafkaSender extends Sender {
       this.message = message;
     }
 
-    @Override protected Void doExecute() throws IOException {
+    @Override protected Void doExecute() {
       AwaitableCallback callback = new AwaitableCallback();
-      get().send(new ProducerRecord<>(topic, message), new CallbackAdapter(callback));
+      get().send(new ProducerRecord<byte[], byte[]>(topic, message), new CallbackAdapter(callback));
       callback.await();
       return null;
     }
 
     @Override protected void doEnqueue(Callback<Void> callback) {
-      get().send(new ProducerRecord<>(topic, message), new CallbackAdapter(callback));
+      get().send(new ProducerRecord<byte[], byte[]>(topic, message), new CallbackAdapter(callback));
     }
 
     @Override public Call<Void> clone() {

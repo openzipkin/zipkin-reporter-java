@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2023 The OpenZipkin Authors
+ * Copyright 2016-2024 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -225,7 +225,7 @@ public final class OkHttpSender extends Sender {
         // in-flight requests. Once max requests are hit, send will block the caller, which is
         // the AsyncReporter flush thread. This is ok, as the AsyncReporter has a buffer of
         // unsent spans for this purpose.
-        new SynchronousQueue<>(),
+        new SynchronousQueue<Runnable>(),
         OkHttpSenderThreadFactory.INSTANCE);
 
     Dispatcher dispatcher = new Dispatcher(dispatchExecutor);

@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2019 The OpenZipkin Authors
+ * Copyright 2016-2024 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -30,9 +30,9 @@ public final class InMemoryReporterMetrics implements ReporterMetrics {
   }
 
   private final ConcurrentHashMap<MetricKey, AtomicLong> metrics =
-      new ConcurrentHashMap<>();
+      new ConcurrentHashMap<MetricKey, AtomicLong>();
   private final ConcurrentHashMap<Class<? extends Throwable>, AtomicLong> messagesDropped =
-      new ConcurrentHashMap<>();
+      new ConcurrentHashMap<Class<? extends Throwable>, AtomicLong>();
 
   @Override public void incrementMessages() {
     increment(MetricKey.messages, 1);
@@ -47,7 +47,8 @@ public final class InMemoryReporterMetrics implements ReporterMetrics {
   }
 
   public Map<Class<? extends Throwable>, Long> messagesDroppedByCause() {
-    Map<Class<? extends Throwable>, Long> result = new LinkedHashMap<>(messagesDropped.size());
+    Map<Class<? extends Throwable>, Long> result =
+      new LinkedHashMap<Class<? extends Throwable>, Long>(messagesDropped.size());
     for (Map.Entry<Class<? extends Throwable>, AtomicLong> kv : messagesDropped.entrySet()) {
       result.put(kv.getKey(), kv.getValue().longValue());
     }
@@ -130,7 +131,7 @@ public final class InMemoryReporterMetrics implements ReporterMetrics {
       AtomicLong metric = metrics.get(key);
       if (metric == null) {
         metric = metrics.putIfAbsent(key, new AtomicLong(quantity));
-        if (metric == null) return; // won race creating the entry 
+        if (metric == null) return; // won race creating the entry
       }
 
       while (true) {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2019 The OpenZipkin Authors
+ * Copyright 2016-2024 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -14,7 +14,7 @@
 package zipkin2.reporter.okhttp3;
 
 import java.io.IOException;
-import org.jvnet.animal_sniffer.IgnoreJRERequirement;
+import java.lang.reflect.Constructor;
 
 /** Taken from {@code zipkin2.internal.Platform} to avoid needing to shade over a single method. */
 abstract class Platform {
@@ -35,9 +35,12 @@ abstract class Platform {
   static Platform findPlatform() {
     // Find JRE 8 new types
     try {
-      Class.forName("java.io.UncheckedIOException");
-      return new Jre8(); // intentionally doesn't not access the type prior to the above guard
+      Class<?> clazz = Class.forName("java.io.UncheckedIOException");
+      Constructor<?> ctor = clazz.getConstructor(IOException.class);
+      return new Jre8(ctor); // intentionally doesn't access the type prior to the above guard
     } catch (ClassNotFoundException e) {
+      // pre JRE 8
+    } catch (NoSuchMethodException unexpected) {
       // pre JRE 8
     }
     // compatible with JRE 6
@@ -45,8 +48,18 @@ abstract class Platform {
   }
 
   static final class Jre8 extends Platform {
-    @IgnoreJRERequirement @Override public RuntimeException uncheckedIOException(IOException e) {
-      return new java.io.UncheckedIOException(e);
+    final Constructor<?> uncheckedIOExceptionCtor;
+
+    Jre8(Constructor<?> uncheckedIOExceptionCtor) {
+      this.uncheckedIOExceptionCtor = uncheckedIOExceptionCtor;
+    }
+
+    @Override public RuntimeException uncheckedIOException(IOException e) {
+      try {
+        return (RuntimeException) uncheckedIOExceptionCtor.newInstance(e);
+      } catch (Exception unexpected) {
+        return new RuntimeException(e); // fallback instead of crash
+      }
     }
   }
 

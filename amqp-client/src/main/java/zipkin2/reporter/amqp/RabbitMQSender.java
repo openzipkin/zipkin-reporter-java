@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2020 The OpenZipkin Authors
+ * Copyright 2016-2024 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -36,7 +36,7 @@ import static zipkin2.Call.propagateIfFatal;
  * This sends (usually json v2) encoded spans to a RabbitMQ queue.
  *
  * <h3>Usage</h3>
- *
+ * <p>
  * This type is designed for {@link AsyncReporter.Builder#builder(Sender) the async reporter}.
  *
  * <p>Here's a simple configuration, configured for json:
@@ -87,7 +87,7 @@ public final class RabbitMQSender extends Sender {
     List<Address> addresses;
     String queue = "zipkin";
     Encoding encoding = Encoding.JSON;
-    int messageMaxBytes = 500_000;
+    int messageMaxBytes = 500000;
 
     Builder(RabbitMQSender sender) {
       connectionFactory = sender.connectionFactory.clone();
@@ -249,7 +249,9 @@ public final class RabbitMQSender extends Sender {
   Connection newConnection() {
     try {
       return connectionFactory.newConnection(addresses);
-    } catch (IOException | TimeoutException e) {
+    } catch (IOException e) {
+      throw new RuntimeException("Unable to establish connection to RabbitMQ server", e);
+    } catch (TimeoutException e) {
       throw new RuntimeException("Unable to establish connection to RabbitMQ server", e);
     }
   }
@@ -261,7 +263,7 @@ public final class RabbitMQSender extends Sender {
     closeCalled = true;
   }
 
-  final ThreadLocal<Channel> CHANNEL = new ThreadLocal<>();
+  final ThreadLocal<Channel> CHANNEL = new ThreadLocal<Channel>();
 
   /**
    * In most circumstances there will only be one thread calling {@link #sendSpans(List)}, the
@@ -298,8 +300,9 @@ public final class RabbitMQSender extends Sender {
       try {
         publish();
         callback.onSuccess(null);
-      } catch (IOException | RuntimeException | Error e) {
-        callback.onError(e);
+      } catch (Throwable t) {
+        Call.propagateIfFatal(t);
+        callback.onError(t);
       }
     }
 

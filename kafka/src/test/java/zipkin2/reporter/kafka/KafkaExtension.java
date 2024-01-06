@@ -90,7 +90,7 @@ class KafkaExtension implements BeforeAllCallback, AfterAllCallback {
   // mostly waiting for https://github.com/testcontainers/testcontainers-java/issues/3537
   static final class KafkaContainer extends GenericContainer<KafkaContainer> {
     KafkaContainer() {
-      super(parse("ghcr.io/openzipkin/zipkin-kafka:2.26.0"));
+      super(parse("ghcr.io/openzipkin/zipkin-kafka:2.27.0"));
       if ("true".equals(System.getProperty("docker.skip"))) {
         throw new TestAbortedException("${docker.skip} == true");
       }
