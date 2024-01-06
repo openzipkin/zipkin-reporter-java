@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2023 The OpenZipkin Authors
+ * Copyright 2016-2024 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -77,7 +77,7 @@ public final class ActiveMQSender extends Sender {
     ActiveMQConnectionFactory connectionFactory;
     String queue = "zipkin";
     Encoding encoding = Encoding.JSON;
-    int messageMaxBytes = 500_000;
+    int messageMaxBytes = 500000;
 
     public Builder connectionFactory(ActiveMQConnectionFactory connectionFactory) {
       if (connectionFactory == null) throw new NullPointerException("connectionFactory == null");
@@ -159,9 +159,9 @@ public final class ActiveMQSender extends Sender {
   @Override public CheckResult check() {
     try {
       lazyInit.get();
-    } catch (IOException | RuntimeException | Error e) {
-      Call.propagateIfFatal(e);
-      return CheckResult.failed(e);
+    } catch (Throwable t) {
+      Call.propagateIfFatal(t);
+      return CheckResult.failed(t);
     }
     return lazyInit.result.checkResult;
   }
@@ -210,8 +210,9 @@ public final class ActiveMQSender extends Sender {
       try {
         send();
         callback.onSuccess(null);
-      } catch (IOException | RuntimeException | Error e) {
-        callback.onError(e);
+      } catch (Throwable t) {
+        Call.propagateIfFatal(t);
+        callback.onError(t);
       }
     }
   }

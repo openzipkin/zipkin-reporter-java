@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2020 The OpenZipkin Authors
+ * Copyright 2016-2024 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -129,7 +129,7 @@ final class ConvertingSpanReporter implements Reporter<MutableSpan> {
    * Zipkin kind values.
    */
   static Map<Kind, Span.Kind> generateKindMap() {
-    Map<Kind, Span.Kind> result = new LinkedHashMap<>();
+    Map<Kind, Span.Kind> result = new LinkedHashMap<Kind, Span.Kind>();
     // Note: Both Brave and Zipkin treat null kind as a local/in-process span
     for (Kind kind : Kind.values()) {
       try {

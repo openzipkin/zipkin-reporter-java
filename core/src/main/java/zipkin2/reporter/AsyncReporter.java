@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2020 The OpenZipkin Authors
+ * Copyright 2016-2024 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -202,7 +202,7 @@ public abstract class AsyncReporter<S> extends Component implements Reporter<S>,
             "Encoder doesn't match Sender: %s %s", encoder.encoding(), sender.encoding()));
       }
 
-      return new BoundedAsyncReporter<>(this, encoder);
+      return new BoundedAsyncReporter<S>(this, encoder);
     }
   }
 
@@ -222,7 +222,7 @@ public abstract class AsyncReporter<S> extends Component implements Reporter<S>,
     private boolean shouldWarnException = true;
 
     BoundedAsyncReporter(Builder builder, BytesEncoder<S> encoder) {
-      this.pending = new ByteBoundedQueue<>(builder.queuedMaxSpans, builder.queuedMaxBytes);
+      this.pending = new ByteBoundedQueue<S>(builder.queuedMaxSpans, builder.queuedMaxBytes);
       this.sender = builder.sender;
       this.messageMaxBytes = builder.messageMaxBytes;
       this.messageTimeoutNanos = builder.messageTimeoutNanos;
@@ -239,7 +239,7 @@ public abstract class AsyncReporter<S> extends Component implements Reporter<S>,
     void startFlusherThread() {
       BufferNextMessage<S> consumer =
           BufferNextMessage.create(encoder.encoding(), messageMaxBytes, messageTimeoutNanos);
-      Thread flushThread = threadFactory.newThread(new Flusher<>(this, consumer));
+      Thread flushThread = threadFactory.newThread(new Flusher<S>(this, consumer));
       flushThread.setName("AsyncReporter{" + sender + "}");
       flushThread.setDaemon(true);
       flushThread.start();
@@ -263,7 +263,7 @@ public abstract class AsyncReporter<S> extends Component implements Reporter<S>,
 
     @Override public final void flush() {
       if (closed.get()) throw new ClosedSenderException();
-      flush(BufferNextMessage.create(encoder.encoding(), messageMaxBytes, 0));
+      flush(BufferNextMessage.<S>create(encoder.encoding(), messageMaxBytes, 0));
     }
 
     void flush(BufferNextMessage<S> bundler) {
@@ -282,7 +282,7 @@ public abstract class AsyncReporter<S> extends Component implements Reporter<S>,
       metrics.incrementMessageBytes(bundler.sizeInBytes());
 
       // Create the next message. Since we are outside the lock shared with writers, we can encode
-      ArrayList<byte[]> nextMessage = new ArrayList<>(bundler.count());
+      final ArrayList<byte[]> nextMessage = new ArrayList<byte[]>(bundler.count());
       bundler.drain(new SpanWithSizeConsumer<S>() {
         @Override public boolean offer(S next, int nextSizeInBytes) {
           nextMessage.add(encoder.encode(next)); // speculatively add to the pending message
@@ -377,7 +377,10 @@ public abstract class AsyncReporter<S> extends Component implements Reporter<S>,
         while (!result.closed.get()) {
           result.flush(consumer);
         }
-      } catch (RuntimeException | Error e) {
+      } catch (RuntimeException e) {
+        logger.log(Level.WARNING, "Unexpected error flushing spans", e);
+        throw e;
+      } catch (Error e) {
         logger.log(Level.WARNING, "Unexpected error flushing spans", e);
         throw e;
       } finally {

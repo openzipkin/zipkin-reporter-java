@@ -31,9 +31,6 @@
     <module.name>zipkin2.reporter.urlconnection</module.name>
 
     <main.basedir>${project.basedir}/..</main.basedir>
-
-    <!-- floor Java version we support for urlconnection is 1.6 -->
-    <main.signature.artifact>java16</main.signature.artifact>
   </properties>
 
   <dependencies>
@@ -56,7 +53,9 @@
       <id>release</id>
       <properties>
         <!-- floor Java version we support for urlconnection is 1.6 -->
-        <main.java.version>1.6</main.java.version>
+        <maven.compiler.source>1.6</maven.compiler.source>
+        <maven.compiler.target>1.6</maven.compiler.target>
+        <maven.compiler.release>6</maven.compiler.release>
       </properties>
       <build>
         <plugins>

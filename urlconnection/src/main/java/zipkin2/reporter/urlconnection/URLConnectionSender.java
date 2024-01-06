@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2020 The OpenZipkin Authors
+ * Copyright 2016-2024 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -47,7 +47,7 @@ public final class URLConnectionSender extends Sender {
   public static final class Builder {
     URL endpoint;
     Encoding encoding = Encoding.JSON;
-    int messageMaxBytes = 500_000;
+    int messageMaxBytes = 500000;
     int connectTimeout = 10 * 1000, readTimeout = 60 * 1000;
     boolean compressionEnabled = true;
 
@@ -275,8 +275,9 @@ public final class URLConnectionSender extends Sender {
       try {
         send(message, mediaType);
         callback.onSuccess(null);
-      } catch (IOException | RuntimeException | Error e) {
-        callback.onError(e);
+      } catch (Throwable t) {
+        Call.propagateIfFatal(t);
+        callback.onError(t);
       }
     }
 

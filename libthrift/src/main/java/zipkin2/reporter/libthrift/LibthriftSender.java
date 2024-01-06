@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2019 The OpenZipkin Authors
+ * Copyright 2016-2024 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -42,7 +42,7 @@ public final class LibthriftSender extends Sender {
   public static final class Builder {
     String host;
     int port = 9410;
-    int messageMaxBytes = 500_000; // TFramedTransport.DEFAULT_MAX_LENGTH
+    int messageMaxBytes = 500000; // TFramedTransport.DEFAULT_MAX_LENGTH
     int connectTimeout = 10 * 1000, socketTimeout = 60 * 1000;
 
     Builder(LibthriftSender sender) {
@@ -151,7 +151,7 @@ public final class LibthriftSender extends Sender {
   @Override
   public CheckResult check() {
     try {
-      if (get().log(Collections.emptyList())) {
+      if (get().log(Collections.<byte[]>emptyList())) {
         return CheckResult.OK;
       }
       throw new IllegalStateException("try later");
@@ -197,8 +197,9 @@ public final class LibthriftSender extends Sender {
           callback.onError(new IllegalStateException("try later"));
         }
         callback.onSuccess(null);
-      } catch (TException |RuntimeException | Error e) {
-        callback.onError(e);
+      } catch (Throwable t) {
+        Call.propagateIfFatal(t);
+        callback.onError(t);
       }
     }
 
