@@ -13,25 +13,27 @@
  */
 package zipkin2.reporter;
 
+import zipkin2.Span;
+
 /**
  * Spans are created in instrumentation, transported out-of-band, and eventually persisted.
  * Reporters sends spans (or encoded spans) recorded by instrumentation out of process.
  *
- * <S>Type of span to report, usually {@link zipkin2.Span}, but extracted for reporting other java
+ * <S>Type of span to report, usually {@link Span}, but extracted for reporting other java
  * types like HTrace spans to zipkin, and to allow future Zipkin model types to be reported (ex.
  * zipkin2.Span).
  */
 public interface Reporter<S> {
-  Reporter<zipkin2.Span> NOOP = new Reporter<zipkin2.Span>() {
-    @Override public void report(zipkin2.Span span) {
+  Reporter<Span> NOOP = new Reporter<Span>() {
+    @Override public void report(Span span) {
     }
 
     @Override public String toString() {
       return "NoopReporter{}";
     }
   };
-  Reporter<zipkin2.Span> CONSOLE = new Reporter<zipkin2.Span>() {
-    @Override public void report(zipkin2.Span span) {
+  Reporter<Span> CONSOLE = new Reporter<Span>() {
+    @Override public void report(Span span) {
       System.out.println(span.toString());
     }
 
