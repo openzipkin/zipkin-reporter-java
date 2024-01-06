@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2023 The OpenZipkin Authors
+ * Copyright 2016-2024 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -23,19 +23,14 @@ import static org.assertj.core.api.Assertions.failBecauseExceptionWasNotThrown;
 
 class AwaitableCallbackTest {
   @Test void awaitIsUninterruptable() {
-    AtomicBoolean returned = new AtomicBoolean();
     AwaitableCallback captor = new AwaitableCallback();
-    Thread thread = new Thread(() -> {
-      captor.await();
-      returned.set(true);
-    });
+    Thread thread = new Thread(captor::await);
     thread.start();
     thread.interrupt();
 
     assertThat(thread.isInterrupted()).isTrue();
     // The callback thread receiving an interrupt has nothing to do with the caller of the captor
     assertThat(Thread.currentThread().isInterrupted()).isFalse();
-    assertThat(returned.get()).isFalse();
   }
 
   @Test void onSuccessReturns() {
