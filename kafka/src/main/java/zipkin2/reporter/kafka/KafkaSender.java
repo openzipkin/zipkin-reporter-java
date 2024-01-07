@@ -26,22 +26,22 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
-import zipkin2.Call;
-import zipkin2.Callback;
-import zipkin2.CheckResult;
-import zipkin2.codec.Encoding;
-import zipkin2.reporter.AsyncReporter;
 import zipkin2.reporter.AwaitableCallback;
 import zipkin2.reporter.BytesMessageEncoder;
+import zipkin2.reporter.Call;
+import zipkin2.reporter.Callback;
+import zipkin2.reporter.CheckResult;
 import zipkin2.reporter.ClosedSenderException;
+import zipkin2.reporter.Encoding;
 import zipkin2.reporter.Sender;
 
 /**
  * This sends (usually json v2) encoded spans to a Kafka topic.
  *
  * <h3>Usage</h3>
- *
- * This type is designed for {@link AsyncReporter.Builder#builder(Sender) the async reporter}.
+ * <p>
+ * This type is designed for {@link zipkin2.reporter.AsyncReporter.Builder#builder(Sender) the async
+ * reporter}.
  *
  * <p>Here's a simple configuration, configured for json:
  *
@@ -121,7 +121,7 @@ public final class KafkaSender extends Sender {
      *
      * @see ProducerConfig#BOOTSTRAP_SERVERS_CONFIG
      */
-    public final Builder bootstrapServers(String bootstrapServers) {
+    public Builder bootstrapServers(String bootstrapServers) {
       if (bootstrapServers == null) throw new NullPointerException("bootstrapServers == null");
       properties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
       return this;
@@ -177,7 +177,7 @@ public final class KafkaSender extends Sender {
      *
      * @see ProducerConfig
      */
-    public final Builder overrides(Properties overrides) {
+    public Builder overrides(Properties overrides) {
       if (overrides == null) throw new NullPointerException("overrides == null");
       properties.putAll(overrides);
       return this;
@@ -256,11 +256,11 @@ public final class KafkaSender extends Sender {
   }
 
   /**
-   * This sends all of the spans as a single message.
+   * This sends all the spans as a single message.
    *
    * <p>NOTE: this blocks until the metadata server is available.
    */
-  @Override public zipkin2.Call<Void> sendSpans(List<byte[]> encodedSpans) {
+  @Override public Call<Void> sendSpans(List<byte[]> encodedSpans) {
     if (closeCalled) throw new ClosedSenderException();
     byte[] message = encoder.encode(encodedSpans);
     return new KafkaCall(message);

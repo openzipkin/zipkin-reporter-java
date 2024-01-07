@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2019 The OpenZipkin Authors
+ * Copyright 2016-2024 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -19,7 +19,7 @@ import zipkin2.Span;
  * Spans are created in instrumentation, transported out-of-band, and eventually persisted.
  * Reporters sends spans (or encoded spans) recorded by instrumentation out of process.
  *
- * <S>Type of span to report, usually {@link zipkin2.Span}, but extracted for reporting other java
+ * <S>Type of span to report, usually {@link Span}, but extracted for reporting other java
  * types like HTrace spans to zipkin, and to allow future Zipkin model types to be reported (ex.
  * zipkin2.Span).
  */

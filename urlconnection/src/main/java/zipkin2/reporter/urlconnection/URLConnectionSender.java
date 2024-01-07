@@ -21,12 +21,12 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.List;
 import java.util.zip.GZIPOutputStream;
-import zipkin2.Call;
-import zipkin2.Callback;
-import zipkin2.CheckResult;
-import zipkin2.codec.Encoding;
 import zipkin2.reporter.BytesMessageEncoder;
+import zipkin2.reporter.Call;
+import zipkin2.reporter.Callback;
+import zipkin2.reporter.CheckResult;
 import zipkin2.reporter.ClosedSenderException;
+import zipkin2.reporter.Encoding;
 import zipkin2.reporter.Sender;
 
 /**
@@ -65,7 +65,7 @@ public final class URLConnectionSender extends Sender {
      * usually "http://zipkinhost:9411/api/v2/spans"
      */
     // customizable so that users can re-map /api/v2/spans ex for browser-originated traces
-    public final Builder endpoint(String endpoint) {
+    public Builder endpoint(String endpoint) {
       if (endpoint == null) throw new NullPointerException("endpoint == null");
 
       try {

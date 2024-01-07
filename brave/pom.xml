@@ -18,7 +18,7 @@
   <parent>
     <groupId>io.zipkin.reporter2</groupId>
     <artifactId>zipkin-reporter-parent</artifactId>
-    <version>2.17.3-SNAPSHOT</version>
+    <version>3.0.0-SNAPSHOT</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
@@ -38,6 +38,22 @@
       <groupId>${project.groupId}</groupId>
       <artifactId>zipkin-reporter</artifactId>
       <version>${project.version}</version>
+      <!-- Exclude the Zipkin dependency by default because
+           AsyncZipkinSpanHandler avoids zipkin types. -->
+      <exclusions>
+        <exclusion>
+          <groupId>io.zipkin.zipkin2</groupId>
+          <artifactId>zipkin</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <!-- Those using ZipkinSpanHandler.create or newBuilder need zipkin types
+         as they are passing a zipkin2.Span reporter. -->
+    <dependency>
+      <groupId>io.zipkin.zipkin2</groupId>
+      <artifactId>zipkin</artifactId>
+      <version>${zipkin.version}</version>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>io.zipkin.brave</groupId>
@@ -66,6 +82,45 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <artifactId>maven-invoker-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <groupId>de.qaware.maven</groupId>
+        <artifactId>go-offline-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>resolve-dependencies</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <!-- Add dependencies specific to invoker tests so that they cache on go-offline -->
+          <dynamicDependencies>
+            <DynamicDependency>
+              <groupId>${project.groupId}</groupId>
+              <artifactId>zipkin-sender-okhttp3</artifactId>
+              <version>${project.version}</version>
+              <repositoryType>MAIN</repositoryType>
+              <type>jar</type>
+            </DynamicDependency>
+            <DynamicDependency>
+              <groupId>com.squareup.okhttp3</groupId>
+              <artifactId>mockwebserver</artifactId>
+              <version>${okhttp.version}</version>
+              <repositoryType>MAIN</repositoryType>
+              <type>jar</type>
+            </DynamicDependency>
+          </dynamicDependencies>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 
   <profiles>
     <profile>

@@ -25,7 +25,7 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 
 import static org.testcontainers.utility.DockerImageName.parse;
-import static zipkin2.Call.propagateIfFatal;
+import static zipkin2.reporter.Call.propagateIfFatal;
 
 class RabbitMQExtension implements BeforeAllCallback, AfterAllCallback {
   static final Logger LOGGER = LoggerFactory.getLogger(RabbitMQExtension.class);

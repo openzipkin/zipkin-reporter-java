@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2023 The OpenZipkin Authors
+ * Copyright 2016-2024 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -14,8 +14,8 @@
 package zipkin2.reporter.amqp;
 
 import org.junit.jupiter.api.Test;
-import zipkin2.CheckResult;
 import zipkin2.reporter.AsyncReporter;
+import zipkin2.reporter.CheckResult;
 import zipkin2.reporter.ClosedSenderException;
 import zipkin2.reporter.Sender;
 
@@ -27,20 +27,20 @@ import static zipkin2.reporter.amqp.ITRabbitMQSender.send;
 class RabbitMQSenderTest {
   // We can be pretty certain RabbitMQ isn't running on localhost port 80
   RabbitMQSender sender = RabbitMQSender.newBuilder()
-      .connectionTimeout(100).addresses("localhost:80").build();
+    .connectionTimeout(100).addresses("localhost:80").build();
 
   @Test void checkFalseWhenRabbitMQIsDown() {
     CheckResult check = sender.check();
     assertThat(check.ok()).isFalse();
     assertThat(check.error())
-        .isInstanceOf(RuntimeException.class);
+      .isInstanceOf(RuntimeException.class);
   }
 
   @Test void illegalToSendWhenClosed() throws Exception {
     sender.close();
 
     assertThatThrownBy(() -> send(sender, CLIENT_SPAN, CLIENT_SPAN))
-        .isInstanceOf(ClosedSenderException.class);
+      .isInstanceOf(ClosedSenderException.class);
   }
 
   /**
@@ -51,7 +51,7 @@ class RabbitMQSenderTest {
    */
   @Test void toStringContainsOnlySummaryInformation() {
     assertThat(sender).hasToString(
-        "RabbitMQSender{addresses=[localhost:80], queue=zipkin}"
+      "RabbitMQSender{addresses=[localhost:80], queue=zipkin}"
     );
   }
 }

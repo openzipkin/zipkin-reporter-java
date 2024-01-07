@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2023 The OpenZipkin Authors
+ * Copyright 2016-2024 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -23,49 +23,49 @@ class BytesMessageEncoderTest {
   @Test void emptyList_json() {
     List<byte[]> encoded = Arrays.asList();
     assertThat(BytesMessageEncoder.JSON.encode(encoded))
-        .containsExactly('[', ']');
+      .containsExactly('[', ']');
   }
 
   @Test void singletonList_json() {
     List<byte[]> encoded = Arrays.asList(new byte[] {'{', '}'});
 
     assertThat(BytesMessageEncoder.JSON.encode(encoded))
-        .containsExactly('[', '{', '}', ']');
+      .containsExactly('[', '{', '}', ']');
   }
 
   @Test void multiItemList_json() {
     List<byte[]> encoded = Arrays.asList(
-        "{\"k\":\"1\"}".getBytes(),
-        "{\"k\":\"2\"}".getBytes(),
-        "{\"k\":\"3\"}".getBytes()
+      "{\"k\":\"1\"}".getBytes(),
+      "{\"k\":\"2\"}".getBytes(),
+      "{\"k\":\"3\"}".getBytes()
     );
     assertThat(new String(BytesMessageEncoder.JSON.encode(encoded)))
-        .isEqualTo("[{\"k\":\"1\"},{\"k\":\"2\"},{\"k\":\"3\"}]");
+      .isEqualTo("[{\"k\":\"1\"},{\"k\":\"2\"},{\"k\":\"3\"}]");
   }
 
   @Test void emptyList_proto3() {
     List<byte[]> encoded = Arrays.asList();
     assertThat(BytesMessageEncoder.PROTO3.encode(encoded))
-        .isEmpty();
+      .isEmpty();
   }
 
   @Test void singletonList_proto3() {
     List<byte[]> encoded = Arrays.asList(new byte[] {1, 1, 'a'});
 
     assertThat(BytesMessageEncoder.PROTO3.encode(encoded))
-        .containsExactly(1, 1, 'a');
+      .containsExactly(1, 1, 'a');
   }
 
   @Test void multiItemList_proto3() {
     List<byte[]> encoded = Arrays.asList(
-        new byte[] {1, 1, 'a'},
-        new byte[] {1, 1, 'b'},
-        new byte[] {1, 1, 'c'}
+      new byte[] {1, 1, 'a'},
+      new byte[] {1, 1, 'b'},
+      new byte[] {1, 1, 'c'}
     );
     assertThat(BytesMessageEncoder.PROTO3.encode(encoded)).containsExactly(
-        1, 1, 'a',
-        1, 1, 'b',
-        1, 1, 'c'
+      1, 1, 'a',
+      1, 1, 'b',
+      1, 1, 'c'
     );
   }
 }

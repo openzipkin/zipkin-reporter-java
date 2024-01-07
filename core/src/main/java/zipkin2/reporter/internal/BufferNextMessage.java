@@ -11,11 +11,11 @@
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
  */
-package zipkin2.reporter;
+package zipkin2.reporter.internal;
 
 import java.util.ArrayList;
 import java.util.Iterator;
-import zipkin2.codec.Encoding;
+import zipkin2.reporter.Encoding;
 
 /** Use of this type happens off the application's main thread. This type is not thread-safe */
 abstract class BufferNextMessage<S> implements SpanWithSizeConsumer<S> {

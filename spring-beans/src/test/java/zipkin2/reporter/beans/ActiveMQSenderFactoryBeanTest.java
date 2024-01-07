@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2023 The OpenZipkin Authors
+ * Copyright 2016-2024 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -16,7 +16,7 @@ package zipkin2.reporter.beans;
 import java.util.Arrays;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import zipkin2.codec.Encoding;
+import zipkin2.reporter.Encoding;
 import zipkin2.reporter.activemq.ActiveMQSender;
 
 import static org.assertj.core.api.Assertions.assertThat;

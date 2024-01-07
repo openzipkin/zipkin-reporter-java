@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2019 The OpenZipkin Authors
+ * Copyright 2016-2024 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -19,8 +19,8 @@ import okhttp3.ResponseBody;
 import okio.BufferedSource;
 import okio.GzipSource;
 import okio.Okio;
-import zipkin2.Call;
-import zipkin2.Callback;
+import zipkin2.reporter.Call;
+import zipkin2.reporter.Callback;
 
 final class HttpCall extends Call<Void> {
 

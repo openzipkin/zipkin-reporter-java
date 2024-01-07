@@ -13,15 +13,12 @@
  */
 package zipkin2.reporter.okhttp3;
 
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-
 import okhttp3.Dispatcher;
 import okhttp3.HttpUrl;
 import okhttp3.MediaType;
@@ -33,18 +30,20 @@ import okio.Buffer;
 import okio.BufferedSink;
 import okio.GzipSink;
 import okio.Okio;
-import zipkin2.CheckResult;
-import zipkin2.codec.Encoding;
-import zipkin2.reporter.AsyncReporter;
+import zipkin2.reporter.CheckResult;
 import zipkin2.reporter.ClosedSenderException;
+import zipkin2.reporter.Encoding;
 import zipkin2.reporter.Sender;
+
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 /**
  * Reports spans to Zipkin, using its <a href="https://zipkin.io/zipkin-api/#/">POST</a> endpoint.
  *
  * <h3>Usage</h3>
- *
- * This type is designed for {@link AsyncReporter.Builder#builder(Sender) the async reporter}.
+ * <p>
+ * This type is designed for {@link zipkin2.reporter.AsyncReporter.Builder#builder(Sender) the async
+ * reporter}.
  *
  * <p>Here's a simple configuration, configured for json:
  *
@@ -158,19 +157,19 @@ public final class OkHttpSender extends Sender {
     }
 
     /** Sets the default connect timeout (in milliseconds) for new connections. Default 10000 */
-    public final Builder connectTimeout(int connectTimeoutMillis) {
+    public Builder connectTimeout(int connectTimeoutMillis) {
       clientBuilder.connectTimeout(connectTimeoutMillis, MILLISECONDS);
       return this;
     }
 
     /** Sets the default read timeout (in milliseconds) for new connections. Default 10000 */
-    public final Builder readTimeout(int readTimeoutMillis) {
+    public Builder readTimeout(int readTimeoutMillis) {
       clientBuilder.readTimeout(readTimeoutMillis, MILLISECONDS);
       return this;
     }
 
     /** Sets the default write timeout (in milliseconds) for new connections. Default 10000 */
-    public final Builder writeTimeout(int writeTimeoutMillis) {
+    public Builder writeTimeout(int writeTimeoutMillis) {
       clientBuilder.writeTimeout(writeTimeoutMillis, MILLISECONDS);
       return this;
     }
@@ -246,7 +245,7 @@ public final class OkHttpSender extends Sender {
    * Creates a builder out of this object. Note: if the {@link Builder#clientBuilder()} was
    * customized, you'll need to re-apply those customizations.
    */
-  public final Builder toBuilder() {
+  public Builder toBuilder() {
     return new Builder(this);
   }
 
@@ -270,7 +269,7 @@ public final class OkHttpSender extends Sender {
   volatile boolean closeCalled;
 
   /** The returned call sends spans as a POST to {@link Builder#endpoint(String)}. */
-  @Override public zipkin2.Call<Void> sendSpans(List<byte[]> encodedSpans) {
+  @Override public zipkin2.reporter.Call<Void> sendSpans(List<byte[]> encodedSpans) {
     if (closeCalled) throw new ClosedSenderException();
     Request request;
     try {
