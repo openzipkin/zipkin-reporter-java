@@ -26,7 +26,6 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
-import zipkin2.reporter.AsyncReporter;
 import zipkin2.reporter.AwaitableCallback;
 import zipkin2.reporter.BytesMessageEncoder;
 import zipkin2.reporter.Call;
@@ -41,7 +40,8 @@ import zipkin2.reporter.Sender;
  *
  * <h3>Usage</h3>
  * <p>
- * This type is designed for {@link AsyncReporter.Builder#builder(Sender)} the async reporter}.
+ * This type is designed for {@link zipkin2.reporter.AsyncReporter.Builder#builder(Sender) the async
+ * reporter}.
  *
  * <p>Here's a simple configuration, configured for json:
  *

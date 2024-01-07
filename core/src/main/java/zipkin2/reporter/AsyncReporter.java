@@ -33,7 +33,8 @@ import java.util.concurrent.TimeUnit;
  *
  * @param <S> type of the span, usually {@link zipkin2.Span}
  */
-public final class AsyncReporter<S> extends Component implements Reporter<S>, Flushable {
+// This is effectively, but not explicitly final as it was not final in version 2.x.
+public class AsyncReporter<S> extends Component implements Reporter<S>, Flushable {
 
   /**
    * Builds a json reporter for <a href="https://zipkin.io/zipkin-api/#/">Zipkin V2</a>. If http,

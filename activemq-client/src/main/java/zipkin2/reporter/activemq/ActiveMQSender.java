@@ -19,7 +19,6 @@ import javax.jms.BytesMessage;
 import javax.jms.JMSException;
 import javax.jms.QueueSender;
 import org.apache.activemq.ActiveMQConnectionFactory;
-import zipkin2.reporter.AsyncReporter;
 import zipkin2.reporter.BytesMessageEncoder;
 import zipkin2.reporter.Call;
 import zipkin2.reporter.Callback;
@@ -33,7 +32,8 @@ import zipkin2.reporter.Sender;
  *
  * <h3>Usage</h3>
  * <p>
- * This type is designed for {@link AsyncReporter.Builder#builder(Sender) the async reporter}.
+ * This type is designed for {@link zipkin2.reporter.AsyncReporter.Builder#builder(Sender) the async
+ * reporter}.
  *
  * <p>Here's a simple configuration, configured for json:
  *

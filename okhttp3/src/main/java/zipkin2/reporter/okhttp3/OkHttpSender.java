@@ -30,7 +30,6 @@ import okio.Buffer;
 import okio.BufferedSink;
 import okio.GzipSink;
 import okio.Okio;
-import zipkin2.reporter.AsyncReporter;
 import zipkin2.reporter.CheckResult;
 import zipkin2.reporter.ClosedSenderException;
 import zipkin2.reporter.Encoding;
@@ -43,7 +42,8 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
  *
  * <h3>Usage</h3>
  * <p>
- * This type is designed for {@link AsyncReporter.Builder#builder(Sender) the async reporter}.
+ * This type is designed for {@link zipkin2.reporter.AsyncReporter.Builder#builder(Sender) the async
+ * reporter}.
  *
  * <p>Here's a simple configuration, configured for json:
  *

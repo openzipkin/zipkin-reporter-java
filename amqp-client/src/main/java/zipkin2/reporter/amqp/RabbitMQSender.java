@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeoutException;
-import zipkin2.reporter.AsyncReporter;
 import zipkin2.reporter.BytesMessageEncoder;
 import zipkin2.reporter.Call;
 import zipkin2.reporter.Callback;
@@ -37,7 +36,8 @@ import static zipkin2.reporter.Call.propagateIfFatal;
  *
  * <h3>Usage</h3>
  * <p>
- * This type is designed for {@link AsyncReporter.Builder#builder(Sender) the async reporter}.
+ * This type is designed for {@link zipkin2.reporter.AsyncReporter.Builder#builder(Sender) the async
+ * reporter}.
  *
  * <p>Here's a simple configuration, configured for json:
  *
