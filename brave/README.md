@@ -15,3 +15,6 @@ reporter = AsyncReporter.builder(URLConnectionSender.create("http://localhost:94
                         .build(SpanBytesEncoder.JSON_V1);
 tracingBuilder.addSpanHandler(ZipkinSpanHandler.create(reporter));
 ```
+
+*Note*: `ZipkinSpanHandler` requires an explicit dependency on
+[io.zipkin.reporter2:zipkin-reporter](../core)
