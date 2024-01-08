@@ -17,6 +17,7 @@ import brave.Tag;
 import brave.handler.MutableSpan;
 import brave.handler.SpanHandler;
 import brave.propagation.TraceContext;
+import java.io.Closeable;
 import java.io.Flushable;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
@@ -41,7 +42,7 @@ import zipkin2.reporter.internal.AsyncReporter;
  * @see brave.Tracing.Builder#addSpanHandler(SpanHandler)
  * @since 2.14
  */
-public final class AsyncZipkinSpanHandler extends SpanHandler implements Flushable {
+public final class AsyncZipkinSpanHandler extends SpanHandler implements Closeable, Flushable {
   /** @since 2.14 */
   public static AsyncZipkinSpanHandler create(Sender sender) {
     return newBuilder(sender).build();
@@ -176,7 +177,7 @@ public final class AsyncZipkinSpanHandler extends SpanHandler implements Flushab
    *
    * @since 2.15
    */
-  public void close() {
+  @Override public void close() {
     ((AsyncReporter<MutableSpan>) spanReporter).close();
   }
 
