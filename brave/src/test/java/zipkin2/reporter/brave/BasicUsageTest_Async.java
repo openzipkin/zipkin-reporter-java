@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2023 The OpenZipkin Authors
+ * Copyright 2016-2024 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -13,6 +13,7 @@
  */
 package zipkin2.reporter.brave;
 
+import brave.handler.SpanHandler;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -27,8 +28,16 @@ class BasicUsageTest_Async extends BasicUsageTest<AsyncZipkinSpanHandler> {
 
   @Override AsyncZipkinSpanHandler zipkinSpanHandler(List<Span> spans) {
     return AsyncZipkinSpanHandler.newBuilder(sender)
-        .messageTimeout(0, TimeUnit.MILLISECONDS) // don't spawn a thread
-        .build();
+      .messageTimeout(0, TimeUnit.MILLISECONDS) // don't spawn a thread
+      .build();
+  }
+
+  @Override void close(AsyncZipkinSpanHandler handler) {
+    handler.close();
+  }
+
+  @Override SpanHandler alwaysReportSpans(AsyncZipkinSpanHandler handler) {
+    return handler.toBuilder().alwaysReportSpans(true).build();
   }
 
   @Override void triggerReport() {
