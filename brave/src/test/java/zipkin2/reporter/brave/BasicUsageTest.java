@@ -14,6 +14,7 @@
 package zipkin2.reporter.brave;
 
 import brave.Tracing;
+import brave.handler.SpanHandler;
 import brave.propagation.B3SingleFormat;
 import brave.propagation.TraceContext;
 import brave.propagation.TraceContextOrSamplingFlags;
@@ -26,12 +27,16 @@ import zipkin2.Span;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-abstract class BasicUsageTest<H extends ZipkinSpanHandler> {
+abstract class BasicUsageTest<H extends SpanHandler> {
   List<Span> spans = new ArrayList<>();
   H zipkinSpanHandler;
   Tracing tracing;
 
   abstract H zipkinSpanHandler(List<Span> spans);
+
+  abstract void close(H handler);
+
+  abstract SpanHandler alwaysReportSpans(H handler);
 
   @BeforeEach void init() {
     zipkinSpanHandler = zipkinSpanHandler(spans);
@@ -49,9 +54,9 @@ abstract class BasicUsageTest<H extends ZipkinSpanHandler> {
 
   @Test void reconfigure() {
     tracing.close();
-    zipkinSpanHandler.close();
+    close(zipkinSpanHandler);
 
-    zipkinSpanHandler = (H) zipkinSpanHandler.toBuilder().alwaysReportSpans(true).build();
+    zipkinSpanHandler = (H) alwaysReportSpans(zipkinSpanHandler);
     tracing = Tracing.newBuilder()
       .localServiceName("Aa")
       .localIp("1.2.3.4")

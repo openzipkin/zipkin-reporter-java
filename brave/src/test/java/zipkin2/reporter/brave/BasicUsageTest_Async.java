@@ -13,6 +13,7 @@
  */
 package zipkin2.reporter.brave;
 
+import brave.handler.SpanHandler;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -27,8 +28,16 @@ class BasicUsageTest_Async extends BasicUsageTest<AsyncZipkinSpanHandler> {
 
   @Override AsyncZipkinSpanHandler zipkinSpanHandler(List<Span> spans) {
     return AsyncZipkinSpanHandler.newBuilder(sender)
-        .messageTimeout(0, TimeUnit.MILLISECONDS) // don't spawn a thread
-        .build();
+      .messageTimeout(0, TimeUnit.MILLISECONDS) // don't spawn a thread
+      .build();
+  }
+
+  @Override void close(AsyncZipkinSpanHandler handler) {
+    handler.close();
+  }
+
+  @Override SpanHandler alwaysReportSpans(AsyncZipkinSpanHandler handler) {
+    return handler.toBuilder().alwaysReportSpans(true).build();
   }
 
   @Override void triggerReport() {

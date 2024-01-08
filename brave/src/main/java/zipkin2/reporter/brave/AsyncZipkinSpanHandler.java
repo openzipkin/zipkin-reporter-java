@@ -16,9 +16,11 @@ package zipkin2.reporter.brave;
 import brave.Tag;
 import brave.handler.MutableSpan;
 import brave.handler.SpanHandler;
+import brave.propagation.TraceContext;
 import java.io.Flushable;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import zipkin2.reporter.Reporter;
 import zipkin2.reporter.ReporterMetrics;
 import zipkin2.reporter.Sender;
 import zipkin2.reporter.internal.AsyncReporter;
@@ -39,7 +41,7 @@ import zipkin2.reporter.internal.AsyncReporter;
  * @see brave.Tracing.Builder#addSpanHandler(SpanHandler)
  * @since 2.14
  */
-public final class AsyncZipkinSpanHandler extends ZipkinSpanHandler implements Flushable {
+public final class AsyncZipkinSpanHandler extends SpanHandler implements Flushable {
   /** @since 2.14 */
   public static AsyncZipkinSpanHandler create(Sender sender) {
     return newBuilder(sender).build();
@@ -51,6 +53,14 @@ public final class AsyncZipkinSpanHandler extends ZipkinSpanHandler implements F
     return new Builder(sender);
   }
 
+  /**
+   * Allows this instance to be reconfigured, for example {@link ZipkinSpanHandler.Builder#alwaysReportSpans(boolean)}.
+   *
+   * <p><em>Note:</em> Call {@link #close()} if you no longer need this instance, as otherwise it
+   * can leak resources.
+   *
+   * @since 2.15
+   */
   public Builder toBuilder() {
     return new Builder(this);
   }
@@ -146,19 +156,53 @@ public final class AsyncZipkinSpanHandler extends ZipkinSpanHandler implements F
     }
   }
 
+  final Reporter<MutableSpan> spanReporter;
+  final Tag<Throwable> errorTag; // for toBuilder()
+  final boolean alwaysReportSpans;
+
   AsyncZipkinSpanHandler(Builder builder) {
-    super(
-      builder.delegate.build(new JsonV2Encoder(builder.errorTag)),
-      builder.errorTag,
-      builder.alwaysReportSpans
-    );
+    this.spanReporter = builder.delegate.build(new JsonV2Encoder(builder.errorTag));
+    this.errorTag = builder.errorTag;
+    this.alwaysReportSpans = builder.alwaysReportSpans;
   }
 
   @Override public void flush() {
     ((AsyncReporter<MutableSpan>) spanReporter).flush();
   }
 
-  @Override public void close() {
+  /**
+   * Implementations that throw exceptions on close have bugs. This may result in log warnings,
+   * though.
+   *
+   * @since 2.15
+   */
+  public void close() {
     ((AsyncReporter<MutableSpan>) spanReporter).close();
+  }
+
+  @Override public boolean end(TraceContext context, MutableSpan span, Cause cause) {
+    if (!alwaysReportSpans && !Boolean.TRUE.equals(context.sampled())) return true;
+    spanReporter.report(span);
+    return true;
+  }
+
+  @Override public String toString() {
+    return spanReporter.toString();
+  }
+
+  /**
+   * Overridden to avoid duplicates when added via {@link brave.Tracing.Builder#addSpanHandler(SpanHandler)}
+   */
+  @Override public boolean equals(Object o) {
+    if (o == this) return true;
+    if (!(o instanceof AsyncZipkinSpanHandler)) return false;
+    return spanReporter.equals(((AsyncZipkinSpanHandler) o).spanReporter);
+  }
+
+  /**
+   * Overridden to avoid duplicates when added via {@link brave.Tracing.Builder#addSpanHandler(SpanHandler)}
+   */
+  @Override public int hashCode() {
+    return spanReporter.hashCode();
   }
 }
