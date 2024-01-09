@@ -59,6 +59,7 @@ public final class FakeSender extends Sender {
       decoder, // invalid but not needed, yet
       onSpans);
   }
+
   @Override public Encoding encoding() {
     return encoding;
   }
