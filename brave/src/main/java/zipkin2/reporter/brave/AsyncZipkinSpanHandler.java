@@ -21,6 +21,8 @@ import java.io.Closeable;
 import java.io.Flushable;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import zipkin2.reporter.BytesEncoder;
+import zipkin2.reporter.Encoding;
 import zipkin2.reporter.Reporter;
 import zipkin2.reporter.ReporterMetrics;
 import zipkin2.reporter.Sender;
@@ -69,15 +71,18 @@ public final class AsyncZipkinSpanHandler extends SpanHandler implements Closeab
   /** @since 2.14 */
   public static final class Builder extends ZipkinSpanHandler.Builder {
     final AsyncReporter.Builder delegate;
+    final Encoding encoding;
 
     Builder(AsyncZipkinSpanHandler handler) {
       this.delegate = ((AsyncReporter<MutableSpan>) handler.spanReporter).toBuilder();
+      this.encoding = handler.encoding;
       this.alwaysReportSpans = handler.alwaysReportSpans;
       this.errorTag = handler.errorTag;
     }
 
     Builder(Sender sender) {
       this.delegate = AsyncReporter.newBuilder(sender);
+      this.encoding = sender.encoding();
     }
 
     /**
@@ -151,18 +156,42 @@ public final class AsyncZipkinSpanHandler extends SpanHandler implements Closeab
       return (Builder) super.alwaysReportSpans(alwaysReportSpans);
     }
 
+    /**
+     * Builds an async span handler that encodes zipkin spans according to the sender's encoding.
+     */
     // AsyncZipkinSpanHandler not SpanHandler, so that Flushable and Closeable are accessible
     public AsyncZipkinSpanHandler build() {
-      return new AsyncZipkinSpanHandler(this);
+      switch (encoding) {
+        case JSON:
+          return build(new JsonV2Encoder(errorTag));
+        default:
+          throw new UnsupportedOperationException(encoding.name());
+      }
+    }
+
+    /**
+     * Builds an async span handler that encodes zipkin spans according to the encoder.
+     *
+     * <p>Note: The input encoder must use the same error tag implementation as configured by
+     * {@link #errorTag(Tag)}.
+     *
+     * @since 3.1
+     */
+    // AsyncZipkinSpanHandler not SpanHandler, so that Flushable and Closeable are accessible
+    public AsyncZipkinSpanHandler build(BytesEncoder<MutableSpan> encoder) {
+      if (encoder == null) throw new NullPointerException("encoder == null");
+      return new AsyncZipkinSpanHandler(delegate.build(encoder), this);
     }
   }
 
   final Reporter<MutableSpan> spanReporter;
+  final Encoding encoding;
   final Tag<Throwable> errorTag; // for toBuilder()
   final boolean alwaysReportSpans;
 
-  AsyncZipkinSpanHandler(Builder builder) {
-    this.spanReporter = builder.delegate.build(new JsonV2Encoder(builder.errorTag));
+  AsyncZipkinSpanHandler(AsyncReporter<MutableSpan> spanReporter, Builder builder) {
+    this.spanReporter = spanReporter;
+    this.encoding = builder.encoding;
     this.errorTag = builder.errorTag;
     this.alwaysReportSpans = builder.alwaysReportSpans;
   }
