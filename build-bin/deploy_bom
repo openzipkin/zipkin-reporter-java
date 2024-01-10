@@ -1,0 +1,8 @@
+#!/bin/sh -ue
+
+# This script deploys a master or release version.
+#
+# See [README.md] for an explanation of this and how CI should use it.
+
+# Deploy the Bill of Materials (BOM) separately as it is unhooked from the main project intentionally
+build-bin/maven/maven_deploy -f bom/pom.xml

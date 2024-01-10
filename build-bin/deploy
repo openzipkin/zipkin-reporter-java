@@ -5,5 +5,3 @@
 # See [README.md] for an explanation of this and how CI should use it.
 
 build-bin/maven/maven_deploy -pl -:zipkin-reporter-bom
-# Deploy the Bill of Materials (BOM) separately as it is unhooked from the main project intentionally
-build-bin/maven/maven_deploy -f bom/pom.xml
