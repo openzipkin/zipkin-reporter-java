@@ -15,21 +15,18 @@ package zipkin2.reporter.internal;
 
 import java.util.List;
 import zipkin2.reporter.BytesMessageEncoder;
-import zipkin2.reporter.Call;
-import zipkin2.reporter.CheckResult;
+import zipkin2.reporter.BytesMessageSender;
 import zipkin2.reporter.Encoding;
-import zipkin2.reporter.Sender;
 
-final class NoopSender extends Sender {
-
-  final Encoding encoding;
+/** Encodes messages on {@link #send(List)}, but doesn't do anything else. */
+final class NoopSender extends BytesMessageSender.Base {
   final BytesMessageEncoder messageEncoder;
 
   /** close is typically called from a different thread */
   volatile boolean closeCalled;
 
   NoopSender(Encoding encoding) {
-    this.encoding = encoding;
+    super(encoding);
     this.messageEncoder = BytesMessageEncoder.forEncoding(encoding);
   }
 
@@ -37,25 +34,8 @@ final class NoopSender extends Sender {
     return Integer.MAX_VALUE;
   }
 
-  @Override public Encoding encoding() {
-    return encoding;
-  }
-
-  @Override public int messageSizeInBytes(List<byte[]> encodedSpans) {
-    return encoding().listSizeInBytes(encodedSpans);
-  }
-
-  @Override public int messageSizeInBytes(int encodedSizeInBytes) {
-    return encoding().listSizeInBytes(encodedSizeInBytes);
-  }
-
-  @Override public Call<Void> sendSpans(List<byte[]> encodedSpans) {
+  @Override public void send(List<byte[]> encodedSpans) {
     messageEncoder.encode(encodedSpans);
-    return Call.create(null);
-  }
-
-  @Override public CheckResult check() {
-    return CheckResult.OK;
   }
 
   @Override public void close() {

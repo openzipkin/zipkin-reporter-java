@@ -26,7 +26,7 @@ import static com.linecorp.armeria.common.MediaType.JSON;
 public abstract class HttpSenderBenchmarks extends SenderBenchmarks {
   Server server;
 
-  @Override protected Sender createSender() {
+  @Override protected BytesMessageSender createSender() {
     Route v2JsonSpans = Route.builder().methods(POST).consumes(JSON).path("/api/v2/spans").build();
     server = Server.builder()
       .http(0)
@@ -37,7 +37,7 @@ public abstract class HttpSenderBenchmarks extends SenderBenchmarks {
     return newHttpSender(url("/api/v2/spans"));
   }
 
-  abstract Sender newHttpSender(String endpoint);
+  abstract BytesMessageSender newHttpSender(String endpoint);
 
   @Override protected void afterSenderClose() {
     server.stop().join();

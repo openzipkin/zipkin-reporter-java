@@ -13,8 +13,11 @@
  */
 package zipkin2.reporter.internal;
 
+import java.io.Closeable;
 import java.io.Flushable;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
@@ -23,6 +26,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import zipkin2.reporter.BytesEncoder;
+import zipkin2.reporter.BytesMessageSender;
 import zipkin2.reporter.Call;
 import zipkin2.reporter.CheckResult;
 import zipkin2.reporter.ClosedSenderException;
@@ -42,17 +46,18 @@ import static java.util.logging.Level.WARNING;
  *
  * <p>Spans are bundled into messages based on size in bytes or a timeout, whichever happens first.
  *
- * <p>The thread that sends flushes spans to the {@linkplain Sender} does so in a synchronous loop.
- * This means that even asynchronous transports will wait for an ack before sending a next message.
- * We do this so that a surge of spans doesn't overrun memory or bandwidth via hundreds or
- * thousands of in-flight messages. The downside of this is that reporting is limited in speed to
- * what a single thread can clear. When a thread cannot clear the backlog, new spans are dropped.
+ * <p>The thread that sends flushes spans to the {@linkplain BytesMessageSender} does so in a
+ * synchronous loop. This means that even asynchronous transports will wait for an ack before
+ * sending a next message. We do this so that a surge of spans doesn't overrun memory or bandwidth
+ * via hundreds or thousands of in-flight messages. The downside of this is that reporting is
+ * limited in speed to what a single thread can clear. When a thread cannot clear the backlog, new
+ * spans are dropped.
  *
  * @param <S> type of the span, usually {@code zipkin2.Span}
  * @since 3.0
  */
-public abstract class AsyncReporter<S> extends Component implements Reporter<S>, Flushable {
-  public static Builder newBuilder(Sender sender) {
+public abstract class AsyncReporter<S> extends Component implements Reporter<S>, Closeable, Flushable {
+  public static Builder newBuilder(BytesMessageSender sender) {
     return new Builder(sender);
   }
 
@@ -72,7 +77,7 @@ public abstract class AsyncReporter<S> extends Component implements Reporter<S>,
   public abstract Builder toBuilder();
 
   public static final class Builder {
-    final Sender sender;
+    final BytesMessageSender sender;
     ThreadFactory threadFactory = Executors.defaultThreadFactory();
     ReporterMetrics metrics = ReporterMetrics.NOOP_METRICS;
     int messageMaxBytes;
@@ -98,7 +103,7 @@ public abstract class AsyncReporter<S> extends Component implements Reporter<S>,
       return (int) Math.max(Math.min(Integer.MAX_VALUE, result), Integer.MIN_VALUE);
     }
 
-    Builder(Sender sender) {
+    Builder(BytesMessageSender sender) {
       if (sender == null) throw new NullPointerException("sender == null");
       this.sender = sender;
       this.messageMaxBytes = sender.messageMaxBytes();
@@ -124,7 +129,7 @@ public abstract class AsyncReporter<S> extends Component implements Reporter<S>,
 
     /**
      * Maximum bytes sendable per message including overhead. Defaults to, and is limited by {@link
-     * Sender#messageMaxBytes()}.
+     * BytesMessageSender#messageMaxBytes()}.
      */
     public Builder messageMaxBytes(int messageMaxBytes) {
       if (messageMaxBytes < 0) {
@@ -138,8 +143,8 @@ public abstract class AsyncReporter<S> extends Component implements Reporter<S>,
      * Default 1 second. 0 implies spans are {@link #flush() flushed} externally.
      *
      * <p>Instead of sending one message at a time, spans are bundled into messages, up to {@link
-     * Sender#messageMaxBytes()}. This timeout ensures that spans are not stuck in an incomplete
-     * message.
+     * BytesMessageSender#messageMaxBytes()}. This timeout ensures that spans are not stuck in an
+     * incomplete message.
      *
      * <p>Note: this timeout starts when the first unsent span is reported.
      */
@@ -188,7 +193,7 @@ public abstract class AsyncReporter<S> extends Component implements Reporter<S>,
     final AtomicBoolean started, closed;
     final BytesEncoder<S> encoder;
     final ByteBoundedQueue<S> pending;
-    final Sender sender;
+    final BytesMessageSender sender;
     final int messageMaxBytes;
     final long messageTimeoutNanos, closeTimeoutNanos;
     final CountDownLatch close;
@@ -273,7 +278,7 @@ public abstract class AsyncReporter<S> extends Component implements Reporter<S>,
       });
 
       try {
-        sender.sendSpans(nextMessage).execute();
+        sender.send(nextMessage);
       } catch (Throwable t) {
         // In failure case, we increment messages and spans dropped.
         int count = nextMessage.size();
@@ -307,8 +312,14 @@ public abstract class AsyncReporter<S> extends Component implements Reporter<S>,
       }
     }
 
-    @Override public CheckResult check() {
-      return sender.check();
+    @Override @Deprecated public CheckResult check() {
+      try {
+        sender.send(Collections.<byte[]>emptyList());
+        return CheckResult.OK;
+      } catch (Throwable t) {
+        Call.propagateIfFatal(t);
+        return CheckResult.failed(t);
+      }
     }
 
     @Override public void close() {

@@ -132,7 +132,7 @@ class RabbitMQSenderFactoryBeanTest {
       RabbitMQSender sender = context.getBean("sender", RabbitMQSender.class);
       context.close();
 
-      sender.sendSpans(asList(new byte[] {'{', '}'}));
+      sender.send(asList(new byte[] {'{', '}'}));
     });
   }
 }

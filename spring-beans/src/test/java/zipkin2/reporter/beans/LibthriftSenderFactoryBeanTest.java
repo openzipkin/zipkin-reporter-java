@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2023 The OpenZipkin Authors
+ * Copyright 2016-2024 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -110,7 +110,7 @@ class LibthriftSenderFactoryBeanTest {
       LibthriftSender sender = context.getBean("sender", LibthriftSender.class);
       context.close();
 
-      sender.sendSpans(Arrays.asList(new byte[0]));
+      sender.send(Arrays.asList(new byte[0]));
     });
   }
 }

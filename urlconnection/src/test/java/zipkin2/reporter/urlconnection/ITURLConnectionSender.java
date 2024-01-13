@@ -15,6 +15,7 @@ package zipkin2.reporter.urlconnection;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Stream;
 import okhttp3.mockwebserver.MockResponse;
@@ -28,10 +29,9 @@ import zipkin2.Span;
 import zipkin2.codec.SpanBytesDecoder;
 import zipkin2.codec.SpanBytesEncoder;
 import zipkin2.reporter.AsyncReporter;
-import zipkin2.reporter.Call;
+import zipkin2.reporter.BytesMessageSender;
 import zipkin2.reporter.Callback;
 import zipkin2.reporter.Encoding;
-import zipkin2.reporter.Sender;
 
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
@@ -50,59 +50,70 @@ class ITURLConnectionSender {
   String endpoint = server.url("/api/v2/spans").toString();
 
   @BeforeEach void setUp() {
-    sender = URLConnectionSender.newBuilder()
-      .endpoint(endpoint)
-      .compressionEnabled(false)
-      .build();
+    sender = URLConnectionSender.newBuilder().endpoint(endpoint).compressionEnabled(false).build();
   }
 
   @Test void badUrlIsAnIllegalArgument() {
-    assertThatThrownBy(() -> URLConnectionSender.create("htp://localhost:9411/api/v1/spans"))
-      .isInstanceOf(IllegalArgumentException.class)
-      .hasMessage("unknown protocol: htp");
+    assertThatThrownBy(
+      () -> URLConnectionSender.create("htp://localhost:9411/api/v1/spans")).isInstanceOf(
+      IllegalArgumentException.class).hasMessage("unknown protocol: htp");
   }
 
-  @Test void sendsSpans() throws Exception {
+  @Test void send() throws Exception {
     server.enqueue(new MockResponse());
 
-    send(CLIENT_SPAN, CLIENT_SPAN).execute();
+    sendSpans(CLIENT_SPAN, CLIENT_SPAN);
 
     // Ensure only one request was sent
     assertThat(server.getRequestCount()).isEqualTo(1);
 
     // Now, let's read back the spans we sent!
-    assertThat(SpanBytesDecoder.JSON_V2.decodeList(server.takeRequest().getBody().readByteArray()))
-      .containsExactly(CLIENT_SPAN, CLIENT_SPAN);
+    assertThat(SpanBytesDecoder.JSON_V2.decodeList(
+      server.takeRequest().getBody().readByteArray())).containsExactly(CLIENT_SPAN, CLIENT_SPAN);
   }
 
-  @Test void sendsSpans_PROTO3() throws Exception {
+  @Test void emptyOk() throws Exception {
+    server.enqueue(new MockResponse());
+
+    sender.send(Collections.emptyList());
+
+    assertThat(server.getRequestCount()).isEqualTo(1);
+  }
+
+  @Test void sendFailsOnDisconnect() {
+    server.enqueue(new MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_START));
+
+    assertThatThrownBy(() -> sendSpans(CLIENT_SPAN, CLIENT_SPAN)).isInstanceOf(IOException.class);
+  }
+
+  @Test void send_PROTO3() throws Exception {
     sender = sender.toBuilder().encoding(Encoding.PROTO3).build();
 
     server.enqueue(new MockResponse());
 
-    send(CLIENT_SPAN, CLIENT_SPAN).execute();
+    sendSpans(CLIENT_SPAN, CLIENT_SPAN);
 
     // Ensure only one request was sent
     assertThat(server.getRequestCount()).isEqualTo(1);
 
     // Now, let's read back the spans we sent!
-    assertThat(SpanBytesDecoder.PROTO3.decodeList(server.takeRequest().getBody().readByteArray()))
-      .containsExactly(CLIENT_SPAN, CLIENT_SPAN);
+    assertThat(SpanBytesDecoder.PROTO3.decodeList(
+      server.takeRequest().getBody().readByteArray())).containsExactly(CLIENT_SPAN, CLIENT_SPAN);
   }
 
-  @Test void sendsSpans_THRIFT() throws Exception {
+  @Test void send_THRIFT() throws Exception {
     sender = sender.toBuilder().encoding(Encoding.THRIFT).build();
 
     server.enqueue(new MockResponse());
 
-    send(CLIENT_SPAN, CLIENT_SPAN).execute();
+    sendSpans(CLIENT_SPAN, CLIENT_SPAN);
 
     // Ensure only one request was sent
     assertThat(server.getRequestCount()).isEqualTo(1);
 
     // Now, let's read back the spans we sent!
-    assertThat(SpanBytesDecoder.THRIFT.decodeList(server.takeRequest().getBody().readByteArray()))
-      .containsExactly(CLIENT_SPAN, CLIENT_SPAN);
+    assertThat(SpanBytesDecoder.THRIFT.decodeList(
+      server.takeRequest().getBody().readByteArray())).containsExactly(CLIENT_SPAN, CLIENT_SPAN);
   }
 
   @Test void compression() throws Exception {
@@ -112,21 +123,20 @@ class ITURLConnectionSender {
 
       server.enqueue(new MockResponse());
 
-      send(CLIENT_SPAN, CLIENT_SPAN).execute();
+      sendSpans(CLIENT_SPAN, CLIENT_SPAN);
 
       // block until the request arrived
       requests.add(server.takeRequest());
     }
 
     // we expect the first compressed request to be smaller than the uncompressed one.
-    assertThat(requests.get(0).getBodySize())
-      .isLessThan(requests.get(1).getBodySize());
+    assertThat(requests.get(0).getBodySize()).isLessThan(requests.get(1).getBodySize());
   }
 
   @Test void ensuresProxiesDontTrace() throws Exception {
     server.enqueue(new MockResponse());
 
-    send(CLIENT_SPAN, CLIENT_SPAN).execute();
+    sendSpans(CLIENT_SPAN, CLIENT_SPAN);
 
     // If the Zipkin endpoint is proxied and instrumented, it will know "0" means don't trace.
     assertThat(server.takeRequest().getHeader("b3")).isEqualTo("0");
@@ -135,17 +145,16 @@ class ITURLConnectionSender {
   @Test void mediaTypeBasedOnSpanEncoding() throws Exception {
     server.enqueue(new MockResponse());
 
-    send(CLIENT_SPAN, CLIENT_SPAN).execute();
+    sendSpans(CLIENT_SPAN, CLIENT_SPAN);
 
     // block until the request arrived
-    assertThat(server.takeRequest().getHeader("Content-Type"))
-      .isEqualTo("application/json");
+    assertThat(server.takeRequest().getHeader("Content-Type")).isEqualTo("application/json");
   }
 
-  @Test void noExceptionWhenServerErrors() {
+  @Deprecated @Test void noExceptionWhenServerErrors() {
     server.enqueue(new MockResponse().setResponseCode(500));
 
-    send().enqueue(new Callback<Void>() {
+    sender.sendSpans(Collections.emptyList()).enqueue(new Callback<Void>() {
       @Override public void onSuccess(Void aVoid) {
       }
 
@@ -154,38 +163,23 @@ class ITURLConnectionSender {
     });
   }
 
-  @Test void check_ok() {
-    server.enqueue(new MockResponse());
-
-    assertThat(sender.check().ok()).isTrue();
-
-    assertThat(server.getRequestCount()).isEqualTo(1);
-  }
-
-  @Test void check_fail() {
-    server.enqueue(new MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_START));
-
-    assertThat(sender.check().ok()).isFalse();
-  }
-
   @Test void illegalToSendWhenClosed() {
     sender.close();
 
-    assertThatThrownBy(() -> send(CLIENT_SPAN).execute())
-      .isInstanceOf(IllegalStateException.class);
+    assertThatThrownBy(() -> sendSpans(CLIENT_SPAN)).isInstanceOf(IllegalStateException.class);
   }
 
   /**
-   * The output of toString() on {@link Sender} implementations appears in thread names created by
-   * {@link AsyncReporter}. Since thread names are likely to be exposed in logs and other monitoring
-   * tools, care should be taken to ensure the toString() output is a reasonable length and does not
-   * contain sensitive information.
+   * The output of toString() on {@link BytesMessageSender} implementations appears in thread names
+   * created by {@link AsyncReporter}. Since thread names are likely to be exposed in logs and other
+   * monitoring tools, care should be taken to ensure the toString() output is a reasonable length
+   * and does not contain sensitive information.
    */
   @Test void toStringContainsOnlySenderTypeAndEndpoint() {
     assertThat(sender.toString()).isEqualTo("URLConnectionSender{" + endpoint + "}");
   }
 
-  Call<Void> send(Span... spans) {
+  void sendSpans(Span... spans) throws IOException {
     SpanBytesEncoder bytesEncoder;
     switch (sender.encoding()) {
       case JSON:
@@ -200,6 +194,6 @@ class ITURLConnectionSender {
       default:
         throw new UnsupportedOperationException("encoding: " + sender.encoding());
     }
-    return sender.sendSpans(Stream.of(spans).map(bytesEncoder::encode).collect(toList()));
+    sender.send(Stream.of(spans).map(bytesEncoder::encode).collect(toList()));
   }
 }

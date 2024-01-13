@@ -95,7 +95,7 @@ class KafkaSenderFactoryBeanTest {
       KafkaSender sender = context.getBean("sender", KafkaSender.class);
       context.close();
 
-      sender.sendSpans(Arrays.asList(new byte[] {'{', '}'}));
+      sender.send(Arrays.asList(new byte[] {'{', '}'}));
     });
   }
 }

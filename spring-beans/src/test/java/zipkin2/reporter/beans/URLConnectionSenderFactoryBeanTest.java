@@ -124,7 +124,7 @@ class URLConnectionSenderFactoryBeanTest {
       URLConnectionSender sender = context.getBean("sender", URLConnectionSender.class);
       context.close();
 
-      sender.sendSpans(Arrays.asList(new byte[]{'{', '}'}));
+      sender.send(Arrays.asList(new byte[]{'{', '}'}));
     });
   }
 }

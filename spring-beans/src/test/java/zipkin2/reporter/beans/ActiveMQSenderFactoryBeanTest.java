@@ -134,7 +134,7 @@ class ActiveMQSenderFactoryBeanTest {
       ActiveMQSender sender = context.getBean("sender", ActiveMQSender.class);
       context.close();
 
-      sender.sendSpans(Arrays.asList(new byte[]{'{', '}'}));
+      sender.send(Arrays.asList(new byte[]{'{', '}'}));
     });
   }
 }

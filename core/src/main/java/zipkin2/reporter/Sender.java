@@ -13,6 +13,7 @@
  */
 package zipkin2.reporter;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
@@ -40,42 +41,13 @@ import java.util.List;
  * send messages as byte arrays.
  *
  * @since 3.0
+ * @deprecated since 3.2, use {@link BytesMessageSender} instead. This will be removed in v4.0.
  */
-public abstract class Sender extends Component {
+@Deprecated
+public abstract class Sender extends Component implements BytesMessageSender {
 
-  /** Returns the encoding this sender requires spans to have. */
-  public abstract Encoding encoding();
-
-  /**
-   * Maximum bytes sendable per message including overhead. This can be calculated using {@link
-   * #messageSizeInBytes(List)}
-   * <p>
-   * Defaults to 500KB as a conservative default. You may get better or reduced performance
-   * by changing this value based on, e.g., machine size or network bandwidth in your
-   * infrastructure. Finding a perfect value will require trying out different values in production,
-   * but the default should work well enough in most cases.
-   */
-  public abstract int messageMaxBytes();
-
-  /**
-   * Before invoking {@link Sender#sendSpans(List)}, callers must consider message overhead, which
-   * might be more than encoding overhead. This is used to not exceed {@link
-   * Sender#messageMaxBytes()}.
-   *
-   * <p>Note this is not always {@link Encoding#listSizeInBytes(List)}, as some senders have
-   * inefficient list encoding. For example, Scribe base64's then tags each span with a category.
-   */
-  public abstract int messageSizeInBytes(List<byte[]> encodedSpans);
-
-  /**
-   * Like {@link #messageSizeInBytes(List)}, except for a single-span. This is used to ensure a span
-   * is never accepted that can never be sent.
-   *
-   * <p>Always override this, which is only abstract as added after version 2.0
-   *
-   * @param encodedSizeInBytes the {@link BytesEncoder#sizeInBytes(Object) encoded size} of a span
-   */
-  public int messageSizeInBytes(int encodedSizeInBytes) {
+  /** {@inheritDoc} */
+  @Override public int messageSizeInBytes(int encodedSizeInBytes) {
     return messageSizeInBytes(Collections.singletonList(new byte[encodedSizeInBytes]));
   }
 
@@ -84,6 +56,13 @@ public abstract class Sender extends Component {
    *
    * @param encodedSpans list of encoded spans.
    * @throws IllegalStateException if {@link #close() close} was called.
+   * @deprecated since 3.2, use {@link BytesMessageSender} instead. This will be removed in v4.0.
    */
+  @Deprecated
   public abstract Call<Void> sendSpans(List<byte[]> encodedSpans);
+
+  /** {@inheritDoc} */
+  @Override public void send(List<byte[]> encodedSpans) throws IOException {
+    sendSpans(encodedSpans).execute();
+  }
 }

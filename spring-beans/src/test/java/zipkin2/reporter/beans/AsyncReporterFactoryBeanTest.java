@@ -17,6 +17,7 @@ import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import zipkin2.reporter.AsyncReporter;
+import zipkin2.reporter.BytesMessageSender;
 import zipkin2.reporter.Encoding;
 import zipkin2.reporter.ReporterMetrics;
 import zipkin2.reporter.Sender;
@@ -25,8 +26,8 @@ import zipkin2.reporter.SpanBytesEncoder;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class AsyncReporterFactoryBeanTest {
-  public static Sender SENDER = new FakeSender();
-  public static Sender PROTO3_SENDER = new FakeSender() {
+  public static BytesMessageSender SENDER = new FakeSender();
+  public static BytesMessageSender PROTO3_SENDER = new FakeSender() {
     @Override public Encoding encoding() {
       return Encoding.PROTO3;
     }

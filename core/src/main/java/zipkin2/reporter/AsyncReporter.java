@@ -13,6 +13,7 @@
  */
 package zipkin2.reporter;
 
+import java.io.Closeable;
 import java.io.Flushable;
 import java.util.List;
 import java.util.concurrent.ThreadFactory;
@@ -25,7 +26,7 @@ import java.util.concurrent.TimeUnit;
  *
  * <p>Spans are bundled into messages based on size in bytes or a timeout, whichever happens first.
  *
- * <p>The thread that sends flushes spans to the {@linkplain Sender} does so in a synchronous loop.
+ * <p>The thread that sends flushes spans to the {@linkplain BytesMessageSender} does so in a synchronous loop.
  * This means that even asynchronous transports will wait for an ack before sending a next message.
  * We do this so that a surge of spans doesn't overrun memory or bandwidth via hundreds or
  * thousands of in-flight messages. The downside of this is that reporting is limited in speed to
@@ -34,21 +35,21 @@ import java.util.concurrent.TimeUnit;
  * @param <S> type of the span, usually {@link zipkin2.Span}
  */
 // This is effectively, but not explicitly final as it was not final in version 2.x.
-public class AsyncReporter<S> extends Component implements Reporter<S>, Flushable {
+public class AsyncReporter<S> extends Component implements Reporter<S>, Closeable, Flushable {
 
   /**
    * Builds a json reporter for <a href="https://zipkin.io/zipkin-api/#/">Zipkin V2</a>. If http,
    * the endpoint of the sender is usually "http://zipkinhost:9411/api/v2/spans".
    *
-   * <p>After a certain threshold, spans are drained and {@link Sender#sendSpans(List) sent} to
-   * Zipkin collectors.
+   * <p>After a certain threshold, spans are drained and {@link BytesMessageSender#send(List) sent}
+   * to Zipkin collectors.
    */
-  public static AsyncReporter<zipkin2.Span> create(Sender sender) {
+  public static AsyncReporter<zipkin2.Span> create(BytesMessageSender sender) {
     return new Builder(sender).build();
   }
 
-  /** Like {@link #create(Sender)}, except you can configure settings such as the timeout. */
-  public static Builder builder(Sender sender) {
+  /** Like {@link #create(BytesMessageSender)}, except you can configure settings such as the timeout. */
+  public static Builder builder(BytesMessageSender sender) {
     return new Builder(sender);
   }
 
@@ -87,7 +88,7 @@ public class AsyncReporter<S> extends Component implements Reporter<S>, Flushabl
     final zipkin2.reporter.internal.AsyncReporter.Builder delegate;
     final Encoding encoding;
 
-    Builder(Sender sender) {
+    Builder(BytesMessageSender sender) {
       this.delegate = zipkin2.reporter.internal.AsyncReporter.newBuilder(sender);
       this.encoding = sender.encoding();
     }
@@ -110,7 +111,7 @@ public class AsyncReporter<S> extends Component implements Reporter<S>, Flushabl
 
     /**
      * Maximum bytes sendable per message including overhead. Defaults to, and is limited by {@link
-     * Sender#messageMaxBytes()}.
+     * BytesMessageSender#messageMaxBytes()}.
      */
     public Builder messageMaxBytes(int messageMaxBytes) {
       this.delegate.messageMaxBytes(messageMaxBytes);
@@ -121,8 +122,8 @@ public class AsyncReporter<S> extends Component implements Reporter<S>, Flushabl
      * Default 1 second. 0 implies spans are {@link #flush() flushed} externally.
      *
      * <p>Instead of sending one message at a time, spans are bundled into messages, up to {@link
-     * Sender#messageMaxBytes()}. This timeout ensures that spans are not stuck in an incomplete
-     * message.
+     * BytesMessageSender#messageMaxBytes()}. This timeout ensures that spans are not stuck in an
+     * incomplete message.
      *
      * <p>Note: this timeout starts when the first unsent span is reported.
      */
@@ -170,8 +171,9 @@ public class AsyncReporter<S> extends Component implements Reporter<S>, Flushabl
     }
   }
 
-  static final class BytesEncoderAdapter<S>implements BytesEncoder<S> {
+  static final class BytesEncoderAdapter<S> implements BytesEncoder<S> {
     final BytesEncoder<S> delegate;
+
     BytesEncoderAdapter(BytesEncoder<S> delegate) {
       this.delegate = delegate;
     }

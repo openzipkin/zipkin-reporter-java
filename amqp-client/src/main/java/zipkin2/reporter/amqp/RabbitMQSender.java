@@ -21,7 +21,9 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeoutException;
+import zipkin2.reporter.AsyncReporter;
 import zipkin2.reporter.BytesMessageEncoder;
+import zipkin2.reporter.BytesMessageSender;
 import zipkin2.reporter.Call;
 import zipkin2.reporter.Callback;
 import zipkin2.reporter.CheckResult;
@@ -36,7 +38,7 @@ import static zipkin2.reporter.Call.propagateIfFatal;
  *
  * <h3>Usage</h3>
  * <p>
- * This type is designed for {@link zipkin2.reporter.AsyncReporter.Builder#builder(Sender) the async
+ * This type is designed for {@link AsyncReporter.Builder#builder(BytesMessageSender) the async
  * reporter}.
  *
  * <p>Here's a simple configuration, configured for json:
@@ -69,7 +71,7 @@ import static zipkin2.reporter.Call.propagateIfFatal;
  * RabbitMQ failure.
  *
  * <p>This sender is thread-safe: a channel is created for each thread that calls
- * {@link #sendSpans(List)}.
+ * {@link #send(List)}.
  */
 public final class RabbitMQSender extends Sender {
   /** Creates a sender that sends {@link Encoding#JSON} messages. */
@@ -213,15 +215,25 @@ public final class RabbitMQSender extends Sender {
     return encoding.listSizeInBytes(encodedSizeInBytes);
   }
 
-  /** This sends all of the spans as a single message. */
-  @Override public Call<Void> sendSpans(List<byte[]> encodedSpans) {
+  /** {@inheritDoc} */
+  @Override @Deprecated public Call<Void> sendSpans(List<byte[]> encodedSpans) {
     if (closeCalled) throw new ClosedSenderException();
     byte[] message = encoder.encode(encodedSpans);
     return new RabbitMQCall(message);
   }
 
-  /** Ensures there are no connection issues. */
-  @Override public CheckResult check() {
+  /** {@inheritDoc} */
+  @Override public void send(List<byte[]> encodedSpans) throws IOException {
+    if (closeCalled) throw new ClosedSenderException();
+    publish(encoder.encode(encodedSpans));
+  }
+
+  void publish(byte[] message) throws IOException {
+    localChannel().basicPublish("", queue, null, message);
+  }
+
+  /** {@inheritDoc} */
+  @Override @Deprecated public CheckResult check() {
     try {
       if (localChannel().isOpen()) return CheckResult.OK;
       throw new IllegalStateException("Not Open");
@@ -266,7 +278,7 @@ public final class RabbitMQSender extends Sender {
   final ThreadLocal<Channel> CHANNEL = new ThreadLocal<Channel>();
 
   /**
-   * In most circumstances there will only be one thread calling {@link #sendSpans(List)}, the
+   * In most circumstances there will only be one thread calling {@link #send(List)}, the
    * {@link AsyncReporter}. Just in case someone is flushing manually, we use a thread-local. All of
    * this is to avoid recreating a channel for each publish, as that costs two additional network
    * roundtrips.
@@ -288,17 +300,13 @@ public final class RabbitMQSender extends Sender {
     }
 
     @Override protected Void doExecute() throws IOException {
-      publish();
+      publish(message);
       return null;
-    }
-
-    void publish() throws IOException {
-      localChannel().basicPublish("", queue, null, message);
     }
 
     @Override protected void doEnqueue(Callback<Void> callback) {
       try {
-        publish();
+        publish(message);
         callback.onSuccess(null);
       } catch (Throwable t) {
         Call.propagateIfFatal(t);

@@ -15,6 +15,7 @@ package zipkin2.reporter.libthrift;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
@@ -25,6 +26,8 @@ import org.junit.jupiter.api.Timeout;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import zipkin2.Span;
+import zipkin2.reporter.AsyncReporter;
+import zipkin2.reporter.BytesMessageSender;
 import zipkin2.reporter.SpanBytesEncoder;
 
 import static java.util.stream.Collectors.toList;
@@ -51,8 +54,8 @@ class ITLibthriftSender {
     sender.close();
   }
 
-  @Test void sendsSpans() throws Exception {
-    send(CLIENT_SPAN);
+  @Test void send() throws Exception {
+    sendSpans(CLIENT_SPAN);
 
     assertThat(zipkin.get("/api/v2/trace/" + CLIENT_SPAN.traceId()).isSuccessful())
       .isTrue();
@@ -61,9 +64,9 @@ class ITLibthriftSender {
   /**
    * This will help verify sequence ID and response parsing logic works
    */
-  @Test void sendsSpans_multipleTimes() throws Exception {
+  @Test void send_multipleTimes() throws Exception {
     for (int i = 0; i < 5; i++) { // Have client send 5 messages
-      send(Arrays.copyOfRange(LOTS_OF_SPANS, i, (i * 10) + 10));
+      sendSpans(Arrays.copyOfRange(LOTS_OF_SPANS, i, (i * 10) + 10));
     }
 
     for (int i = 0; i < 5; i++) { // Try the last ID of each
@@ -73,11 +76,11 @@ class ITLibthriftSender {
     }
   }
 
-  @Test void check_okWhenScribeIsListening() {
-    assertThat(sender.check().ok()).isTrue();
+  @Test void emptyOk() throws Exception {
+    sender.send(Collections.emptyList());
   }
 
-  @Test void check_notOkWhenScribeIsDown() {
+  @Test void sendFailsWhenScribeIsDown() {
     sender.close();
 
     // Reconfigure to a valid host but invalid port.
@@ -85,7 +88,8 @@ class ITLibthriftSender {
       host(zipkin.host()).
       port(zipkin.httpPort()).build();
 
-    assertThat(sender.check().ok()).isFalse();
+    assertThatThrownBy(() -> sendSpans(CLIENT_SPAN, CLIENT_SPAN))
+      .isInstanceOf(IOException.class);
   }
 
   @Test void reconnects() throws Exception {
@@ -96,12 +100,12 @@ class ITLibthriftSender {
       host(zipkin.host()).
       port(9999).build();
 
-    assertThatThrownBy(() -> send(CLIENT_SPAN, CLIENT_SPAN))
+    assertThatThrownBy(() -> sendSpans(CLIENT_SPAN, CLIENT_SPAN))
       .isInstanceOf(IOException.class);
 
     open();
 
-    send(CLIENT_SPAN, CLIENT_SPAN);
+    sendSpans(CLIENT_SPAN, CLIENT_SPAN);
 
     assertThat(zipkin.get("/api/v2/trace/" + CLIENT_SPAN.traceId()).isSuccessful())
       .isTrue();
@@ -110,13 +114,13 @@ class ITLibthriftSender {
   @Test void illegalToSendWhenClosed() {
     sender.close();
 
-    assertThatThrownBy(() -> send(CLIENT_SPAN, CLIENT_SPAN))
+    assertThatThrownBy(() -> sendSpans(CLIENT_SPAN, CLIENT_SPAN))
       .isInstanceOf(IllegalStateException.class);
   }
 
   /**
-   * The output of toString() on {@link zipkin2.reporter.Sender} implementations appears in thread
-   * names created by {@link zipkin2.reporter.AsyncReporter}. Since thread names are likely to be
+   * The output of toString() on {@link BytesMessageSender} implementations appears in thread
+   * names created by {@link AsyncReporter}. Since thread names are likely to be
    * exposed in logs and other monitoring tools, care should be taken to ensure the toString()
    * output is a reasonable length and does not contain sensitive information.
    */
@@ -128,9 +132,9 @@ class ITLibthriftSender {
   /**
    * Blocks until the callback completes to allow read-your-writes consistency during tests.
    */
-  void send(Span... spans) throws IOException {
+  void sendSpans(Span... spans) throws IOException {
     List<byte[]> encodedSpans =
       Stream.of(spans).map(SpanBytesEncoder.THRIFT::encode).collect(toList());
-    sender.sendSpans(encodedSpans).execute();
+    sender.send(encodedSpans);
   }
 }

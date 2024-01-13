@@ -19,7 +19,9 @@ import javax.jms.BytesMessage;
 import javax.jms.JMSException;
 import javax.jms.QueueSender;
 import org.apache.activemq.ActiveMQConnectionFactory;
+import zipkin2.reporter.AsyncReporter;
 import zipkin2.reporter.BytesMessageEncoder;
+import zipkin2.reporter.BytesMessageSender;
 import zipkin2.reporter.Call;
 import zipkin2.reporter.Callback;
 import zipkin2.reporter.CheckResult;
@@ -32,7 +34,7 @@ import zipkin2.reporter.Sender;
  *
  * <h3>Usage</h3>
  * <p>
- * This type is designed for {@link zipkin2.reporter.AsyncReporter.Builder#builder(Sender) the async
+ * This type is designed for {@link AsyncReporter.Builder#builder(BytesMessageSender) the async
  * reporter}.
  *
  * <p>Here's a simple configuration, configured for json:
@@ -150,13 +152,33 @@ public final class ActiveMQSender extends Sender {
     return encoding.listSizeInBytes(encodedSpans);
   }
 
-  @Override public Call<Void> sendSpans(List<byte[]> encodedSpans) {
+  /** {@inheritDoc} */
+  @Override @Deprecated public Call<Void> sendSpans(List<byte[]> encodedSpans) {
     if (closeCalled) throw new ClosedSenderException();
     byte[] message = encoder.encode(encodedSpans);
     return new ActiveMQCall(message);
   }
 
-  @Override public CheckResult check() {
+  /** {@inheritDoc} */
+  @Override public void send(List<byte[]> encodedSpans) throws IOException {
+    if (closeCalled) throw new ClosedSenderException();
+    send(encoder.encode(encodedSpans));
+  }
+
+  void send(byte[] message) throws IOException {
+    try {
+      ActiveMQConn conn = lazyInit.get();
+      QueueSender sender = conn.sender;
+      BytesMessage bytesMessage = conn.session.createBytesMessage();
+      bytesMessage.writeBytes(message);
+      sender.send(bytesMessage);
+    } catch (JMSException e) {
+      throw ioException("Unable to send message: ", e);
+    }
+  }
+
+  /** {@inheritDoc} */
+  @Override @Deprecated public CheckResult check() {
     try {
       lazyInit.get();
     } catch (Throwable t) {
@@ -171,7 +193,7 @@ public final class ActiveMQSender extends Sender {
     lazyInit.close();
   }
 
-  @Override public final String toString() {
+  @Override public String toString() {
     return "ActiveMQSender{"
       + "brokerURL=" + lazyInit.connectionFactory.getBrokerURL()
       + ", queue=" + lazyInit.queue
@@ -186,20 +208,8 @@ public final class ActiveMQSender extends Sender {
     }
 
     @Override protected Void doExecute() throws IOException {
-      send();
+      send(message);
       return null;
-    }
-
-    void send() throws IOException {
-      try {
-        ActiveMQConn conn = lazyInit.get();
-        QueueSender sender = conn.sender;
-        BytesMessage bytesMessage = conn.session.createBytesMessage();
-        bytesMessage.writeBytes(message);
-        sender.send(bytesMessage);
-      } catch (JMSException e) {
-        throw ioException("Unable to send message: ", e);
-      }
     }
 
     @Override public Call<Void> clone() {
@@ -208,7 +218,7 @@ public final class ActiveMQSender extends Sender {
 
     @Override protected void doEnqueue(Callback<Void> callback) {
       try {
-        send();
+        send(message);
         callback.onSuccess(null);
       } catch (Throwable t) {
         Call.propagateIfFatal(t);

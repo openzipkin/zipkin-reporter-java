@@ -16,42 +16,40 @@ package zipkin2.reporter.amqp;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.DefaultConsumer;
 import java.io.IOException;
+import java.util.Collections;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
-import zipkin2.reporter.CheckResult;
-import zipkin2.reporter.Sender;
+import zipkin2.reporter.BytesMessageSender;
 import zipkin2.reporter.internal.SenderBenchmarks;
 
 public class RabbitMQSenderBenchmarks extends SenderBenchmarks {
   private Channel channel;
 
-  @Override protected Sender createSender() throws Exception {
-    RabbitMQSender result = RabbitMQSender.newBuilder()
-        .queue("zipkin-jmh")
-        .addresses("localhost:5672").build();
+  @Override protected BytesMessageSender createSender() throws Exception {
+    RabbitMQSender sender = RabbitMQSender.newBuilder()
+      .queue("zipkin-jmh")
+      .addresses("localhost:5672").build();
 
-    CheckResult check = result.check();
-    if (!check.ok()) {
-      throw new IllegalStateException(check.error().getMessage(), check.error());
-    }
+    // check sender works at all
+    sender.send(Collections.emptyList());
 
-    channel = result.localChannel();
-    channel.queueDelete(result.queue);
-    channel.queueDeclare(result.queue, false, true, true, null);
+    channel = sender.localChannel();
+    channel.queueDelete(sender.queue);
+    channel.queueDeclare(sender.queue, false, true, true, null);
 
     Thread.sleep(500L);
 
     new Thread(() -> {
       try {
-        channel.basicConsume(result.queue, true, new DefaultConsumer(channel));
+        channel.basicConsume(sender.queue, true, new DefaultConsumer(channel));
       } catch (IOException e) {
         e.printStackTrace();
       }
     }).start();
 
-    return result;
+    return sender;
   }
 
   @Override protected void afterSenderClose() {
@@ -61,8 +59,8 @@ public class RabbitMQSenderBenchmarks extends SenderBenchmarks {
   // Convenience main entry-point
   public static void main(String[] args) throws RunnerException {
     Options opt = new OptionsBuilder()
-        .include(".*" + RabbitMQSenderBenchmarks.class.getSimpleName() + ".*")
-        .build();
+      .include(".*" + RabbitMQSenderBenchmarks.class.getSimpleName() + ".*")
+      .build();
 
     new Runner(opt).run();
   }

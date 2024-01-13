@@ -48,7 +48,9 @@ import java.util.concurrent.atomic.AtomicReference;
  *
  * @param <V> the success type, typically not null except when {@code V} is {@linkplain Void}.
  * @since 3.0
+ * @deprecated since 3.2 this is no longer used. This will be removed in v4.0.
  */
+@Deprecated
 public abstract class Call<V> implements Cloneable {
   /**
    * Returns a completed call which has the supplied value. This is useful when input parameters
@@ -373,6 +375,10 @@ public abstract class Call<V> implements Cloneable {
     }
   }
 
+  /**
+   * @deprecated since 3.2 this is no longer used. This will be removed in v4.0.
+   */
+  @Deprecated
   public static abstract class Base<V> extends Call<V> {
     volatile boolean canceled;
     boolean executed;

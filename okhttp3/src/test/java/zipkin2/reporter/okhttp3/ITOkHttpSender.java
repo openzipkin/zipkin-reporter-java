@@ -15,6 +15,7 @@ package zipkin2.reporter.okhttp3;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -29,6 +30,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import zipkin2.Span;
 import zipkin2.codec.SpanBytesDecoder;
+import zipkin2.reporter.BytesMessageSender;
 import zipkin2.reporter.SpanBytesEncoder;
 import zipkin2.reporter.AsyncReporter;
 import zipkin2.reporter.AwaitableCallback;
@@ -73,15 +75,15 @@ public class ITOkHttpSender { // public for use in src/it
 
     server.enqueue(new MockResponse());
 
-    send(CLIENT_SPAN, CLIENT_SPAN).execute();
+    sendSpans(CLIENT_SPAN, CLIENT_SPAN);
 
     assertThat(called.get()).isTrue();
   }
 
-  @Test void sendsSpans() throws Exception {
+  @Test void send() throws Exception {
     server.enqueue(new MockResponse());
 
-    send(CLIENT_SPAN, CLIENT_SPAN).execute();
+    sendSpans(CLIENT_SPAN, CLIENT_SPAN);
 
     // Ensure only one request was sent
     assertThat(server.getRequestCount()).isEqualTo(1);
@@ -91,12 +93,27 @@ public class ITOkHttpSender { // public for use in src/it
       .containsExactly(CLIENT_SPAN, CLIENT_SPAN);
   }
 
-  @Test void sendsSpans_PROTO3() throws Exception {
+  @Test void emptyOk() throws Exception{
+    server.enqueue(new MockResponse());
+
+    sender.send(Collections.emptyList());
+
+    assertThat(server.getRequestCount()).isEqualTo(1);
+  }
+
+  @Test void sendFailsOnDisconnect() {
+    server.enqueue(new MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_START));
+
+    assertThatThrownBy(() -> sendSpans(CLIENT_SPAN, CLIENT_SPAN))
+      .isInstanceOf(IOException.class);
+  }
+
+  @Test void send_PROTO3() throws Exception {
     sender = sender.toBuilder().encoding(Encoding.PROTO3).build();
 
     server.enqueue(new MockResponse());
 
-    send(CLIENT_SPAN, CLIENT_SPAN).execute();
+    sendSpans(CLIENT_SPAN, CLIENT_SPAN);
 
     // Ensure only one request was sent
     assertThat(server.getRequestCount()).isEqualTo(1);
@@ -106,12 +123,12 @@ public class ITOkHttpSender { // public for use in src/it
       .containsExactly(CLIENT_SPAN, CLIENT_SPAN);
   }
 
-  @Test void sendsSpans_THRIFT() throws Exception {
+  @Test void send_THRIFT() throws Exception {
     sender = sender.toBuilder().encoding(Encoding.THRIFT).build();
 
     server.enqueue(new MockResponse());
 
-    send(CLIENT_SPAN, CLIENT_SPAN).execute();
+    sendSpans(CLIENT_SPAN, CLIENT_SPAN);
 
     // Ensure only one request was sent
     assertThat(server.getRequestCount()).isEqualTo(1);
@@ -128,7 +145,7 @@ public class ITOkHttpSender { // public for use in src/it
 
       server.enqueue(new MockResponse());
 
-      send(CLIENT_SPAN, CLIENT_SPAN).execute();
+      sendSpans(CLIENT_SPAN, CLIENT_SPAN);
 
       // block until the request arrived
       requests.add(server.takeRequest());
@@ -142,7 +159,7 @@ public class ITOkHttpSender { // public for use in src/it
   @Test void ensuresProxiesDontTrace() throws Exception {
     server.enqueue(new MockResponse());
 
-    send(CLIENT_SPAN, CLIENT_SPAN).execute();
+    sendSpans(CLIENT_SPAN, CLIENT_SPAN);
 
     // If the Zipkin endpoint is proxied and instrumented, it will know "0" means don't trace.
     assertThat(server.takeRequest().getHeader("b3")).isEqualTo("0");
@@ -151,13 +168,14 @@ public class ITOkHttpSender { // public for use in src/it
   @Test void mediaTypeBasedOnSpanEncoding() throws Exception {
     server.enqueue(new MockResponse());
 
-    send(CLIENT_SPAN, CLIENT_SPAN).execute();
+    sendSpans(CLIENT_SPAN, CLIENT_SPAN);
 
     // block until the request arrived
     assertThat(server.takeRequest().getHeader("Content-Type"))
       .isEqualTo("application/json");
   }
 
+  @Deprecated
   @Test void closeWhileRequestInFlight_cancelsRequest() throws Exception {
     server.shutdown(); // shutdown the normal zipkin rule
     sender.close();
@@ -197,6 +215,7 @@ public class ITOkHttpSender { // public for use in src/it
   /**
    * Each message by default is up to 5MiB, make sure these go out of process as soon as they can.
    */
+  @Deprecated
   @Test void messagesSendImmediately() throws Exception {
     server.shutdown(); // shutdown the normal zipkin rule
     sender.close();
@@ -234,6 +253,7 @@ public class ITOkHttpSender { // public for use in src/it
     }
   }
 
+  @Deprecated
   @Test void closeWhileRequestInFlight_graceful() throws Exception {
     server.shutdown(); // shutdown the normal zipkin rule
     sender.close();
@@ -264,10 +284,11 @@ public class ITOkHttpSender { // public for use in src/it
     }
   }
 
+  @Deprecated
   @Test void noExceptionWhenServerErrors() {
     server.enqueue(new MockResponse().setResponseCode(500));
 
-    send().enqueue(new Callback<Void>() {
+    sender.sendSpans(Collections.emptyList()).enqueue(new Callback<Void>() {
       @Override public void onSuccess(Void aVoid) {
       }
 
@@ -277,38 +298,24 @@ public class ITOkHttpSender { // public for use in src/it
   }
 
   @Test void outOfBandCancel() {
-    HttpCall call = (HttpCall) send(CLIENT_SPAN, CLIENT_SPAN);
+    HttpCall call = (HttpCall) sender.sendSpans(Collections.emptyList());
     call.cancel();
 
     assertThat(call.isCanceled()).isTrue();
   }
 
-  @Test void check_ok() {
-    server.enqueue(new MockResponse());
-
-    assertThat(sender.check().ok()).isTrue();
-
-    assertThat(server.getRequestCount()).isEqualTo(1);
-  }
-
-  @Test void check_fail() {
-    server.enqueue(new MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_START));
-
-    assertThat(sender.check().ok()).isFalse();
-  }
-
   @Test void illegalToSendWhenClosed() {
     sender.close();
 
-    assertThatThrownBy(() -> send(CLIENT_SPAN))
+    assertThatThrownBy(() -> sendSpans(CLIENT_SPAN))
       .isInstanceOf(IllegalStateException.class);
   }
 
   /**
-   * The output of toString() on {@link Sender} implementations appears in thread names created by
-   * {@link AsyncReporter}. Since thread names are likely to be exposed in logs and other monitoring
-   * tools, care should be taken to ensure the toString() output is a reasonable length and does not
-   * contain sensitive information.
+   * The output of toString() on {@link BytesMessageSender} implementations appears in thread names
+   * created by {@link AsyncReporter}. Since thread names are likely to be exposed in logs and other
+   * monitoring tools, care should be taken to ensure the toString() output is a reasonable length
+   * and does not contain sensitive information.
    */
   @Test void toStringContainsOnlySenderTypeAndEndpoint() {
     assertThat(sender.toString()).isEqualTo("OkHttpSender{" + endpoint + "}");
@@ -320,7 +327,7 @@ public class ITOkHttpSender { // public for use in src/it
       .isNull();
   }
 
-  Call<Void> send(Span... spans) {
+  void sendSpans(Span... spans) throws IOException {
     SpanBytesEncoder bytesEncoder;
     switch (sender.encoding()) {
       case JSON:
@@ -335,6 +342,6 @@ public class ITOkHttpSender { // public for use in src/it
       default:
         throw new UnsupportedOperationException("encoding: " + sender.encoding());
     }
-    return sender.sendSpans(Stream.of(spans).map(bytesEncoder::encode).collect(toList()));
+    sender.send(Stream.of(spans).map(bytesEncoder::encode).collect(toList()));
   }
 }

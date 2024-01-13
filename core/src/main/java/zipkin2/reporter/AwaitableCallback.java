@@ -17,8 +17,10 @@ import java.util.concurrent.CountDownLatch;
 
 /**
  * Blocks until {@link Callback#onSuccess(Object)} or {@link Callback#onError(Throwable)}.
+ *
+ * @deprecated since 3.2 this is no longer used.
  */
-public final class AwaitableCallback implements Callback<Void> {
+@Deprecated public final class AwaitableCallback implements Callback<Void> {
   final CountDownLatch countDown = new CountDownLatch(1);
   Throwable throwable; // thread visibility guaranteed by the countdown latch
 

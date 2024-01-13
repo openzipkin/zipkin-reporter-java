@@ -21,13 +21,12 @@ import zipkin2.codec.BytesDecoder;
 import zipkin2.codec.SpanBytesDecoder;
 import zipkin2.reporter.BytesEncoder;
 import zipkin2.reporter.BytesMessageEncoder;
-import zipkin2.reporter.Call;
+import zipkin2.reporter.BytesMessageSender;
 import zipkin2.reporter.ClosedSenderException;
 import zipkin2.reporter.Encoding;
-import zipkin2.reporter.Sender;
 import zipkin2.reporter.SpanBytesEncoder;
 
-public final class FakeSender extends Sender {
+public final class FakeSender extends BytesMessageSender.Base {
 
   public static FakeSender create() {
     return new FakeSender(Encoding.JSON, Integer.MAX_VALUE,
@@ -36,7 +35,6 @@ public final class FakeSender extends Sender {
     });
   }
 
-  final Encoding encoding;
   final int messageMaxBytes;
   final BytesMessageEncoder messageEncoder;
   final BytesEncoder<Span> encoder;
@@ -45,7 +43,7 @@ public final class FakeSender extends Sender {
 
   FakeSender(Encoding encoding, int messageMaxBytes, BytesMessageEncoder messageEncoder,
     BytesEncoder<Span> encoder, BytesDecoder<Span> decoder, Consumer<List<Span>> onSpans) {
-    this.encoding = encoding;
+    super(encoding);
     this.messageMaxBytes = messageMaxBytes;
     this.messageEncoder = messageEncoder;
     this.encoder = encoder;
@@ -60,30 +58,17 @@ public final class FakeSender extends Sender {
       onSpans);
   }
 
-  @Override public Encoding encoding() {
-    return encoding;
-  }
-
   @Override public int messageMaxBytes() {
     return messageMaxBytes;
-  }
-
-  @Override public int messageSizeInBytes(List<byte[]> encodedSpans) {
-    return encoding.listSizeInBytes(encodedSpans);
-  }
-
-  @Override public int messageSizeInBytes(int encodedSizeInBytes) {
-    return encoding.listSizeInBytes(encodedSizeInBytes);
   }
 
   /** close is typically called from a different thread */
   volatile boolean closeCalled;
 
-  @Override public Call<Void> sendSpans(List<byte[]> encodedSpans) {
+  @Override public void send(List<byte[]> encodedSpans) {
     if (closeCalled) throw new ClosedSenderException();
     List<Span> decoded = encodedSpans.stream().map(decoder::decodeOne).collect(Collectors.toList());
     onSpans.accept(decoded);
-    return Call.create(null);
   }
 
   @Override public void close() {

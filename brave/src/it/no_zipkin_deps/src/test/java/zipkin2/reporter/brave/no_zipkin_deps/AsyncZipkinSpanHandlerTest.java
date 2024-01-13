@@ -40,7 +40,7 @@ class AsyncZipkinSpanHandlerTest {
   OkHttpSender sender =
     OkHttpSender.newBuilder().endpoint(endpoint).compressionEnabled(false).build();
 
-  @Test void sendsSpans() throws Exception {
+  @Test void send() throws Exception {
     server.enqueue(new MockResponse());
 
     try (AsyncZipkinSpanHandler zipkinSpanHandler = AsyncZipkinSpanHandler.newBuilder(sender)

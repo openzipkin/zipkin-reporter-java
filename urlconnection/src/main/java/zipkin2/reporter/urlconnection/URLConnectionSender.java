@@ -117,7 +117,7 @@ public final class URLConnectionSender extends Sender {
       return this;
     }
 
-    public final URLConnectionSender build() {
+    public URLConnectionSender build() {
       return new URLConnectionSender(this);
     }
 
@@ -182,14 +182,20 @@ public final class URLConnectionSender extends Sender {
     return messageMaxBytes;
   }
 
-  /** The returned call sends spans as a POST to {@link Builder#endpoint}. */
-  @Override public Call<Void> sendSpans(List<byte[]> encodedSpans) {
+  /** {@inheritDoc} */
+  @Override @Deprecated public Call<Void> sendSpans(List<byte[]> encodedSpans) {
     if (closeCalled) throw new ClosedSenderException();
     return new HttpPostCall(encoder.encode(encodedSpans));
   }
 
-  /** Sends an empty json message to the configured endpoint. */
-  @Override public CheckResult check() {
+  /** Sends spans as a POST to {@link Builder#endpoint}. */
+  @Override public void send(List<byte[]> encodedSpans) throws IOException {
+    if (closeCalled) throw new ClosedSenderException();
+    send(encoder.encode(encodedSpans), mediaType);
+  }
+
+  /** {@inheritDoc} */
+  @Override @Deprecated public CheckResult check() {
     try {
       send(new byte[] {'[', ']'}, "application/json");
       return CheckResult.OK;
@@ -199,12 +205,8 @@ public final class URLConnectionSender extends Sender {
     }
   }
 
-  @Override public void close() {
-    closeCalled = true;
-  }
-
   void send(byte[] body, String mediaType) throws IOException {
-    // intentionally not closing the connection, so as to use keep-alives
+    // intentionally not closing the connection, to use keep-alives
     HttpURLConnection connection = (HttpURLConnection) endpoint.openConnection();
     connection.setConnectTimeout(connectTimeout);
     connection.setReadTimeout(readTimeout);
@@ -255,7 +257,11 @@ public final class URLConnectionSender extends Sender {
     }
   }
 
-  @Override public final String toString() {
+  @Override public void close() {
+    closeCalled = true;
+  }
+
+  @Override public String toString() {
     return "URLConnectionSender{" + endpoint + "}";
   }
 

@@ -29,7 +29,7 @@ Reporter.CONSOLE.report(span);
 
 ## AsyncReporter
 AsyncReporter is how you actually get spans to zipkin. By default, it waits up to a second
-before flushes any pending spans out of process via a Sender.
+before flushes any pending spans out of process via a BytesMessageSender.
 
 ```java
 reporter = AsyncReporter.create(URLConnectionSender.create("http://localhost:9411/api/v2/spans"));
@@ -67,7 +67,7 @@ Here are the most important properties to understand when tuning.
 Property | Description
 --- | ---
 `queuedMaxBytes` |  Maximum backlog of span bytes reported vs sent. Corresponds to `ReporterMetrics.updateQueuedBytes`. Default 1% of heap
-`messageMaxBytes` | Maximum bytes sendable per message including overhead. Default `500,000` bytes (`500KB`). Defined by `Sender.messageMaxBytes`
+`messageMaxBytes` | Maximum bytes sendable per message including overhead. Default `500,000` bytes (`500KB`). Defined by `BytesMessageSender.messageMaxBytes`
 `messageTimeout` |  Maximum time to wait for messageMaxBytes to accumulate before sending. Default 1 second
 `closeTimeout` |  Maximum time to block for in-flight spans to send on close. Default 1 second
 
@@ -84,11 +84,12 @@ by a large `messageTimeout` or `messageMaxBytes`. Consider lowering the
 `messageMaxBytes` if this occurs, as it will result in less work per
 message.
 
-## Sender
+## BytesMessageSender
 The sender component handles the last step of sending a list of encoded spans onto a transport.
-This involves I/O, so you can call `Sender.check()` to check its health on a given frequency.
+This involves I/O, so you can call `sender.send(Collections.emptyList())` to check it works before
+using.
 
-Sender is used by AsyncReporter, but you can also create your own if you need to.
+BytesMessageSender is used by AsyncReporter, but you can also create your own if you need to.
 ```java
 class CustomReporter implements Flushable {
 
@@ -99,7 +100,12 @@ class CustomReporter implements Flushable {
 
   // Is the connection healthy?
   public boolean ok() {
-    return sender.check().ok();
+    try {
+      sender.send(Collections.emptyList());
+      return true;
+    } catch (Exception e) {
+      return false;
+    }
   }
 
   public void report(Span span) {
@@ -113,7 +119,7 @@ class CustomReporter implements Flushable {
     pending.drainTo(drained);
     if (drained.isEmpty()) return;
 
-    sender.sendSpans(drained, callback).execute();
+    sender.send(drained);
   }
 ```
 
