@@ -19,9 +19,11 @@ import java.util.List;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.api.Timeout;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 import zipkin2.Span;
 import zipkin2.reporter.SpanBytesEncoder;
 
@@ -31,9 +33,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static zipkin2.TestObjects.CLIENT_SPAN;
 import static zipkin2.TestObjects.LOTS_OF_SPANS;
 
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@Tag("docker")
+@Testcontainers(disabledWithoutDocker = true)
+@Timeout(60)
 class ITLibthriftSender {
-  @RegisterExtension ZipkinExtension zipkin = new ZipkinExtension();
+  @Container ZipkinContainer zipkin = new ZipkinContainer();
 
   LibthriftSender sender;
 

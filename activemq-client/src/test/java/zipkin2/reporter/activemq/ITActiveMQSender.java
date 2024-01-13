@@ -18,10 +18,11 @@ import java.util.stream.Stream;
 import javax.jms.BytesMessage;
 import javax.jms.MessageConsumer;
 import javax.jms.Queue;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.Timeout;
-import org.junit.jupiter.api.extension.RegisterExtension;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 import zipkin2.Span;
 import zipkin2.codec.SpanBytesDecoder;
 import zipkin2.reporter.SpanBytesEncoder;
@@ -36,10 +37,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static zipkin2.TestObjects.CLIENT_SPAN;
 
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@Tag("docker")
+@Testcontainers(disabledWithoutDocker = true)
 @Timeout(60)
 class ITActiveMQSender {
-  @RegisterExtension ActiveMQExtension activemq = new ActiveMQExtension();
+  @Container ActiveMQContainer activemq = new ActiveMQContainer();
 
   @Test void checkPasses() {
     try (ActiveMQSender sender = activemq.newSenderBuilder("checkPasses").build()) {

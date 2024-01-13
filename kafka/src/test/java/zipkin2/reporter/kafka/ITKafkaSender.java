@@ -31,17 +31,19 @@ import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.api.Timeout;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 import zipkin2.Span;
 import zipkin2.codec.SpanBytesDecoder;
-import zipkin2.reporter.SpanBytesEncoder;
 import zipkin2.reporter.AsyncReporter;
 import zipkin2.reporter.Call;
 import zipkin2.reporter.CheckResult;
 import zipkin2.reporter.Encoding;
 import zipkin2.reporter.Sender;
+import zipkin2.reporter.SpanBytesEncoder;
 
 import static java.util.stream.Collectors.toList;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.AUTO_OFFSET_RESET_CONFIG;
@@ -50,15 +52,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static zipkin2.TestObjects.CLIENT_SPAN;
 
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@Tag("docker")
+@Testcontainers(disabledWithoutDocker = true)
+@Timeout(60)
 class ITKafkaSender {
-  @RegisterExtension KafkaExtension kafka = new KafkaExtension();
+  @Container KafkaContainer kafka = new KafkaContainer();
 
   KafkaSender sender;
 
   @BeforeEach void open() {
     sender = KafkaSender.create(kafka.bootstrapServer());
-    kafka.prepareTopics(sender.topic, 1);
+    kafka.prepareTopics(sender.topic);
   }
 
   @AfterEach void close() {
@@ -97,7 +101,7 @@ class ITKafkaSender {
 
   @Test void sendsSpansToCorrectTopic() throws Exception {
     sender.close();
-    kafka.prepareTopics("customzipkintopic", 1);
+    kafka.prepareTopics("customzipkintopic");
     sender = sender.toBuilder().topic("customzipkintopic").build();
 
     send(CLIENT_SPAN, CLIENT_SPAN).execute();
@@ -108,7 +112,7 @@ class ITKafkaSender {
   }
 
   @Test void checkFalseWhenKafkaIsDown() {
-    kafka.container.stop();
+    kafka.stop();
 
     // Make a new tracer that fails faster than 60 seconds
     sender.close();

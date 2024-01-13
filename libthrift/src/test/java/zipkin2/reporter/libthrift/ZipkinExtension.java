@@ -17,10 +17,6 @@ import java.io.IOException;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
-import org.junit.jupiter.api.extension.AfterAllCallback;
-import org.junit.jupiter.api.extension.BeforeAllCallback;
-import org.junit.jupiter.api.extension.ExtensionContext;
-import org.opentest4j.TestAbortedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
@@ -29,33 +25,30 @@ import org.testcontainers.containers.wait.strategy.Wait;
 
 import static org.testcontainers.utility.DockerImageName.parse;
 
-class ZipkinExtension implements BeforeAllCallback, AfterAllCallback {
-  static final Logger LOGGER = LoggerFactory.getLogger(ZipkinExtension.class);
+final class ZipkinContainer extends GenericContainer<ZipkinContainer> {
+  static final Logger LOGGER = LoggerFactory.getLogger(ZipkinContainer.class);
   static final int SCRIBE_PORT = 9410;
   static final int HTTP_PORT = 9411;
 
-  final ZipkinContainer container = new ZipkinContainer();
-
-  @Override public void beforeAll(ExtensionContext context) {
-    if (context.getRequiredTestClass().getEnclosingClass() != null) {
-      // Only run once in outermost scope.
-      return;
-    }
-
-    container.start();
-    LOGGER.info("Using scribe host and port " + host() + ":" + scribePort());
+  ZipkinContainer() {
+    super(parse("ghcr.io/openzipkin/zipkin:3.0.2"));
+    // zipkin-server disables scribe by default.
+    withEnv("COLLECTOR_SCRIBE_ENABLED", "true");
+    withExposedPorts(SCRIBE_PORT, HTTP_PORT);
+    waitStrategy = Wait.forHealthcheck();
+    withLogConsumer(new Slf4jLogConsumer(LOGGER));
   }
 
   String host() {
-    return container.getHost();
+    return getHost();
   }
 
   int httpPort() {
-    return container.getMappedPort(HTTP_PORT);
+    return getMappedPort(HTTP_PORT);
   }
 
   int scribePort() {
-    return container.getMappedPort(SCRIBE_PORT);
+    return getMappedPort(SCRIBE_PORT);
   }
 
   OkHttpClient client = new OkHttpClient.Builder().followRedirects(true).build();
@@ -63,28 +56,5 @@ class ZipkinExtension implements BeforeAllCallback, AfterAllCallback {
   Response get(String path) throws IOException {
     return client.newCall(new Request.Builder()
       .url("http://" + host() + ":" + httpPort() + path).build()).execute();
-  }
-
-  @Override public void afterAll(ExtensionContext context) {
-    if (context.getRequiredTestClass().getEnclosingClass() != null) {
-      // Only run once in outermost scope.
-      return;
-    }
-    container.stop();
-  }
-
-  // mostly waiting for https://github.com/testcontainers/testcontainers-java/issues/3537
-  static final class ZipkinContainer extends GenericContainer<ZipkinContainer> {
-    ZipkinContainer() {
-      super(parse("ghcr.io/openzipkin/zipkin:3.0.1"));
-      if ("true".equals(System.getProperty("docker.skip"))) {
-        throw new TestAbortedException("${docker.skip} == true");
-      }
-      // zipkin-server disables scribe by default.
-      withEnv("COLLECTOR_SCRIBE_ENABLED", "true");
-      withExposedPorts(SCRIBE_PORT, HTTP_PORT);
-      waitStrategy = Wait.forHealthcheck();
-      withLogConsumer(new Slf4jLogConsumer(LOGGER));
-    }
   }
 }
