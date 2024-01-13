@@ -21,7 +21,7 @@ import zipkin2.reporter.Reporter;
 import zipkin2.reporter.brave.ZipkinSpanHandler;
 
 /** Spring XML config does not support chained builders. This converts accordingly */
-public class ZipkinSpanHandlerFactoryBean extends AbstractFactoryBean {
+public class ZipkinSpanHandlerFactoryBean extends AbstractFactoryBean<SpanHandler> {
   Reporter<Span> spanReporter;
   Tag<Throwable> errorTag;
   Boolean alwaysReportSpans;

@@ -17,7 +17,7 @@ import org.springframework.beans.factory.config.AbstractFactoryBean;
 import zipkin2.reporter.libthrift.LibthriftSender;
 
 /** Spring XML config does not support chained builders. This converts accordingly */
-public class LibthriftSenderFactoryBean extends AbstractFactoryBean {
+public class LibthriftSenderFactoryBean extends AbstractFactoryBean<LibthriftSender> {
 
   String host;
   Integer connectTimeout, socketTimeout;

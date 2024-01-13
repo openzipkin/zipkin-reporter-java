@@ -18,7 +18,7 @@ import zipkin2.reporter.AsyncReporter;
 import zipkin2.reporter.SpanBytesEncoder;
 
 /** Spring XML config does not support chained builders. This converts accordingly */
-public class AsyncReporterFactoryBean extends BaseAsyncFactoryBean {
+public class AsyncReporterFactoryBean extends BaseAsyncFactoryBean<AsyncReporter> {
   SpanBytesEncoder encoder;
 
   @Override public Class<? extends AsyncReporter> getObjectType() {

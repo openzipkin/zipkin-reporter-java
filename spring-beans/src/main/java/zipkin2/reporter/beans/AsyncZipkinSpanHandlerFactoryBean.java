@@ -18,7 +18,7 @@ import java.util.concurrent.TimeUnit;
 import zipkin2.reporter.brave.AsyncZipkinSpanHandler;
 
 /** Spring XML config does not support chained builders. This converts accordingly */
-public class AsyncZipkinSpanHandlerFactoryBean extends BaseAsyncFactoryBean {
+public class AsyncZipkinSpanHandlerFactoryBean extends BaseAsyncFactoryBean<AsyncZipkinSpanHandler> {
   Tag<Throwable> errorTag;
   Boolean alwaysReportSpans;
 
