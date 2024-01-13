@@ -31,6 +31,7 @@
     <module>urlconnection</module>
     <module>okhttp3</module>
     <module>libthrift</module>
+    <module>armeria</module>
     <module>spring-beans</module>
     <module>brave</module>
     <module>metrics-micrometer</module>
