@@ -21,25 +21,27 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.Timeout;
-import org.junit.jupiter.api.extension.RegisterExtension;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 import zipkin2.Span;
 import zipkin2.codec.SpanBytesDecoder;
-import zipkin2.reporter.SpanBytesEncoder;
 import zipkin2.reporter.Call;
 import zipkin2.reporter.Encoding;
 import zipkin2.reporter.Sender;
+import zipkin2.reporter.SpanBytesEncoder;
 
 import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static zipkin2.TestObjects.CLIENT_SPAN;
 
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@Tag("docker")
+@Testcontainers(disabledWithoutDocker = true)
 @Timeout(60)
 public class ITRabbitMQSender { // public for use in src/it
-  @RegisterExtension RabbitMQExtension rabbit = new RabbitMQExtension();
+  @Container RabbitMQContainer rabbit = new RabbitMQContainer();
 
   @Test void sendsSpans() throws Exception {
     try (RabbitMQSender sender = rabbit.newSenderBuilder("sendsSpans").build()) {
