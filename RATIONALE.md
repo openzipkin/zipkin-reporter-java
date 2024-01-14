@@ -4,7 +4,7 @@
 
 Historically, we had a `Sender.check()` function for fail fast reasons, but it was rarely used and
 rarely implemented correctly. In some cases, people returned `OK` having no knowledge of if the
-health was good or not. In one case, stackdriver, a seemingly good implementation was avoided for
+health was good or not. In one case, Stackdriver, a seemingly good implementation was avoided for
 directly sending an empty list of spans, until `check()` was changed to do the same. Rather than
 define a poorly implementable `Sender.check()` which would likely still require sending an empty
 list, we decided to document a call to send no spans should pass through.
@@ -26,7 +26,7 @@ Note that zipkin server does obviate calls to storage when incoming lists are em
 just for things like this, but 3rd party instrumentation which bugged out and sent no spans.
 
 Messaging senders came close to implementing health except would suffer similar problems as
-StackDriver did. For example, verifying broker connectivity doesn't mean the queue or topic works.
+Stackdriver did. For example, verifying broker connectivity doesn't mean the queue or topic works.
 While you can dig around and solve this for some brokers, it ends up the same situation.
 
 Another way could be to catch an exception from a prior "POST", and if that failed, return a
@@ -43,7 +43,7 @@ We had the following choices:
 * document that implementors can skip `send(empty)` even though call sites use this today
 * document that you should not skip `send(empty)`, so that the few callers can use it for fail-fast
 
-The main driving points were how niche this function is (not called by many, and often on interval),
+The main driving points were how niche this function is (not called by many, or on interval),
 and how much work it is to implement a `check()` vs allowing an empty send to proceed. In the
 current code base, the only work required for the latter was documentation, as all senders would
 pass an empty list. Secondary driving force was that the `BytesMessageSender` main goal is easier
