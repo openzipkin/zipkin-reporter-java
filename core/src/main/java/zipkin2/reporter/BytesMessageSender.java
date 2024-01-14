@@ -109,7 +109,11 @@ public interface BytesMessageSender extends Closeable {
   /**
    * Sends a list of encoded spans to a transport such as HTTP or Kafka.
    *
-   * @param encodedSpans list of encoded spans.
+   * <p><em>Empty input is permitted</em>. While async reporters in this repository will always send
+   * a non-empty list. Some external callers might use an empty send for fail-fast checking. If you
+   * obviate empty lists, you might break them. See /RATIONALE.md for more.
+   *
+   * @param encodedSpans a potentially empty list of encoded spans.
    * @throws IllegalStateException if {@link #close() close} was called.
    */
   void send(List<byte[]> encodedSpans) throws IOException;
