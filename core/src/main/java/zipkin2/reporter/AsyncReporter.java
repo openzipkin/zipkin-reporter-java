@@ -36,6 +36,10 @@ import java.util.concurrent.TimeUnit;
  */
 // This is effectively, but not explicitly final as it was not final in version 2.x.
 public class AsyncReporter<S> extends Component implements Reporter<S>, Closeable, Flushable {
+  /** @deprecated Since 3.2, use {@link #create(BytesMessageSender)} */
+  @Deprecated public static AsyncReporter<zipkin2.Span> create(Sender sender) {
+    return create((BytesMessageSender) sender);
+  }
 
   /**
    * Builds a json reporter for <a href="https://zipkin.io/zipkin-api/#/">Zipkin V2</a>. If http,
@@ -43,9 +47,16 @@ public class AsyncReporter<S> extends Component implements Reporter<S>, Closeabl
    *
    * <p>After a certain threshold, spans are drained and {@link BytesMessageSender#send(List) sent}
    * to Zipkin collectors.
+   *
+   * @since 3.2
    */
   public static AsyncReporter<zipkin2.Span> create(BytesMessageSender sender) {
     return new Builder(sender).build();
+  }
+
+  /** @deprecated Since 3.2, use {@link #builder(BytesMessageSender)} */
+  @Deprecated public static Builder builder(Sender sender) {
+    return builder((BytesMessageSender) sender);
   }
 
   /** Like {@link #create(BytesMessageSender)}, except you can configure settings such as the timeout. */

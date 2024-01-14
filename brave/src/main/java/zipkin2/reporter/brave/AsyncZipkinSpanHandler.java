@@ -46,12 +46,22 @@ import zipkin2.reporter.internal.AsyncReporter;
  * @since 2.14
  */
 public final class AsyncZipkinSpanHandler extends SpanHandler implements Closeable, Flushable {
-  /** @since 2.14 */
+  /** @deprecated Since 3.2, use {@link #create(BytesMessageSender)} */
+  @Deprecated public static AsyncZipkinSpanHandler create(Sender sender) {
+    return create((BytesMessageSender) sender);
+  }
+
+  /** @since 3.2 */
   public static AsyncZipkinSpanHandler create(BytesMessageSender sender) {
     return newBuilder(sender).build();
   }
 
-  /** @since 2.14 */
+  /** @deprecated Since 3.2, use {@link #newBuilder(BytesMessageSender)} */
+  @Deprecated public static Builder newBuilder(Sender sender) {
+    return newBuilder((BytesMessageSender) sender);
+  }
+
+  /** @since 3.2 */
   public static Builder newBuilder(BytesMessageSender sender) {
     if (sender == null) throw new NullPointerException("sender == null");
     return new Builder(sender);
