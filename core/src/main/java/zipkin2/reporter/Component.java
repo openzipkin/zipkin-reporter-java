@@ -24,7 +24,9 @@ import java.io.IOException;
  * avoid crashing the application graph if a network service is unavailable.
  *
  * @since 3.0
+ * @deprecated since 3.2 this is no longer used. This will be removed in v4.0.
  */
+@Deprecated
 public abstract class Component implements Closeable {
 
   /**
@@ -35,7 +37,10 @@ public abstract class Component implements Closeable {
    * possible to establish a meaningful result, and be safe to call many times, even concurrently.
    *
    * @see CheckResult#OK
+   * @deprecated since 3.2 this is no longer used. If you need to check a sender, send a zero-length
+   * list of spans. This will be removed in v4.0.
    */
+  @Deprecated
   public CheckResult check() {
     return CheckResult.OK;
   }

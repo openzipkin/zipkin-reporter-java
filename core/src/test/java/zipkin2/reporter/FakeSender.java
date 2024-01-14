@@ -11,7 +11,7 @@
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
  */
-package zipkin2.reporter.internal;
+package zipkin2.reporter;
 
 import java.util.List;
 import java.util.function.Consumer;
@@ -19,15 +19,8 @@ import java.util.stream.Collectors;
 import zipkin2.Span;
 import zipkin2.codec.BytesDecoder;
 import zipkin2.codec.SpanBytesDecoder;
-import zipkin2.reporter.BytesEncoder;
-import zipkin2.reporter.BytesMessageEncoder;
-import zipkin2.reporter.Call;
-import zipkin2.reporter.ClosedSenderException;
-import zipkin2.reporter.Encoding;
-import zipkin2.reporter.Sender;
-import zipkin2.reporter.SpanBytesEncoder;
 
-public final class FakeSender extends Sender {
+public final class FakeSender extends BytesMessageSender.Base {
 
   public static FakeSender create() {
     return new FakeSender(Encoding.JSON, Integer.MAX_VALUE,
@@ -36,7 +29,6 @@ public final class FakeSender extends Sender {
     });
   }
 
-  final Encoding encoding;
   final int messageMaxBytes;
   final BytesMessageEncoder messageEncoder;
   final BytesEncoder<Span> encoder;
@@ -45,7 +37,7 @@ public final class FakeSender extends Sender {
 
   FakeSender(Encoding encoding, int messageMaxBytes, BytesMessageEncoder messageEncoder,
     BytesEncoder<Span> encoder, BytesDecoder<Span> decoder, Consumer<List<Span>> onSpans) {
-    this.encoding = encoding;
+    super(encoding);
     this.messageMaxBytes = messageMaxBytes;
     this.messageEncoder = messageEncoder;
     this.encoder = encoder;
@@ -53,45 +45,32 @@ public final class FakeSender extends Sender {
     this.onSpans = onSpans;
   }
 
-  FakeSender encoding(Encoding encoding) {
+  public FakeSender encoding(Encoding encoding) {
     return new FakeSender(encoding, messageMaxBytes, messageEncoder, // invalid but not needed, yet
       encoder, // invalid but not needed, yet
       decoder, // invalid but not needed, yet
       onSpans);
   }
 
-  FakeSender onSpans(Consumer<List<Span>> onSpans) {
+  public FakeSender onSpans(Consumer<List<Span>> onSpans) {
     return new FakeSender(encoding, messageMaxBytes, messageEncoder, encoder, decoder, onSpans);
   }
 
-  FakeSender messageMaxBytes(int messageMaxBytes) {
+  public FakeSender messageMaxBytes(int messageMaxBytes) {
     return new FakeSender(encoding, messageMaxBytes, messageEncoder, encoder, decoder, onSpans);
-  }
-
-  @Override public Encoding encoding() {
-    return encoding;
   }
 
   @Override public int messageMaxBytes() {
     return messageMaxBytes;
   }
 
-  @Override public int messageSizeInBytes(List<byte[]> encodedSpans) {
-    return encoding.listSizeInBytes(encodedSpans);
-  }
-
-  @Override public int messageSizeInBytes(int encodedSizeInBytes) {
-    return encoding.listSizeInBytes(encodedSizeInBytes);
-  }
-
   /** close is typically called from a different thread */
   volatile boolean closeCalled;
 
-  @Override public Call<Void> sendSpans(List<byte[]> encodedSpans) {
+  @Override public void send(List<byte[]> encodedSpans) {
     if (closeCalled) throw new ClosedSenderException();
     List<Span> decoded = encodedSpans.stream().map(decoder::decodeOne).collect(Collectors.toList());
     onSpans.accept(decoded);
-    return Call.create(null);
   }
 
   @Override public void close() {

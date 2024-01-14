@@ -57,7 +57,7 @@ public class KafkaSenderBenchmarks extends SenderBenchmarks {
   KafkaContainer kafka;
   KafkaConsumer<byte[], byte[]> consumer;
 
-  @Override protected Sender createSender() {
+  @Override protected BytesMessageSender createSender() {
     kafka = new KafkaContainer();
     kafka.start();
 

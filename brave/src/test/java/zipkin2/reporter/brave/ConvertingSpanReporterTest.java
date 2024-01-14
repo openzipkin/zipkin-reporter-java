@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2023 The OpenZipkin Authors
+ * Copyright 2016-2024 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -54,24 +54,24 @@ class ConvertingSpanReporterTest {
 
   @Test void generateKindMap() {
     assertThat(ConvertingSpanReporter.generateKindMap()).containsExactly(
-        entry(CLIENT, Span.Kind.CLIENT),
-        entry(SERVER, Span.Kind.SERVER),
-        entry(PRODUCER, Span.Kind.PRODUCER),
-        entry(CONSUMER, Span.Kind.CONSUMER)
+      entry(CLIENT, Span.Kind.CLIENT),
+      entry(SERVER, Span.Kind.SERVER),
+      entry(PRODUCER, Span.Kind.PRODUCER),
+      entry(CONSUMER, Span.Kind.CONSUMER)
     );
   }
 
   @Test void equalsAndHashCode() {
     assertThat(spanReporter)
-        .hasSameHashCodeAs(spans)
-        .isEqualTo(new ConvertingSpanReporter(spans, Tags.ERROR));
+      .hasSameHashCodeAs(spans)
+      .isEqualTo(new ConvertingSpanReporter(spans, Tags.ERROR));
 
     ConvertingSpanReporter otherReporter = new ConvertingSpanReporter(spans::add, Tags.ERROR);
 
     assertThat(spanReporter)
-        .isNotEqualTo(otherReporter)
-        .extracting(Objects::hashCode)
-        .isNotEqualTo(otherReporter.hashCode());
+      .isNotEqualTo(otherReporter)
+      .extracting(Objects::hashCode)
+      .isNotEqualTo(otherReporter.hashCode());
   }
 
   @Test void convertsSampledSpan() {
@@ -79,10 +79,10 @@ class ConvertingSpanReporterTest {
     spanReporter.report(span);
 
     assertThat(spans.get(0)).usingRecursiveComparison().isEqualTo(
-        Span.newBuilder()
-            .traceId("1")
-            .id("2")
-            .build()
+      Span.newBuilder()
+        .traceId("1")
+        .id("2")
+        .build()
     );
   }
 
@@ -92,11 +92,11 @@ class ConvertingSpanReporterTest {
     spanReporter.report(span);
 
     assertThat(spans.get(0)).usingRecursiveComparison().isEqualTo(
-        Span.newBuilder()
-            .traceId("0000000000000001")
-            .id("0000000000000002")
-            .debug(true)
-            .build()
+      Span.newBuilder()
+        .traceId("0000000000000001")
+        .id("0000000000000002")
+        .debug(true)
+        .build()
     );
   }
 
@@ -121,10 +121,10 @@ class ConvertingSpanReporterTest {
 
     spanReporter.report(span);
     assertThat(spans.get(0).tags()).containsOnly(
-        entry("1", "1"),
-        entry("foo", "baz"),
-        entry("2", "2"),
-        entry("3", "3")
+      entry("1", "1"),
+      entry("foo", "baz"),
+      entry("2", "2"),
+      entry("3", "3")
     );
   }
 
@@ -138,7 +138,7 @@ class ConvertingSpanReporterTest {
     spanReporter.report(span);
 
     assertThat(spans.get(0).tags())
-        .containsOnly(entry("error", "RuntimeException"));
+      .containsOnly(entry("error", "RuntimeException"));
   }
 
   @Test void doesntOverwriteErrorTag() {
@@ -150,7 +150,7 @@ class ConvertingSpanReporterTest {
     spanReporter.report(span);
 
     assertThat(spans.get(0).tags())
-        .containsOnly(entry("error", ""));
+      .containsOnly(entry("error", ""));
   }
 
   @Test void addsAnnotations() {
@@ -163,7 +163,7 @@ class ConvertingSpanReporterTest {
     spanReporter.report(span);
 
     assertThat(spans.get(0).annotations())
-        .containsOnly(Annotation.create(2L, "foo"));
+      .containsOnly(Annotation.create(2L, "foo"));
   }
 
   @Test void finished_client() {
@@ -232,10 +232,10 @@ class ConvertingSpanReporterTest {
     MutableSpan span = new MutableSpan(context, null);
 
     Endpoint endpoint = Endpoint.newBuilder()
-        .serviceName("fooService")
-        .ip("1.2.3.4")
-        .port(80)
-        .build();
+      .serviceName("fooService")
+      .ip("1.2.3.4")
+      .port(80)
+      .build();
 
     span.kind(CLIENT);
     span.remoteServiceName(endpoint.serviceName());
@@ -246,7 +246,7 @@ class ConvertingSpanReporterTest {
     spanReporter.report(span);
 
     assertThat(spans.get(0).remoteEndpoint())
-        .isEqualTo(endpoint);
+      .isEqualTo(endpoint);
   }
 
   // This prevents the server startTimestamp from overwriting the client one on the collector
@@ -261,7 +261,7 @@ class ConvertingSpanReporterTest {
     spanReporter.report(span);
 
     assertThat(spans.get(0).shared())
-        .isTrue();
+      .isTrue();
   }
 
   @Test void flushUnstartedNeitherSetsTimestampNorDuration() {
@@ -271,6 +271,6 @@ class ConvertingSpanReporterTest {
     spanReporter.report(flushed);
 
     assertThat(spans.get(0)).extracting(Span::timestampAsLong, Span::durationAsLong)
-        .allSatisfy(u -> assertThat(u).isEqualTo(0L));
+      .allSatisfy(u -> assertThat(u).isEqualTo(0L));
   }
 }

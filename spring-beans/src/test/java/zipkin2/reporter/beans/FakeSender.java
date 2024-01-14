@@ -13,25 +13,23 @@
  */
 package zipkin2.reporter.beans;
 
+import java.io.IOException;
 import java.util.List;
-import zipkin2.reporter.Call;
+import zipkin2.reporter.BytesMessageSender;
 import zipkin2.reporter.Encoding;
-import zipkin2.reporter.Sender;
 
-class FakeSender extends Sender {
-  @Override public Encoding encoding() {
-    return Encoding.JSON;
+class FakeSender extends BytesMessageSender.Base {
+  FakeSender() {
+    super(Encoding.JSON);
   }
 
   @Override public int messageMaxBytes() {
     return 1024;
   }
 
-  @Override public int messageSizeInBytes(List<byte[]> encodedSpans) {
-    return 1024;
+  @Override public void send(List<byte[]> encodedSpans) {
   }
 
-  @Override public Call<Void> sendSpans(List<byte[]> encodedSpans) {
-    return Call.create(null);
+  @Override public void close() throws IOException {
   }
 }

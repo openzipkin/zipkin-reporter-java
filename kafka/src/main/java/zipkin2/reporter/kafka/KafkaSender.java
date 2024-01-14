@@ -26,8 +26,10 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
+import zipkin2.reporter.AsyncReporter;
 import zipkin2.reporter.AwaitableCallback;
 import zipkin2.reporter.BytesMessageEncoder;
+import zipkin2.reporter.BytesMessageSender;
 import zipkin2.reporter.Call;
 import zipkin2.reporter.Callback;
 import zipkin2.reporter.CheckResult;
@@ -40,7 +42,7 @@ import zipkin2.reporter.Sender;
  *
  * <h3>Usage</h3>
  * <p>
- * This type is designed for {@link zipkin2.reporter.AsyncReporter.Builder#builder(Sender) the async
+ * This type is designed for {@link AsyncReporter.Builder#builder(BytesMessageSender) the async
  * reporter}.
  *
  * <p>Here's a simple configuration, configured for json:
@@ -255,19 +257,32 @@ public final class KafkaSender extends Sender {
     return messageMaxBytes;
   }
 
-  /**
-   * This sends all the spans as a single message.
-   *
-   * <p>NOTE: this blocks until the metadata server is available.
-   */
-  @Override public Call<Void> sendSpans(List<byte[]> encodedSpans) {
+  /** {@inheritDoc} */
+  @Override @Deprecated public Call<Void> sendSpans(List<byte[]> encodedSpans) {
     if (closeCalled) throw new ClosedSenderException();
     byte[] message = encoder.encode(encodedSpans);
     return new KafkaCall(message);
   }
 
-  /** Ensures there are no problems reading metadata about the topic. */
-  @Override public CheckResult check() {
+  /**
+   * This sends all the spans as a single message.
+   *
+   * <p>NOTE: this blocks until the metadata server is available.
+   */
+  @Override public void send(List<byte[]> encodedSpans) {
+    if (closeCalled) throw new ClosedSenderException();
+    send(encoder.encode(encodedSpans));
+  }
+
+  void send(byte[] message) {
+    if (closeCalled) throw new ClosedSenderException();
+    AwaitableCallback callback = new AwaitableCallback();
+    get().send(new ProducerRecord<byte[], byte[]>(topic, message), new CallbackAdapter(callback));
+    callback.await();
+  }
+
+  /** {@inheritDoc} */
+  @Override @Deprecated public CheckResult check() {
     try {
       KafkaFuture<String> maybeClusterId = getAdminClient().describeCluster().clusterId();
       maybeClusterId.get(1, TimeUnit.SECONDS);
@@ -308,7 +323,7 @@ public final class KafkaSender extends Sender {
     closeCalled = true;
   }
 
-  @Override public final String toString() {
+  @Override public String toString() {
     return "KafkaSender{"
       + "bootstrapServers=" + properties.get(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG)
       + ", topic=" + topic
@@ -323,9 +338,7 @@ public final class KafkaSender extends Sender {
     }
 
     @Override protected Void doExecute() {
-      AwaitableCallback callback = new AwaitableCallback();
-      get().send(new ProducerRecord<byte[], byte[]>(topic, message), new CallbackAdapter(callback));
-      callback.await();
+      send(message);
       return null;
     }
 

@@ -144,7 +144,7 @@ class OkHttpSenderFactoryBeanTest {
       OkHttpSender sender = context.getBean("sender", OkHttpSender.class);
       context.close();
 
-      sender.sendSpans(Arrays.asList(new byte[]{'{', '}'}));
+      sender.send(Arrays.asList(new byte[]{'{', '}'}));
     });
   }
 }

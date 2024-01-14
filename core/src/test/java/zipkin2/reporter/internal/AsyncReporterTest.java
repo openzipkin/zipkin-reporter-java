@@ -32,6 +32,7 @@ import zipkin2.TestObjects;
 import zipkin2.reporter.BytesEncoder;
 import zipkin2.reporter.ClosedSenderException;
 import zipkin2.reporter.Encoding;
+import zipkin2.reporter.FakeSender;
 import zipkin2.reporter.InMemoryReporterMetrics;
 import zipkin2.reporter.SpanBytesEncoder;
 import zipkin2.reporter.internal.AsyncReporter.BoundedAsyncReporter;

@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2020 The OpenZipkin Authors
+ * Copyright 2016-2024 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -13,7 +13,7 @@
  */
 package zipkin2.reporter;
 
-/** An exception thrown when a {@link Sender} is used after it has been closed. */
+/** An exception thrown when a {@link BytesMessageSender} is used after it has been closed. */
 public final class ClosedSenderException extends IllegalStateException {
   static final long serialVersionUID = -4636520624634625689L;
 }

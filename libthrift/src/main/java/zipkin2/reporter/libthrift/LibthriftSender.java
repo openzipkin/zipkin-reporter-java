@@ -84,7 +84,7 @@ public final class LibthriftSender extends Sender {
       return this;
     }
 
-    public final LibthriftSender build() {
+    public LibthriftSender build() {
       return new LibthriftSender(this);
     }
 
@@ -129,9 +129,22 @@ public final class LibthriftSender extends Sender {
     return ScribeClient.messageSizeInBytes(encodedSpans);
   }
 
-  @Override public Call<Void> sendSpans(List<byte[]> encodedSpans) {
+  /** {@inheritDoc} */
+  @Override @Deprecated public Call<Void> sendSpans(List<byte[]> encodedSpans) {
     if (closeCalled) throw new ClosedSenderException();
     return new ScribeCall(encodedSpans);
+  }
+
+  /** {@inheritDoc} */
+  @Override public void send(List<byte[]> encodedSpans) throws IOException {
+    if (closeCalled) throw new ClosedSenderException();
+    try {
+      if (!get().log(encodedSpans)) {
+        throw new IllegalStateException("try later");
+      }
+    } catch (TException e) {
+      throw new IOException(e);
+    }
   }
 
   ScribeClient get() {
@@ -149,9 +162,8 @@ public final class LibthriftSender extends Sender {
   private volatile boolean closeCalled;
   private volatile ScribeClient client;
 
-  /** Sends an empty log message to the configured host. */
-  @Override
-  public CheckResult check() {
+  /** {@inheritDoc} */
+  @Override @Deprecated public CheckResult check() {
     try {
       if (get().log(Collections.<byte[]>emptyList())) {
         return CheckResult.OK;
@@ -169,7 +181,7 @@ public final class LibthriftSender extends Sender {
     if (client != null) client.close();
   }
 
-  @Override public final String toString() {
+  @Override public String toString() {
     return "LibthriftSender(" + host + ":" + port + ")";
   }
 
@@ -181,13 +193,7 @@ public final class LibthriftSender extends Sender {
     }
 
     @Override protected Void doExecute() throws IOException {
-      try {
-        if (!get().log(encodedSpans)) {
-          throw new IllegalStateException("try later");
-        }
-      } catch (TException e) {
-        throw new IOException(e);
-      }
+      send(encodedSpans);
       return null;
     }
 

@@ -14,6 +14,7 @@
 package zipkin2.reporter.activemq;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.stream.Stream;
 import javax.jms.BytesMessage;
 import javax.jms.MessageConsumer;
@@ -25,12 +26,10 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import zipkin2.Span;
 import zipkin2.codec.SpanBytesDecoder;
-import zipkin2.reporter.SpanBytesEncoder;
 import zipkin2.reporter.AsyncReporter;
-import zipkin2.reporter.Call;
-import zipkin2.reporter.CheckResult;
+import zipkin2.reporter.BytesMessageSender;
 import zipkin2.reporter.Encoding;
-import zipkin2.reporter.Sender;
+import zipkin2.reporter.SpanBytesEncoder;
 
 import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -43,55 +42,46 @@ import static zipkin2.TestObjects.CLIENT_SPAN;
 class ITActiveMQSender {
   @Container ActiveMQContainer activemq = new ActiveMQContainer();
 
-  @Test void checkPasses() {
+  @Test void emptyOk() throws Exception {
     try (ActiveMQSender sender = activemq.newSenderBuilder("checkPasses").build()) {
-      assertThat(sender.check().ok()).isTrue();
-    }
-  }
-
-  @Test void checkFalseWhenBrokerIsDown() {
-    // we can be pretty certain ActiveMQ isn't running on localhost port 80
-    try (ActiveMQSender sender = ActiveMQSender.create("tcp://localhost:80")) {
-      CheckResult check = sender.check();
-      assertThat(check.ok()).isFalse();
-      assertThat(check.error()).isInstanceOf(IOException.class);
+      sender.send(Collections.emptyList());
     }
   }
 
   @Test void sendFailsWithInvalidActiveMqServer() {
     // we can be pretty certain ActiveMQ isn't running on localhost port 80
     try (ActiveMQSender sender = ActiveMQSender.create("tcp://localhost:80")) {
-      assertThatThrownBy(() -> send(sender, CLIENT_SPAN, CLIENT_SPAN).execute()).isInstanceOf(
-          IOException.class)
+      assertThatThrownBy(() -> send(sender, CLIENT_SPAN, CLIENT_SPAN))
+        .isInstanceOf(IOException.class)
         .hasMessageContaining("Unable to establish connection to ActiveMQ broker");
     }
   }
 
-  @Test void sendsSpans() throws Exception {
-    try (ActiveMQSender sender = activemq.newSenderBuilder("sendsSpans").build()) {
-      send(sender, CLIENT_SPAN, CLIENT_SPAN).execute();
+  @Test void send() throws Exception {
+    try (ActiveMQSender sender = activemq.newSenderBuilder("send").build()) {
+      send(sender, CLIENT_SPAN, CLIENT_SPAN);
 
       assertThat(SpanBytesDecoder.JSON_V2.decodeList(readMessage(sender))).containsExactly(
         CLIENT_SPAN, CLIENT_SPAN);
     }
   }
 
-  @Test void sendsSpans_PROTO3() throws Exception {
-    try (ActiveMQSender sender = activemq.newSenderBuilder("sendsSpans_PROTO3")
+  @Test void send_PROTO3() throws Exception {
+    try (ActiveMQSender sender = activemq.newSenderBuilder("send_PROTO3")
       .encoding(Encoding.PROTO3)
       .build()) {
-      send(sender, CLIENT_SPAN, CLIENT_SPAN).execute();
+      send(sender, CLIENT_SPAN, CLIENT_SPAN);
 
       assertThat(SpanBytesDecoder.PROTO3.decodeList(readMessage(sender))).containsExactly(
         CLIENT_SPAN, CLIENT_SPAN);
     }
   }
 
-  @Test void sendsSpans_THRIFT() throws Exception {
-    try (ActiveMQSender sender = activemq.newSenderBuilder("sendsSpans_THRIFT")
+  @Test void send_THRIFT() throws Exception {
+    try (ActiveMQSender sender = activemq.newSenderBuilder("send_THRIFT")
       .encoding(Encoding.THRIFT)
       .build()) {
-      send(sender, CLIENT_SPAN, CLIENT_SPAN).execute();
+      send(sender, CLIENT_SPAN, CLIENT_SPAN);
 
       assertThat(SpanBytesDecoder.THRIFT.decodeList(readMessage(sender))).containsExactly(
         CLIENT_SPAN, CLIENT_SPAN);
@@ -101,16 +91,16 @@ class ITActiveMQSender {
   @Test void illegalToSendWhenClosed() {
     try (ActiveMQSender sender = activemq.newSenderBuilder("illegalToSendWhenClosed").build()) {
       sender.close();
-      assertThatThrownBy(() -> send(sender, CLIENT_SPAN, CLIENT_SPAN).execute()).isInstanceOf(
+      assertThatThrownBy(() -> send(sender, CLIENT_SPAN, CLIENT_SPAN)).isInstanceOf(
         IllegalStateException.class);
     }
   }
 
   /**
-   * The output of toString() on {@link Sender} implementations appears in thread names created by
-   * {@link AsyncReporter}. Since thread names are likely to be exposed in logs and other monitoring
-   * tools, care should be taken to ensure the toString() output is a reasonable length and does not
-   * contain sensitive information.
+   * The output of toString() on {@link BytesMessageSender} implementations appears in thread names
+   * created by {@link AsyncReporter}. Since thread names are likely to be exposed in logs and other
+   * monitoring tools, care should be taken to ensure the toString() output is a reasonable length
+   * and does not contain sensitive information.
    */
   @Test void toStringContainsOnlySummaryInformation() {
     try (ActiveMQSender sender = activemq.newSenderBuilder("toString").build()) {
@@ -119,7 +109,7 @@ class ITActiveMQSender {
     }
   }
 
-  Call<Void> send(ActiveMQSender sender, Span... spans) {
+  void send(ActiveMQSender sender, Span... spans) throws IOException {
     SpanBytesEncoder bytesEncoder;
     switch (sender.encoding()) {
       case JSON:
@@ -134,7 +124,7 @@ class ITActiveMQSender {
       default:
         throw new UnsupportedOperationException("encoding: " + sender.encoding());
     }
-    return sender.sendSpans(Stream.of(spans).map(bytesEncoder::encode).collect(toList()));
+    sender.send(Stream.of(spans).map(bytesEncoder::encode).collect(toList()));
   }
 
   byte[] readMessage(ActiveMQSender sender) throws Exception {

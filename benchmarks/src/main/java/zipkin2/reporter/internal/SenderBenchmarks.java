@@ -13,6 +13,7 @@
  */
 package zipkin2.reporter.internal;
 
+import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 import org.openjdk.jmh.annotations.AuxCounters;
 import org.openjdk.jmh.annotations.Benchmark;
@@ -31,9 +32,9 @@ import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
 import zipkin2.Span;
 import zipkin2.TestObjects;
-import zipkin2.reporter.CheckResult;
+import zipkin2.reporter.BytesMessageSender;
 import zipkin2.reporter.InMemoryReporterMetrics;
-import zipkin2.reporter.Sender;
+import zipkin2.reporter.BytesMessageSender;
 import zipkin2.reporter.SpanBytesEncoder;
 
 /**
@@ -89,7 +90,7 @@ public abstract class SenderBenchmarks {
     }
   }
 
-  Sender sender;
+  BytesMessageSender sender;
 
   AsyncReporter.BoundedAsyncReporter<Span> reporter;
 
@@ -97,8 +98,8 @@ public abstract class SenderBenchmarks {
   public void setup() throws Throwable {
     sender = createSender();
 
-    CheckResult senderCheck = sender.check();
-    if (!senderCheck.ok()) throw senderCheck.error();
+    // check sender works at all
+    sender.send(Collections.emptyList());
 
     reporter = (AsyncReporter.BoundedAsyncReporter<Span>) AsyncReporter.newBuilder(sender)
       .messageMaxBytes(messageMaxBytes)
@@ -106,7 +107,7 @@ public abstract class SenderBenchmarks {
       .metrics(metrics).build(SpanBytesEncoder.JSON_V2);
   }
 
-  protected abstract Sender createSender() throws Exception;
+  protected abstract BytesMessageSender createSender() throws Exception;
 
   @Setup(Level.Iteration)
   public void fillQueue() {

@@ -20,13 +20,13 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import java.util.concurrent.TimeoutException;
 import java.util.stream.Stream;
 import javax.management.ObjectName;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.errors.RecordTooLargeException;
+import org.apache.kafka.common.errors.TimeoutException;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.junit.jupiter.api.AfterEach;
@@ -39,10 +39,8 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import zipkin2.Span;
 import zipkin2.codec.SpanBytesDecoder;
 import zipkin2.reporter.AsyncReporter;
-import zipkin2.reporter.Call;
-import zipkin2.reporter.CheckResult;
+import zipkin2.reporter.BytesMessageSender;
 import zipkin2.reporter.Encoding;
-import zipkin2.reporter.Sender;
 import zipkin2.reporter.SpanBytesEncoder;
 
 import static java.util.stream.Collectors.toList;
@@ -69,49 +67,49 @@ class ITKafkaSender {
     sender.close();
   }
 
-  @Test void sendsSpans() throws Exception {
-    send(CLIENT_SPAN, CLIENT_SPAN).execute();
+  @Test void send() {
+    sendSpans(CLIENT_SPAN, CLIENT_SPAN);
     sender.producer.flush();
 
     assertThat(SpanBytesDecoder.JSON_V2.decodeList(readMessage()))
       .containsExactly(CLIENT_SPAN, CLIENT_SPAN);
   }
 
-  @Test void sendsSpans_PROTO3() throws Exception {
+  @Test void send_PROTO3() {
     sender.close();
     sender = sender.toBuilder().encoding(Encoding.PROTO3).build();
 
-    send(CLIENT_SPAN, CLIENT_SPAN).execute();
+    sendSpans(CLIENT_SPAN, CLIENT_SPAN);
     sender.producer.flush();
 
     assertThat(SpanBytesDecoder.PROTO3.decodeList(readMessage()))
       .containsExactly(CLIENT_SPAN, CLIENT_SPAN);
   }
 
-  @Test void sendsSpans_THRIFT() throws Exception {
+  @Test void send_THRIFT() {
     sender.close();
     sender = sender.toBuilder().encoding(Encoding.THRIFT).build();
 
-    send(CLIENT_SPAN, CLIENT_SPAN).execute();
+    sendSpans(CLIENT_SPAN, CLIENT_SPAN);
     sender.producer.flush();
 
     assertThat(SpanBytesDecoder.THRIFT.decodeList(readMessage()))
       .containsExactly(CLIENT_SPAN, CLIENT_SPAN);
   }
 
-  @Test void sendsSpansToCorrectTopic() throws Exception {
+  @Test void sendToCorrectTopic() {
     sender.close();
     kafka.prepareTopics("customzipkintopic");
     sender = sender.toBuilder().topic("customzipkintopic").build();
 
-    send(CLIENT_SPAN, CLIENT_SPAN).execute();
+    sendSpans(CLIENT_SPAN, CLIENT_SPAN);
     sender.producer.flush();
 
     assertThat(SpanBytesDecoder.JSON_V2.decodeList(readMessage("customzipkintopic")))
       .containsExactly(CLIENT_SPAN, CLIENT_SPAN);
   }
 
-  @Test void checkFalseWhenKafkaIsDown() {
+  @Test void sendWhenKafkaIsDown() {
     kafka.stop();
 
     // Make a new tracer that fails faster than 60 seconds
@@ -120,20 +118,19 @@ class ITKafkaSender {
     overrides.put(ProducerConfig.MAX_BLOCK_MS_CONFIG, "100");
     sender = sender.toBuilder().overrides(overrides).build();
 
-    CheckResult check = sender.check();
-    assertThat(check.ok()).isFalse();
-    assertThat(check.error()).isInstanceOf(TimeoutException.class);
+    assertThatThrownBy(() -> sendSpans(CLIENT_SPAN, CLIENT_SPAN))
+      .isInstanceOf(TimeoutException.class);
   }
 
   @Test void illegalToSendWhenClosed() {
     sender.close();
 
-    assertThatThrownBy(() -> send(CLIENT_SPAN, CLIENT_SPAN).execute())
+    assertThatThrownBy(() -> sendSpans(CLIENT_SPAN, CLIENT_SPAN))
       .isInstanceOf(IllegalStateException.class);
   }
 
   @Test void shouldCloseKafkaProducerOnClose() throws Exception {
-    send(CLIENT_SPAN, CLIENT_SPAN).execute();
+    sendSpans(CLIENT_SPAN, CLIENT_SPAN);
     sender.producer.flush();
 
     final ObjectName kafkaProducerMXBeanName = new ObjectName("kafka.producer:*");
@@ -152,15 +149,15 @@ class ITKafkaSender {
     sender.close();
     sender = sender.toBuilder().messageMaxBytes(1).build();
 
-    assertThatThrownBy(() -> send(CLIENT_SPAN, CLIENT_SPAN).execute())
+    assertThatThrownBy(() -> sendSpans(CLIENT_SPAN, CLIENT_SPAN))
       .isInstanceOf(RecordTooLargeException.class);
   }
 
   /**
-   * The output of toString() on {@link Sender} implementations appears in thread names created by
-   * {@link AsyncReporter}. Since thread names are likely to be exposed in logs and other monitoring
-   * tools, care should be taken to ensure the toString() output is a reasonable length and does not
-   * contain sensitive information.
+   * The output of toString() on {@link BytesMessageSender} implementations appears in thread names
+   * created by {@link AsyncReporter}. Since thread names are likely to be exposed in logs and other
+   * monitoring tools, care should be taken to ensure the toString() output is a reasonable length
+   * and does not contain sensitive information.
    */
   @Test void toStringContainsOnlySummaryInformation() {
     assertThat(sender.toString()).isEqualTo(
@@ -190,7 +187,7 @@ class ITKafkaSender {
     assertThat(filteredProperties.get(ProducerConfig.SECURITY_PROVIDERS_CONFIG)).isNotNull();
   }
 
-  Call<Void> send(Span... spans) {
+  void sendSpans(Span... spans) {
     SpanBytesEncoder bytesEncoder;
     switch (sender.encoding()) {
       case JSON:
@@ -205,7 +202,7 @@ class ITKafkaSender {
       default:
         throw new UnsupportedOperationException("encoding: " + sender.encoding());
     }
-    return sender.sendSpans(Stream.of(spans).map(bytesEncoder::encode).collect(toList()));
+    sender.send(Stream.of(spans).map(bytesEncoder::encode).collect(toList()));
   }
 
   byte[] readMessage(String topic) {

@@ -22,6 +22,7 @@ import java.io.Flushable;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import zipkin2.reporter.BytesEncoder;
+import zipkin2.reporter.BytesMessageSender;
 import zipkin2.reporter.Encoding;
 import zipkin2.reporter.Reporter;
 import zipkin2.reporter.ReporterMetrics;
@@ -31,7 +32,7 @@ import zipkin2.reporter.internal.AsyncReporter;
 /**
  * A {@link brave.handler.SpanHandler} that queues spans on {@link #end} to bundle and send as a
  * bulk <a href="https://zipkin.io/zipkin-api/#/">Zipkin JSON V2</a> message. When the {@link
- * Sender} is HTTP, the endpoint is usually "http://zipkinhost:9411/api/v2/spans".
+ * BytesMessageSender} is HTTP, the endpoint is usually "http://zipkinhost:9411/api/v2/spans".
  *
  * <p>Example:
  * <pre>{@code
@@ -46,12 +47,12 @@ import zipkin2.reporter.internal.AsyncReporter;
  */
 public final class AsyncZipkinSpanHandler extends SpanHandler implements Closeable, Flushable {
   /** @since 2.14 */
-  public static AsyncZipkinSpanHandler create(Sender sender) {
+  public static AsyncZipkinSpanHandler create(BytesMessageSender sender) {
     return newBuilder(sender).build();
   }
 
   /** @since 2.14 */
-  public static Builder newBuilder(Sender sender) {
+  public static Builder newBuilder(BytesMessageSender sender) {
     if (sender == null) throw new NullPointerException("sender == null");
     return new Builder(sender);
   }
@@ -80,7 +81,7 @@ public final class AsyncZipkinSpanHandler extends SpanHandler implements Closeab
       this.errorTag = handler.errorTag;
     }
 
-    Builder(Sender sender) {
+    Builder(BytesMessageSender sender) {
       this.delegate = AsyncReporter.newBuilder(sender);
       this.encoding = sender.encoding();
     }

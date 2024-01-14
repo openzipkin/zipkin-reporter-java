@@ -19,6 +19,7 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import okhttp3.Call;
 import okhttp3.Dispatcher;
 import okhttp3.HttpUrl;
 import okhttp3.MediaType;
@@ -30,19 +31,22 @@ import okio.Buffer;
 import okio.BufferedSink;
 import okio.GzipSink;
 import okio.Okio;
+import zipkin2.reporter.AsyncReporter;
+import zipkin2.reporter.BytesMessageSender;
 import zipkin2.reporter.CheckResult;
 import zipkin2.reporter.ClosedSenderException;
 import zipkin2.reporter.Encoding;
 import zipkin2.reporter.Sender;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static zipkin2.reporter.okhttp3.HttpCall.parseResponse;
 
 /**
  * Reports spans to Zipkin, using its <a href="https://zipkin.io/zipkin-api/#/">POST</a> endpoint.
  *
  * <h3>Usage</h3>
  * <p>
- * This type is designed for {@link zipkin2.reporter.AsyncReporter.Builder#builder(Sender) the async
+ * This type is designed for {@link AsyncReporter.Builder#builder(BytesMessageSender) the async
  * reporter}.
  *
  * <p>Here's a simple configuration, configured for json:
@@ -268,8 +272,8 @@ public final class OkHttpSender extends Sender {
   /** close is typically called from a different thread */
   volatile boolean closeCalled;
 
-  /** The returned call sends spans as a POST to {@link Builder#endpoint(String)}. */
-  @Override public zipkin2.reporter.Call<Void> sendSpans(List<byte[]> encodedSpans) {
+  /** {@inheritDoc} */
+  @Override @Deprecated public zipkin2.reporter.Call<Void> sendSpans(List<byte[]> encodedSpans) {
     if (closeCalled) throw new ClosedSenderException();
     Request request;
     try {
@@ -280,8 +284,16 @@ public final class OkHttpSender extends Sender {
     return new HttpCall(client.newCall(request));
   }
 
-  /** Sends an empty json message to the configured endpoint. */
-  @Override public CheckResult check() {
+  /** Sends spans as a POST to {@link Builder#endpoint(String)}. */
+  @Override public void send(List<byte[]> encodedSpans) throws IOException {
+    if (closeCalled) throw new ClosedSenderException();
+    Request request = newRequest(encoder.encode(encodedSpans));
+    Call call = client.newCall(request);
+    parseResponse(call.execute());
+  }
+
+  /** {@inheritDoc} */
+  @Override @Deprecated public CheckResult check() {
     try {
       Request request = new Request.Builder().url(endpoint)
         .post(RequestBody.create(MediaType.parse("application/json"), "[]")).build();

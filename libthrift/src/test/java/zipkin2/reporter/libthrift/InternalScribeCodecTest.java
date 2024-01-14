@@ -40,7 +40,7 @@ class InternalScribeCodecTest {
     }
   }
 
-  @Test void sendsSpansExpectedMetrics() throws Exception {
+  @Test void sendExpectedMetrics() throws Exception {
     byte[] thrift = SpanBytesEncoder.THRIFT.encode(CLIENT_SPAN);
     List<byte[]> encodedSpans = asList(thrift, thrift);
 
