@@ -11,11 +11,8 @@
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
  */
-package zipkin2.reporter.brave;
+package zipkin2.reporter;
 
-import brave.handler.MutableSpan;
-import brave.handler.SpanHandler;
-import brave.propagation.TraceContext;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -23,60 +20,24 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 import zipkin2.Span;
+import zipkin2.TestObjects;
 import zipkin2.codec.SpanBytesDecoder;
-import zipkin2.reporter.BytesEncoder;
-import zipkin2.reporter.Call;
-import zipkin2.reporter.Callback;
-import zipkin2.reporter.Encoding;
-import zipkin2.reporter.Sender;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
-class AsyncZipkinSpanHandlerTest {
-  @Test void build_protoNotYetSupported() {
-    FakeSender sender = FakeSender.create().encoding(Encoding.PROTO3);
-    AsyncZipkinSpanHandler.Builder builder = AsyncZipkinSpanHandler.newBuilder(sender);
-    assertThrows(UnsupportedOperationException.class, builder::build);
-  }
-
-  /** Ready for custom format such as OTLP or Stackdriver. */
-  @Test void build_customProtoEncoder() {
-    FakeSender sender = FakeSender.create().encoding(Encoding.PROTO3);
-    AsyncZipkinSpanHandler.Builder builder = AsyncZipkinSpanHandler.newBuilder(sender);
-    BytesEncoder<MutableSpan> protoEncoder = new BytesEncoder<>() {
-      @Override public Encoding encoding() {
-        return Encoding.PROTO3;
-      }
-
-      @Override public int sizeInBytes(MutableSpan input) {
-        return 0;
-      }
-
-      @Override public byte[] encode(MutableSpan input) {
-        return new byte[0];
-      }
-    };
-
-    try (AsyncZipkinSpanHandler spanReporter = builder.build(protoEncoder)) {
-      assertThat(spanReporter).isNotNull();
-    }
-  }
-
+/**
+ * Only tests entry points as {@link zipkin2.reporter.internal.AsyncReporter} tests covers the rest.
+ */
+class AsyncReporterTest {
   @Test void example() {
     AtomicInteger sentSpans = new AtomicInteger();
-    try (AsyncZipkinSpanHandler spanHandler = AsyncZipkinSpanHandler.newBuilder(FakeSender.create()
+    try (AsyncReporter<Span> reporter = AsyncReporter.builder(FakeSender.create()
         .onSpans(spans -> sentSpans.addAndGet(spans.size())))
       .messageTimeout(0, TimeUnit.MILLISECONDS) // no thread
-      .build()) {
+      .build(SpanBytesEncoder.JSON_V2)) {
 
-      TraceContext context = TraceContext.newBuilder().traceId(1).spanId(2).sampled(true).build();
-      MutableSpan span = new MutableSpan();
-      span.traceId("1");
-      span.id("2");
-      span.name("test");
-      spanHandler.end(context, span, SpanHandler.Cause.FINISHED);
-      spanHandler.flush();
+      reporter.report(TestObjects.CLIENT_SPAN);
+      reporter.flush();
     }
 
     assertThat(sentSpans.get()).isEqualTo(1);
@@ -84,20 +45,14 @@ class AsyncZipkinSpanHandlerTest {
 
   @Deprecated @Test void example_deprecatedSender() {
     AtomicInteger sentSpans = new AtomicInteger();
-    try (AsyncZipkinSpanHandler spanHandler = AsyncZipkinSpanHandler.newBuilder(
-        new DeprecatedCheatingSender(
-          spans -> sentSpans.addAndGet(spans.size())
-        ))
+    try (AsyncReporter<Span> reporter = AsyncReporter.builder(new DeprecatedCheatingSender(
+        spans -> sentSpans.addAndGet(spans.size())
+      ))
       .messageTimeout(0, TimeUnit.MILLISECONDS) // no thread
-      .build()) {
+      .build(SpanBytesEncoder.JSON_V2)) {
 
-      TraceContext context = TraceContext.newBuilder().traceId(1).spanId(2).sampled(true).build();
-      MutableSpan span = new MutableSpan();
-      span.traceId("1");
-      span.id("2");
-      span.name("test");
-      spanHandler.end(context, span, SpanHandler.Cause.FINISHED);
-      spanHandler.flush();
+      reporter.report(TestObjects.CLIENT_SPAN);
+      reporter.flush();
     }
 
     assertThat(sentSpans.get()).isEqualTo(1);

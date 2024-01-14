@@ -11,7 +11,7 @@
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
  */
-package zipkin2.reporter.internal;
+package zipkin2.reporter;
 
 import java.util.List;
 import java.util.function.Consumer;
@@ -19,12 +19,6 @@ import java.util.stream.Collectors;
 import zipkin2.Span;
 import zipkin2.codec.BytesDecoder;
 import zipkin2.codec.SpanBytesDecoder;
-import zipkin2.reporter.BytesEncoder;
-import zipkin2.reporter.BytesMessageEncoder;
-import zipkin2.reporter.BytesMessageSender;
-import zipkin2.reporter.ClosedSenderException;
-import zipkin2.reporter.Encoding;
-import zipkin2.reporter.SpanBytesEncoder;
 
 public final class FakeSender extends BytesMessageSender.Base {
 
@@ -51,18 +45,18 @@ public final class FakeSender extends BytesMessageSender.Base {
     this.onSpans = onSpans;
   }
 
-  FakeSender encoding(Encoding encoding) {
+  public FakeSender encoding(Encoding encoding) {
     return new FakeSender(encoding, messageMaxBytes, messageEncoder, // invalid but not needed, yet
       encoder, // invalid but not needed, yet
       decoder, // invalid but not needed, yet
       onSpans);
   }
 
-  FakeSender onSpans(Consumer<List<Span>> onSpans) {
+  public FakeSender onSpans(Consumer<List<Span>> onSpans) {
     return new FakeSender(encoding, messageMaxBytes, messageEncoder, encoder, decoder, onSpans);
   }
 
-  FakeSender messageMaxBytes(int messageMaxBytes) {
+  public FakeSender messageMaxBytes(int messageMaxBytes) {
     return new FakeSender(encoding, messageMaxBytes, messageEncoder, encoder, decoder, onSpans);
   }
 

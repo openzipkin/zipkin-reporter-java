@@ -58,6 +58,10 @@ public final class FakeSender extends BytesMessageSender.Base {
       onSpans);
   }
 
+  FakeSender onSpans(Consumer<List<Span>> onSpans) {
+    return new FakeSender(encoding, messageMaxBytes, messageEncoder, encoder, decoder, onSpans);
+  }
+
   @Override public int messageMaxBytes() {
     return messageMaxBytes;
   }
