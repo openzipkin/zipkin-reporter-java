@@ -27,6 +27,7 @@ import zipkin2.reporter.Callback;
 import zipkin2.reporter.CheckResult;
 import zipkin2.reporter.ClosedSenderException;
 import zipkin2.reporter.Encoding;
+import zipkin2.reporter.HttpEndpointSupplier;
 import zipkin2.reporter.Sender;
 
 /**
@@ -45,13 +46,15 @@ public final class URLConnectionSender extends Sender {
   }
 
   public static final class Builder {
-    URL endpoint;
+    HttpEndpointSupplier.Factory endpointSupplierFactory = HttpEndpointSupplier.FIXED_FACTORY;
+    String endpoint;
     Encoding encoding = Encoding.JSON;
     int messageMaxBytes = 500000;
     int connectTimeout = 10 * 1000, readTimeout = 60 * 1000;
     boolean compressionEnabled = true;
 
     Builder(URLConnectionSender sender) {
+      this.endpointSupplierFactory = sender.endpointSupplierFactory;
       this.endpoint = sender.endpoint;
       this.encoding = sender.encoding;
       this.messageMaxBytes = sender.messageMaxBytes;
@@ -67,17 +70,24 @@ public final class URLConnectionSender extends Sender {
     // customizable so that users can re-map /api/v2/spans ex for browser-originated traces
     public Builder endpoint(String endpoint) {
       if (endpoint == null) throw new NullPointerException("endpoint == null");
-
-      try {
-        return endpoint(new URL(endpoint));
-      } catch (MalformedURLException e) {
-        throw new IllegalArgumentException(e.getMessage());
-      }
+      this.endpoint = endpoint;
+      return this;
     }
 
     public Builder endpoint(URL endpoint) {
       if (endpoint == null) throw new NullPointerException("endpoint == null");
-      this.endpoint = endpoint;
+      this.endpoint = endpoint.toString();
+      return this;
+    }
+
+    /**
+     * No default. See JavaDoc on {@link HttpEndpointSupplier} for implementation notes.
+     */
+    public Builder endpointSupplierFactory(HttpEndpointSupplier.Factory endpointSupplierFactory) {
+      if (endpointSupplierFactory == null) {
+        throw new NullPointerException("endpointSupplierFactory == null");
+      }
+      this.endpointSupplierFactory = endpointSupplierFactory;
       return this;
     }
 
@@ -118,14 +128,71 @@ public final class URLConnectionSender extends Sender {
     }
 
     public URLConnectionSender build() {
-      return new URLConnectionSender(this);
+      String endpoint = this.endpoint;
+      if (endpoint == null) throw new NullPointerException("endpoint == null");
+
+      HttpEndpointSupplier endpointSupplier = endpointSupplierFactory.create(endpoint);
+      if (endpointSupplier == null) throw new NullPointerException("endpointSupplier == null");
+      if (endpointSupplier instanceof HttpEndpointSupplier.Fixed) {
+        endpoint = endpointSupplier.get(); // eagerly resolve the endpoint
+        return new URLConnectionSender(this, new ConstantHttpURLConnectionSupplier(endpoint));
+      }
+      return new URLConnectionSender(this, new DynamicHttpURLConnectionSupplier(endpointSupplier));
     }
 
     Builder() {
     }
   }
 
-  final URL endpoint;
+  private static URL toURL(String endpoint) {
+    try {
+      return new URL(endpoint);
+    } catch (MalformedURLException e) {
+      throw new IllegalArgumentException(e.getMessage());
+    }
+  }
+
+  interface HttpURLConnectionSupplier {
+    HttpURLConnection openConnection() throws IOException;
+  }
+
+  static final class ConstantHttpURLConnectionSupplier implements HttpURLConnectionSupplier {
+    final URL endpoint;
+
+    ConstantHttpURLConnectionSupplier(String endpoint) {
+      this.endpoint = toURL(endpoint);
+    }
+
+    @Override public HttpURLConnection openConnection() throws IOException {
+      return (HttpURLConnection) endpoint.openConnection();
+    }
+
+    @Override public String toString() {
+      return endpoint.toString();
+    }
+  }
+
+  static final class DynamicHttpURLConnectionSupplier implements HttpURLConnectionSupplier {
+    final HttpEndpointSupplier endpointSupplier;
+
+    DynamicHttpURLConnectionSupplier(HttpEndpointSupplier endpointSupplier) {
+      this.endpointSupplier = endpointSupplier;
+    }
+
+    @Override public HttpURLConnection openConnection() throws IOException {
+      URL endpoint = toURL(endpointSupplier.get());
+      return (HttpURLConnection) endpoint.openConnection();
+    }
+
+    @Override public String toString() {
+      return endpointSupplier.toString();
+    }
+  }
+
+  final HttpEndpointSupplier.Factory endpointSupplierFactory; // for toBuilder()
+  final String endpoint; // for toBuilder()
+
+  final HttpURLConnectionSupplier connectionSupplier;
   final Encoding encoding;
   final String mediaType;
   final BytesMessageEncoder encoder;
@@ -133,9 +200,10 @@ public final class URLConnectionSender extends Sender {
   final int connectTimeout, readTimeout;
   final boolean compressionEnabled;
 
-  URLConnectionSender(Builder builder) {
-    if (builder.endpoint == null) throw new NullPointerException("endpoint == null");
+  URLConnectionSender(Builder builder, HttpURLConnectionSupplier connectionSupplier) {
+    this.endpointSupplierFactory = builder.endpointSupplierFactory;
     this.endpoint = builder.endpoint;
+    this.connectionSupplier = connectionSupplier;
     this.encoding = builder.encoding;
     switch (builder.encoding) {
       case JSON:
@@ -207,7 +275,7 @@ public final class URLConnectionSender extends Sender {
 
   void send(byte[] body, String mediaType) throws IOException {
     // intentionally not closing the connection, to use keep-alives
-    HttpURLConnection connection = (HttpURLConnection) endpoint.openConnection();
+    HttpURLConnection connection = connectionSupplier.openConnection();
     connection.setConnectTimeout(connectTimeout);
     connection.setReadTimeout(readTimeout);
     connection.setRequestMethod("POST");
@@ -262,7 +330,7 @@ public final class URLConnectionSender extends Sender {
   }
 
   @Override public String toString() {
-    return "URLConnectionSender{" + endpoint + "}";
+    return "URLConnectionSender{" + connectionSupplier + "}";
   }
 
   class HttpPostCall extends Call.Base<Void> {

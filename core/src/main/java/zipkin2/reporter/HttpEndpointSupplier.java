@@ -19,8 +19,20 @@ import java.util.List;
  * HTTP-based {@link BytesMessageSender senders} use this to resolve a potentially-pseudo endpoint
  * passed by configuration to a real endpoint.
  *
- * <p>Senders should consider the special value {@link #FIXED_FACTORY} and the type {@link Fixed} to
- * avoid dynamic lookups when constants will be returned.
+ * <h3>Usage Notes</h3>
+ *
+ * <p>Sender should implement the following logic:
+ * <ul>
+ *   <li>During build, the sender should invoke the {@linkplain Factory}.</li>
+ *   <li>If the result is {@link Fixed}, build the sender to use a static value.</li>
+ *   <li>Otherwise, call {@link HttpEndpointSupplier#get()} each time
+ *       {@linkplain BytesMessageSender#send(List)} is invoked.</li>
+ * </ul>
+ *
+ * <h3>Implementation Notes</h3>
+ *
+ * <p>Implement friendly {@code toString()} functions, that include the real endpoint or the one
+ * passed to the {@linkplain Factory}.
  *
  * <p>Senders are not called during production requests, rather in time or size bounded loop, in a
  * separate async reporting thread. Implementations that resolve endpoints via remote calls, such as
@@ -35,13 +47,13 @@ import java.util.List;
  */
 public interface HttpEndpointSupplier {
   /**
-   * HTTP {@link BytesMessageSender sender} builders check for this symbol, and will substitute its
-   * input as a fixed endpoint value rather than perform dynamic lookups.
+   * HTTP {@link BytesMessageSender sender} builders check for this symbol, and return the input as
+   * a {@linkplain Fixed} result rather than perform dynamic lookups.
    *
    * @since 3.3
    */
   Factory FIXED_FACTORY = new Factory() {
-    @Override public HttpEndpointSupplier create(String endpoint) {
+    @Override public Fixed create(String endpoint) {
       return new Fixed(endpoint);
     }
   };
@@ -60,8 +72,7 @@ public interface HttpEndpointSupplier {
    * Factory passed to HTTP {@link BytesMessageSender sender} builders to control resolution of the
    * static endpoint from configuration.
    *
-   * <p>Unless this is {@linkplain #FIXED_FACTORY}, {@linkplain #create(String)} will be deferred to
-   * the first call to {@linkplain BytesMessageSender#send(List)}.
+   * <p>Invoke this when building a sender, not during {@linkplain BytesMessageSender#send(List)}.
    *
    * @since 3.3
    */
@@ -81,6 +92,8 @@ public interface HttpEndpointSupplier {
 
   /**
    * HTTP {@link BytesMessageSender senders} check for this type, and will cache its first value.
+   *
+   * @since 3.3
    */
   final class Fixed implements HttpEndpointSupplier {
     private final String endpoint;

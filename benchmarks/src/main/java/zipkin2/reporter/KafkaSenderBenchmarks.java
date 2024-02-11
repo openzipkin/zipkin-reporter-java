@@ -42,7 +42,7 @@ public class KafkaSenderBenchmarks extends SenderBenchmarks {
 
   static final class KafkaContainer extends GenericContainer<KafkaContainer> {
     KafkaContainer() {
-      super(parse("ghcr.io/openzipkin/zipkin-kafka:3.0.2"));
+      super(parse("ghcr.io/openzipkin/zipkin-kafka:3.0.6"));
       waitStrategy = Wait.forHealthcheck();
       // Kafka broker listener port (19092) needs to be exposed for test cases to access it.
       addFixedExposedPort(KAFKA_PORT, KAFKA_PORT, InternetProtocol.TCP);
