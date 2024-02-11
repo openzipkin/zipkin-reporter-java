@@ -17,7 +17,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Stream;
+import java.util.concurrent.atomic.AtomicInteger;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
@@ -25,19 +25,17 @@ import okhttp3.mockwebserver.SocketPolicy;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import zipkin2.Span;
 import zipkin2.codec.SpanBytesDecoder;
-import zipkin2.codec.SpanBytesEncoder;
-import zipkin2.reporter.AsyncReporter;
 import zipkin2.reporter.BytesMessageSender;
 import zipkin2.reporter.Callback;
 import zipkin2.reporter.Encoding;
+import zipkin2.reporter.HttpEndpointSupplier;
 
 import static java.util.Arrays.asList;
-import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static zipkin2.TestObjects.CLIENT_SPAN;
+import static zipkin2.reporter.urlconnection.URLConnectionSenderTest.sendSpans;
 
 class ITURLConnectionSender {
   MockWebServer server = new MockWebServer();
@@ -53,16 +51,10 @@ class ITURLConnectionSender {
     sender = URLConnectionSender.newBuilder().endpoint(endpoint).compressionEnabled(false).build();
   }
 
-  @Test void badUrlIsAnIllegalArgument() {
-    assertThatThrownBy(
-      () -> URLConnectionSender.create("htp://localhost:9411/api/v1/spans")).isInstanceOf(
-      IllegalArgumentException.class).hasMessage("unknown protocol: htp");
-  }
-
   @Test void send() throws Exception {
     server.enqueue(new MockResponse());
 
-    sendSpans(CLIENT_SPAN, CLIENT_SPAN);
+    sendSpans(sender, CLIENT_SPAN, CLIENT_SPAN);
 
     // Ensure only one request was sent
     assertThat(server.getRequestCount()).isEqualTo(1);
@@ -80,10 +72,31 @@ class ITURLConnectionSender {
     assertThat(server.getRequestCount()).isEqualTo(1);
   }
 
+  /**
+   * This tests that the {@linkplain HttpEndpointSupplier} is only called once per
+   * {@link BytesMessageSender#send(List)}.
+   */
+  @Test void dynamicEndpoint() throws Exception {
+    server.enqueue(new MockResponse());
+    server.enqueue(new MockResponse());
+
+    AtomicInteger suffix = new AtomicInteger();
+    sender.close();
+    sender = sender.toBuilder()
+      .endpointSupplierFactory(e -> () -> e + "/" + suffix.incrementAndGet())
+      .build();
+
+    sender.send(Collections.emptyList());
+    sender.send(Collections.emptyList());
+
+    assertThat(server.takeRequest().getPath()).endsWith("/1");
+    assertThat(server.takeRequest().getPath()).endsWith("/2");
+  }
+
   @Test void sendFailsOnDisconnect() {
     server.enqueue(new MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_START));
 
-    assertThatThrownBy(() -> sendSpans(CLIENT_SPAN, CLIENT_SPAN)).isInstanceOf(IOException.class);
+    assertThatThrownBy(() -> sendSpans(sender, CLIENT_SPAN, CLIENT_SPAN)).isInstanceOf(IOException.class);
   }
 
   @Test void send_PROTO3() throws Exception {
@@ -91,7 +104,7 @@ class ITURLConnectionSender {
 
     server.enqueue(new MockResponse());
 
-    sendSpans(CLIENT_SPAN, CLIENT_SPAN);
+    sendSpans(sender, CLIENT_SPAN, CLIENT_SPAN);
 
     // Ensure only one request was sent
     assertThat(server.getRequestCount()).isEqualTo(1);
@@ -106,7 +119,7 @@ class ITURLConnectionSender {
 
     server.enqueue(new MockResponse());
 
-    sendSpans(CLIENT_SPAN, CLIENT_SPAN);
+    sendSpans(sender, CLIENT_SPAN, CLIENT_SPAN);
 
     // Ensure only one request was sent
     assertThat(server.getRequestCount()).isEqualTo(1);
@@ -123,7 +136,7 @@ class ITURLConnectionSender {
 
       server.enqueue(new MockResponse());
 
-      sendSpans(CLIENT_SPAN, CLIENT_SPAN);
+      sendSpans(sender, CLIENT_SPAN, CLIENT_SPAN);
 
       // block until the request arrived
       requests.add(server.takeRequest());
@@ -136,7 +149,7 @@ class ITURLConnectionSender {
   @Test void ensuresProxiesDontTrace() throws Exception {
     server.enqueue(new MockResponse());
 
-    sendSpans(CLIENT_SPAN, CLIENT_SPAN);
+    sendSpans(sender, CLIENT_SPAN, CLIENT_SPAN);
 
     // If the Zipkin endpoint is proxied and instrumented, it will know "0" means don't trace.
     assertThat(server.takeRequest().getHeader("b3")).isEqualTo("0");
@@ -145,7 +158,7 @@ class ITURLConnectionSender {
   @Test void mediaTypeBasedOnSpanEncoding() throws Exception {
     server.enqueue(new MockResponse());
 
-    sendSpans(CLIENT_SPAN, CLIENT_SPAN);
+    sendSpans(sender, CLIENT_SPAN, CLIENT_SPAN);
 
     // block until the request arrived
     assertThat(server.takeRequest().getHeader("Content-Type")).isEqualTo("application/json");
@@ -161,39 +174,5 @@ class ITURLConnectionSender {
       @Override public void onError(Throwable throwable) {
       }
     });
-  }
-
-  @Test void illegalToSendWhenClosed() {
-    sender.close();
-
-    assertThatThrownBy(() -> sendSpans(CLIENT_SPAN)).isInstanceOf(IllegalStateException.class);
-  }
-
-  /**
-   * The output of toString() on {@link BytesMessageSender} implementations appears in thread names
-   * created by {@link AsyncReporter}. Since thread names are likely to be exposed in logs and other
-   * monitoring tools, care should be taken to ensure the toString() output is a reasonable length
-   * and does not contain sensitive information.
-   */
-  @Test void toStringContainsOnlySenderTypeAndEndpoint() {
-    assertThat(sender.toString()).isEqualTo("URLConnectionSender{" + endpoint + "}");
-  }
-
-  void sendSpans(Span... spans) throws IOException {
-    SpanBytesEncoder bytesEncoder;
-    switch (sender.encoding()) {
-      case JSON:
-        bytesEncoder = SpanBytesEncoder.JSON_V2;
-        break;
-      case THRIFT:
-        bytesEncoder = SpanBytesEncoder.THRIFT;
-        break;
-      case PROTO3:
-        bytesEncoder = SpanBytesEncoder.PROTO3;
-        break;
-      default:
-        throw new UnsupportedOperationException("encoding: " + sender.encoding());
-    }
-    sender.send(Stream.of(spans).map(bytesEncoder::encode).collect(toList()));
   }
 }

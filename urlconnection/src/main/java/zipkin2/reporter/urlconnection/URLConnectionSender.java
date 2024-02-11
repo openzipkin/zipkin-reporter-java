@@ -46,7 +46,7 @@ public final class URLConnectionSender extends Sender {
   }
 
   public static final class Builder {
-    HttpEndpointSupplier.Factory endpointSupplierFactory = HttpEndpointSupplier.FIXED_FACTORY;
+    HttpEndpointSupplier.Factory endpointSupplierFactory = HttpEndpointSupplier.CONSTANT_FACTORY;
     String endpoint;
     Encoding encoding = Encoding.JSON;
     int messageMaxBytes = 500000;
@@ -135,7 +135,7 @@ public final class URLConnectionSender extends Sender {
       if (endpointSupplier == null) {
         throw new NullPointerException("endpointSupplierFactory.create() returned null");
       }
-      if (endpointSupplier instanceof HttpEndpointSupplier.Fixed) {
+      if (endpointSupplier instanceof HttpEndpointSupplier.Constant) {
         endpoint = endpointSupplier.get(); // eagerly resolve the endpoint
         return new URLConnectionSender(this, new ConstantHttpURLConnectionSupplier(endpoint));
       }
@@ -184,7 +184,7 @@ public final class URLConnectionSender extends Sender {
     @Override public HttpURLConnection openConnection() throws IOException {
       String endpoint = endpointSupplier.get();
       if (endpoint == null) throw new NullPointerException("endpointSupplier.get() returned null");
-      URL url = toURL(endpointSupplier.get());
+      URL url = toURL(endpoint);
       return (HttpURLConnection) url.openConnection();
     }
 

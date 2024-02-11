@@ -24,7 +24,7 @@ import java.util.List;
  * <p>Sender should implement the following logic:
  * <ul>
  *   <li>During build, the sender should invoke the {@linkplain Factory}.</li>
- *   <li>If the result is {@link Fixed}, build the sender to use a static value.</li>
+ *   <li>If the result is {@link Constant}, build the sender to use a static value.</li>
  *   <li>Otherwise, call {@link HttpEndpointSupplier#get()} each time
  *       {@linkplain BytesMessageSender#send(List)} is invoked.</li>
  * </ul>
@@ -48,13 +48,13 @@ import java.util.List;
 public interface HttpEndpointSupplier {
   /**
    * HTTP {@link BytesMessageSender sender} builders check for this symbol, and return the input as
-   * a {@linkplain Fixed} result rather than perform dynamic lookups.
+   * a {@linkplain Constant} result rather than perform dynamic lookups.
    *
    * @since 3.3
    */
-  Factory FIXED_FACTORY = new Factory() {
-    @Override public Fixed create(String endpoint) {
-      return new Fixed(endpoint);
+  Factory CONSTANT_FACTORY = new Factory() {
+    @Override public Constant create(String endpoint) {
+      return new Constant(endpoint);
     }
   };
 
@@ -62,7 +62,7 @@ public interface HttpEndpointSupplier {
    * Returns a possibly cached endpoint to an HTTP {@link BytesMessageSender sender}.
    *
    * <p>This will be called inside {@linkplain BytesMessageSender#send(List)}, unless this is an
-   * instance of {@linkplain Fixed}.
+   * instance of {@linkplain Constant}.
    *
    * @since 3.3
    */
@@ -79,10 +79,10 @@ public interface HttpEndpointSupplier {
   interface Factory {
 
     /**
-     * Returns a possibly {@linkplain Fixed} endpoint supplier, given a static endpoint from
+     * Returns a possibly {@linkplain Constant} endpoint supplier, given a static endpoint from
      * configuration.
      *
-     * <p>Note: Some factories may perform I/O to lazy-create a {@linkplain Fixed} endpoint.
+     * <p>Note: Some factories may perform I/O to lazy-create a {@linkplain Constant} endpoint.
      *
      * @param endpoint a static HTTP endpoint from configuration. For example,
      *                 http://localhost:9411/api/v2/spans
@@ -95,10 +95,10 @@ public interface HttpEndpointSupplier {
    *
    * @since 3.3
    */
-  final class Fixed implements HttpEndpointSupplier {
+  final class Constant implements HttpEndpointSupplier {
     private final String endpoint;
 
-    public Fixed(String endpoint) {
+    public Constant(String endpoint) {
       if (endpoint == null) throw new NullPointerException("endpoint == null");
       this.endpoint = endpoint;
     }

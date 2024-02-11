@@ -31,16 +31,31 @@ class URLConnectionSenderFactoryBeanTest {
     if (context != null) context.close();
   }
 
-  @Test void endpoint() throws MalformedURLException {
-    context = new XmlBeans(""
-        + "<bean id=\"sender\" class=\"zipkin2.reporter.beans.URLConnectionSenderFactoryBean\">\n"
-        + "  <property name=\"endpoint\" value=\"http://localhost:9411/api/v2/spans\"/>\n"
-        + "</bean>"
+  @Test void endpointSupplierFactory() {
+    context = new XmlBeans(String.format(""
+      + "<bean id=\"sender\" class=\"zipkin2.reporter.beans.URLConnectionSenderFactoryBean\">\n"
+      + "  <property name=\"endpointSupplierFactory\">\n"
+      + "    <util:constant static-field=\"%s.FACTORY\"/>\n"
+      + "  </property>\n"
+      + "  <property name=\"endpoint\" value=\"http://localhost:9411/api/v2/spans\"/>\n"
+      + "</bean>", FakeEndpointSupplier.class.getName())
     );
 
     assertThat(context.getBean("sender", URLConnectionSender.class))
-        .extracting("endpoint")
-        .isEqualTo("http://localhost:9411/api/v2/spans");
+      .extracting("connectionSupplier.endpointSupplier")
+      .isEqualTo(FakeEndpointSupplier.INSTANCE);
+  }
+
+  @Test void endpoint() throws MalformedURLException {
+    context = new XmlBeans(""
+      + "<bean id=\"sender\" class=\"zipkin2.reporter.beans.URLConnectionSenderFactoryBean\">\n"
+      + "  <property name=\"endpoint\" value=\"http://localhost:9411/api/v2/spans\"/>\n"
+      + "</bean>"
+    );
+
+    assertThat(context.getBean("sender", URLConnectionSender.class))
+      .extracting("connectionSupplier.url")
+      .isEqualTo(URI.create("http://localhost:9411/api/v2/spans").toURL());
   }
 
   @Test void connectTimeout() {

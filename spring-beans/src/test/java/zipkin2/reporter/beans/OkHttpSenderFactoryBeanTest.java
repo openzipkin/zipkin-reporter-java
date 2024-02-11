@@ -30,16 +30,31 @@ class OkHttpSenderFactoryBeanTest {
     if (context != null) context.close();
   }
 
-  @Test void endpoint() {
-    context = new XmlBeans(""
-        + "<bean id=\"sender\" class=\"zipkin2.reporter.beans.OkHttpSenderFactoryBean\">\n"
-        + "  <property name=\"endpoint\" value=\"http://localhost:9411/api/v2/spans\"/>\n"
-        + "</bean>"
+  @Test void endpointSupplierFactory() {
+    context = new XmlBeans(String.format(""
+      + "<bean id=\"sender\" class=\"zipkin2.reporter.beans.OkHttpSenderFactoryBean\">\n"
+      + "  <property name=\"endpointSupplierFactory\">\n"
+      + "    <util:constant static-field=\"%s.FACTORY\"/>\n"
+      + "  </property>\n"
+      + "  <property name=\"endpoint\" value=\"http://localhost:9411/api/v2/spans\"/>\n"
+      + "</bean>", FakeEndpointSupplier.class.getName())
     );
 
     assertThat(context.getBean("sender", OkHttpSender.class))
-        .extracting("endpoint")
-        .isEqualTo("http://localhost:9411/api/v2/spans");
+      .extracting("urlSupplier.endpointSupplier")
+      .isEqualTo(FakeEndpointSupplier.INSTANCE);
+  }
+
+  @Test void endpoint() {
+    context = new XmlBeans(""
+      + "<bean id=\"sender\" class=\"zipkin2.reporter.beans.OkHttpSenderFactoryBean\">\n"
+      + "  <property name=\"endpoint\" value=\"http://localhost:9411/api/v2/spans\"/>\n"
+      + "</bean>"
+    );
+
+    assertThat(context.getBean("sender", OkHttpSender.class))
+      .extracting("urlSupplier.url")
+      .isEqualTo(HttpUrl.parse("http://localhost:9411/api/v2/spans"));
   }
 
   @Test void connectTimeout() {
