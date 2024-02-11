@@ -40,7 +40,7 @@ class URLConnectionSenderFactoryBeanTest {
 
     assertThat(context.getBean("sender", URLConnectionSender.class))
         .extracting("endpoint")
-        .isEqualTo(URI.create("http://localhost:9411/api/v2/spans").toURL());
+        .isEqualTo("http://localhost:9411/api/v2/spans");
   }
 
   @Test void connectTimeout() {
