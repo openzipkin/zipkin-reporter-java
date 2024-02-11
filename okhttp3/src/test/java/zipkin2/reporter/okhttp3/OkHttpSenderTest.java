@@ -14,8 +14,8 @@
 package zipkin2.reporter.okhttp3;
 
 import java.io.IOException;
-import java.net.ConnectException;
 import java.util.Collections;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 import okhttp3.HttpUrl;
 import org.junit.jupiter.api.Test;
@@ -80,8 +80,15 @@ class OkHttpSenderTest {
   }
 
   @Test void endpointSupplierFactory_dynamic() {
-    HttpEndpointSupplier dynamicEndpointSupplier = () -> {
-      throw new UnsupportedOperationException();
+    AtomicInteger closeCalled = new AtomicInteger();
+    HttpEndpointSupplier dynamicEndpointSupplier = new HttpEndpointSupplier() {
+      @Override public String get() {
+        throw new UnsupportedOperationException();
+      }
+
+      @Override public void close() {
+        closeCalled.incrementAndGet();
+      }
     };
 
     sender.close();
@@ -96,12 +103,44 @@ class OkHttpSenderTest {
 
     assertThatThrownBy(() -> sendSpans(sender, CLIENT_SPAN, CLIENT_SPAN))
       .isInstanceOf(UnsupportedOperationException.class);
+
+    // Ensure that closing the sender closes the endpoint supplier
+    sender.close();
+    sender.close(); // check only closed once
+    assertThat(closeCalled).hasValue(1);
+  }
+
+  @Test void endpointSupplierFactory_ignoresCloseFailure() {
+    AtomicInteger closeCalled = new AtomicInteger();
+    HttpEndpointSupplier dynamicEndpointSupplier = new HttpEndpointSupplier() {
+      @Override public String get() {
+        throw new UnsupportedOperationException();
+      }
+
+      @Override public void close() throws IOException {
+        closeCalled.incrementAndGet();
+        throw new IOException("unexpected");
+      }
+    };
+
+    sender.close();
+    sender = sender.toBuilder()
+      .endpointSupplierFactory(e -> dynamicEndpointSupplier)
+      .build();
+
+    // Ensure that an exception closing the endpoint supplier doesn't propagate.
+    sender.close();
+    assertThat(closeCalled).hasValue(1);
   }
 
   @Test void endpointSupplierFactory_dynamicNull() {
     sender.close();
     sender = sender.toBuilder()
-      .endpointSupplierFactory(e -> () -> null)
+      .endpointSupplierFactory(e -> new BaseHttpEndpointSupplier() {
+        @Override public String get() {
+          return null;
+        }
+      })
       .build();
 
     assertThatThrownBy(() -> sendSpans(sender, CLIENT_SPAN, CLIENT_SPAN))
@@ -112,7 +151,11 @@ class OkHttpSenderTest {
   @Test void endpointSupplierFactory_dynamicBad() {
     sender.close();
     sender = sender.toBuilder()
-      .endpointSupplierFactory(e -> () -> "htp://localhost:9411/api/v1/spans")
+      .endpointSupplierFactory(e -> new BaseHttpEndpointSupplier() {
+        @Override public String get() {
+          return "htp://localhost:9411/api/v1/spans";
+        }
+      })
       .build();
 
     assertThatThrownBy(() -> sendSpans(sender, CLIENT_SPAN, CLIENT_SPAN))
@@ -159,5 +202,10 @@ class OkHttpSenderTest {
         throw new UnsupportedOperationException("encoding: " + sender.encoding());
     }
     sender.send(Stream.of(spans).map(bytesEncoder::encode).collect(toList()));
+  }
+
+  static abstract class BaseHttpEndpointSupplier implements HttpEndpointSupplier {
+    @Override public void close() {
+    }
   }
 }

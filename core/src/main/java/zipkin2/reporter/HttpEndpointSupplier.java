@@ -13,6 +13,7 @@
  */
 package zipkin2.reporter;
 
+import java.io.Closeable;
 import java.util.List;
 
 /**
@@ -21,12 +22,13 @@ import java.util.List;
  *
  * <h3>Usage Notes</h3>
  *
- * <p>Sender should implement the following logic:
+ * <p>{@link BytesMessageSender senders} should implement the following logic:
  * <ul>
  *   <li>During build, the sender should invoke the {@linkplain Factory}.</li>
  *   <li>If the result is {@link Constant}, build the sender to use a static value.</li>
  *   <li>Otherwise, call {@link HttpEndpointSupplier#get()} each time
  *       {@linkplain BytesMessageSender#send(List)} is invoked.</li>
+ *   <li>Call {@link #close()} once during {@link BytesMessageSender#close()}.</li>
  * </ul>
  *
  * <h3>Implementation Notes</h3>
@@ -45,7 +47,7 @@ import java.util.List;
  *
  * @since 3.3
  */
-public interface HttpEndpointSupplier {
+public interface HttpEndpointSupplier extends Closeable {
   /**
    * HTTP {@link BytesMessageSender sender} builders check for this symbol, and return the input as
    * a {@linkplain Constant} result rather than perform dynamic lookups.
@@ -105,6 +107,9 @@ public interface HttpEndpointSupplier {
 
     @Override public String get() {
       return endpoint;
+    }
+
+    @Override public void close() {
     }
   }
 }

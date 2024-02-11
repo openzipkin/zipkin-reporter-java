@@ -20,6 +20,8 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Logger;
 import java.util.zip.GZIPOutputStream;
 import zipkin2.reporter.BytesMessageEncoder;
 import zipkin2.reporter.Call;
@@ -30,12 +32,16 @@ import zipkin2.reporter.Encoding;
 import zipkin2.reporter.HttpEndpointSupplier;
 import zipkin2.reporter.Sender;
 
+import static zipkin2.reporter.Call.propagateIfFatal;
+
 /**
  * Reports spans to Zipkin, using its <a href="https://zipkin.io/zipkin-api/#/">POST</a> endpoint.
  *
  * <p>This sender is thread-safe.
  */
 public final class URLConnectionSender extends Sender {
+  static final Logger logger = Logger.getLogger(URLConnectionSender.class.getName());
+
   /** Creates a sender that posts {@link Encoding#JSON} messages. */
   public static URLConnectionSender create(String endpoint) {
     return newBuilder().endpoint(endpoint).build();
@@ -154,18 +160,21 @@ public final class URLConnectionSender extends Sender {
     }
   }
 
-  interface HttpURLConnectionSupplier {
-    HttpURLConnection openConnection() throws IOException;
+  static abstract class HttpURLConnectionSupplier {
+    abstract HttpURLConnection openConnection() throws IOException;
+
+    void close() {
+    }
   }
 
-  static final class ConstantHttpURLConnectionSupplier implements HttpURLConnectionSupplier {
+  static final class ConstantHttpURLConnectionSupplier extends HttpURLConnectionSupplier {
     final URL url;
 
     ConstantHttpURLConnectionSupplier(String endpoint) {
       this.url = toURL(endpoint);
     }
 
-    @Override public HttpURLConnection openConnection() throws IOException {
+    @Override HttpURLConnection openConnection() throws IOException {
       return (HttpURLConnection) url.openConnection();
     }
 
@@ -174,18 +183,27 @@ public final class URLConnectionSender extends Sender {
     }
   }
 
-  static final class DynamicHttpURLConnectionSupplier implements HttpURLConnectionSupplier {
+  static final class DynamicHttpURLConnectionSupplier extends HttpURLConnectionSupplier {
     final HttpEndpointSupplier endpointSupplier;
 
     DynamicHttpURLConnectionSupplier(HttpEndpointSupplier endpointSupplier) {
       this.endpointSupplier = endpointSupplier;
     }
 
-    @Override public HttpURLConnection openConnection() throws IOException {
+    @Override HttpURLConnection openConnection() throws IOException {
       String endpoint = endpointSupplier.get();
       if (endpoint == null) throw new NullPointerException("endpointSupplier.get() returned null");
       URL url = toURL(endpoint);
       return (HttpURLConnection) url.openConnection();
+    }
+
+    @Override void close() {
+      try {
+        endpointSupplier.close();
+      } catch (Throwable t) {
+        propagateIfFatal(t);
+        logger.fine("ignoring error closing endpoint supplier: " + t.getMessage());
+      }
     }
 
     @Override public String toString() {
@@ -236,7 +254,7 @@ public final class URLConnectionSender extends Sender {
   }
 
   /** close is typically called from a different thread */
-  volatile boolean closeCalled;
+  final AtomicBoolean closeCalled = new AtomicBoolean();
 
   @Override public int messageSizeInBytes(List<byte[]> encodedSpans) {
     return encoding().listSizeInBytes(encodedSpans);
@@ -256,13 +274,13 @@ public final class URLConnectionSender extends Sender {
 
   /** {@inheritDoc} */
   @Override @Deprecated public Call<Void> sendSpans(List<byte[]> encodedSpans) {
-    if (closeCalled) throw new ClosedSenderException();
+    if (closeCalled.get()) throw new ClosedSenderException();
     return new HttpPostCall(encoder.encode(encodedSpans));
   }
 
   /** Sends spans as a POST to {@link Builder#endpoint}. */
   @Override public void send(List<byte[]> encodedSpans) throws IOException {
-    if (closeCalled) throw new ClosedSenderException();
+    if (closeCalled.get()) throw new ClosedSenderException();
     send(encoder.encode(encodedSpans), mediaType);
   }
 
@@ -330,7 +348,8 @@ public final class URLConnectionSender extends Sender {
   }
 
   @Override public void close() {
-    closeCalled = true;
+    if (!closeCalled.compareAndSet(false, true)) return; // already closed
+    connectionSupplier.close();
   }
 
   @Override public String toString() {

@@ -36,6 +36,14 @@ Someone who wants to employ client-side loadbalancer logic can do that inside th
 `HttpEndpointSupplier`, and return a chosen endpoint. This will work because the supplier is
 documented to not be cached, unless it implements `HttpEndpointSupplier.Constant`.
 
+### Why is `HttpEndpointSupplier` closeable?
+
+Just like `BytesMessageSender`, an `HttpEndpointSupplier` can open resources. An example could be
+an HTTP client for the Netflix Eureka API. A sender is passed an endpoint supplier factory and uses
+it during construction, usually in `senderBuilder.build()`. The caller of `senderBuilder.build()`
+has no reference to the `HttpEndpointSupplier` created. Hence, the sender needs to close it, during
+`sender.close()`.
+
 ## Sending an empty list is permitted
 
 Historically, we had a `Sender.check()` function for fail fast reasons, but it was rarely used and

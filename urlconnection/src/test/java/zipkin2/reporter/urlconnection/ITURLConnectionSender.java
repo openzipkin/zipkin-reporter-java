@@ -30,6 +30,7 @@ import zipkin2.reporter.BytesMessageSender;
 import zipkin2.reporter.Callback;
 import zipkin2.reporter.Encoding;
 import zipkin2.reporter.HttpEndpointSupplier;
+import zipkin2.reporter.urlconnection.URLConnectionSenderTest.BaseHttpEndpointSupplier;
 
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -83,7 +84,12 @@ class ITURLConnectionSender {
     AtomicInteger suffix = new AtomicInteger();
     sender.close();
     sender = sender.toBuilder()
-      .endpointSupplierFactory(e -> () -> e + "/" + suffix.incrementAndGet())
+      .endpointSupplierFactory(e -> new BaseHttpEndpointSupplier() {
+          @Override public String get() {
+            return e + "/" + suffix.incrementAndGet();
+          }
+        }
+      )
       .build();
 
     sender.send(Collections.emptyList());
@@ -96,7 +102,8 @@ class ITURLConnectionSender {
   @Test void sendFailsOnDisconnect() {
     server.enqueue(new MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_START));
 
-    assertThatThrownBy(() -> sendSpans(sender, CLIENT_SPAN, CLIENT_SPAN)).isInstanceOf(IOException.class);
+    assertThatThrownBy(() -> sendSpans(sender, CLIENT_SPAN, CLIENT_SPAN)).isInstanceOf(
+      IOException.class);
   }
 
   @Test void send_PROTO3() throws Exception {

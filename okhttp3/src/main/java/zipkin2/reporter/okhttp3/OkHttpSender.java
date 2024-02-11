@@ -19,6 +19,8 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Logger;
 import okhttp3.Call;
 import okhttp3.Dispatcher;
 import okhttp3.HttpUrl;
@@ -40,6 +42,7 @@ import zipkin2.reporter.HttpEndpointSupplier;
 import zipkin2.reporter.Sender;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static zipkin2.reporter.Call.propagateIfFatal;
 import static zipkin2.reporter.okhttp3.HttpCall.parseResponse;
 
 /**
@@ -82,6 +85,7 @@ import static zipkin2.reporter.okhttp3.HttpCall.parseResponse;
  * <p>This sender is thread-safe.
  */
 public final class OkHttpSender extends Sender {
+  static final Logger logger = Logger.getLogger(OkHttpSender.class.getName());
 
   /** Creates a sender that posts {@link Encoding#JSON} messages. */
   public static OkHttpSender create(String endpoint) {
@@ -217,18 +221,21 @@ public final class OkHttpSender extends Sender {
     return parsed;
   }
 
-  interface HttpUrlSupplier {
-    HttpUrl get();
+  static abstract class HttpUrlSupplier {
+    abstract HttpUrl get();
+
+    void close() {
+    }
   }
 
-  static final class ConstantHttpUrlSupplier implements HttpUrlSupplier {
+  static final class ConstantHttpUrlSupplier extends HttpUrlSupplier {
     final HttpUrl url;
 
     ConstantHttpUrlSupplier(String endpoint) {
       this.url = toHttpUrl(endpoint);
     }
 
-    @Override public HttpUrl get() {
+    @Override HttpUrl get() {
       return url;
     }
 
@@ -237,17 +244,27 @@ public final class OkHttpSender extends Sender {
     }
   }
 
-  static final class DynamicHttpUrlSupplier implements HttpUrlSupplier {
+  static final class DynamicHttpUrlSupplier extends HttpUrlSupplier {
+
     final HttpEndpointSupplier endpointSupplier;
 
     DynamicHttpUrlSupplier(HttpEndpointSupplier endpointSupplier) {
       this.endpointSupplier = endpointSupplier;
     }
 
-    @Override public HttpUrl get() {
+    @Override HttpUrl get() {
       String endpoint = endpointSupplier.get();
       if (endpoint == null) throw new NullPointerException("endpointSupplier.get() returned null");
       return toHttpUrl(endpoint);
+    }
+
+    @Override void close() {
+      try {
+        endpointSupplier.close();
+      } catch (Throwable t) {
+        propagateIfFatal(t);
+        logger.fine("ignoring error closing endpoint supplier: " + t.getMessage());
+      }
     }
 
     @Override public String toString() {
@@ -342,11 +359,11 @@ public final class OkHttpSender extends Sender {
   }
 
   /** close is typically called from a different thread */
-  volatile boolean closeCalled;
+  final AtomicBoolean closeCalled = new AtomicBoolean();
 
   /** {@inheritDoc} */
   @Override @Deprecated public zipkin2.reporter.Call<Void> sendSpans(List<byte[]> encodedSpans) {
-    if (closeCalled) throw new ClosedSenderException();
+    if (closeCalled.get()) throw new ClosedSenderException();
     Request request;
     try {
       request = newRequest(encoder.encode(encodedSpans));
@@ -358,7 +375,7 @@ public final class OkHttpSender extends Sender {
 
   /** Sends spans as a POST to {@link Builder#endpoint(String)}. */
   @Override public void send(List<byte[]> encodedSpans) throws IOException {
-    if (closeCalled) throw new ClosedSenderException();
+    if (closeCalled.get()) throw new ClosedSenderException();
     Request request = newRequest(encoder.encode(encodedSpans));
     Call call = client.newCall(request);
     parseResponse(call.execute());
@@ -381,9 +398,10 @@ public final class OkHttpSender extends Sender {
   }
 
   /** Waits up to a second for in-flight requests to finish before cancelling them */
-  @Override public synchronized void close() {
-    if (closeCalled) return;
-    closeCalled = true;
+  @Override public void close() {
+    if (!closeCalled.compareAndSet(false, true)) return; // already closed
+
+    urlSupplier.close();
 
     Dispatcher dispatcher = client.dispatcher();
     dispatcher.executorService().shutdown();

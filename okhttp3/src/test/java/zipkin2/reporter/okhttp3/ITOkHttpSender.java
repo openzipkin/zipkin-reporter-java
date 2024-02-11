@@ -35,6 +35,7 @@ import zipkin2.reporter.Callback;
 import zipkin2.reporter.Encoding;
 import zipkin2.reporter.HttpEndpointSupplier;
 import zipkin2.reporter.SpanBytesEncoder;
+import zipkin2.reporter.okhttp3.OkHttpSenderTest.BaseHttpEndpointSupplier;
 
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -84,7 +85,7 @@ public class ITOkHttpSender { // public for use in src/it
       .containsExactly(CLIENT_SPAN, CLIENT_SPAN);
   }
 
-  @Test void emptyOk() throws Exception{
+  @Test void emptyOk() throws Exception {
     server.enqueue(new MockResponse());
 
     sender.send(Collections.emptyList());
@@ -103,7 +104,12 @@ public class ITOkHttpSender { // public for use in src/it
     AtomicInteger suffix = new AtomicInteger();
     sender.close();
     sender = sender.toBuilder()
-      .endpointSupplierFactory(e -> () -> e + "/" + suffix.incrementAndGet())
+      .endpointSupplierFactory(e -> new BaseHttpEndpointSupplier() {
+          @Override public String get() {
+            return e + "/" + suffix.incrementAndGet();
+          }
+        }
+      )
       .build();
 
     sender.send(Collections.emptyList());

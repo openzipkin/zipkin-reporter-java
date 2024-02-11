@@ -27,4 +27,7 @@ public enum FakeEndpointSupplier implements HttpEndpointSupplier {
   @Override public String get() {
     return null;
   }
+
+  @Override public void close() {
+  }
 }
