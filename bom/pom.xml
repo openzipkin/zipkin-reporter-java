@@ -20,7 +20,7 @@
   <groupId>io.zipkin.reporter2</groupId>
   <artifactId>zipkin-reporter-bom</artifactId>
   <name>Zipkin Reporter BOM</name>
-  <version>3.2.2-SNAPSHOT</version>
+  <version>3.3.0-SNAPSHOT</version>
   <packaging>pom</packaging>
   <description>Bill Of Materials POM for all Zipkin reporter artifacts</description>
 
