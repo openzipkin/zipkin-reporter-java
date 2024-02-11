@@ -38,8 +38,10 @@ class OkHttpSenderTest {
     .readTimeout(100).endpoint("http://localhost:19092").build();
 
   @Test void sendFailsWhenEndpointIsDown() {
+    // Depending on JRE, this could be a ConnectException or a SocketException.
+    // Assert IOException to satisfy both!
     assertThatThrownBy(() -> sendSpans(sender, CLIENT_SPAN, CLIENT_SPAN))
-      .isInstanceOf(ConnectException.class);
+      .isInstanceOf(IOException.class);
   }
 
   @Test void illegalToSendWhenClosed() {
