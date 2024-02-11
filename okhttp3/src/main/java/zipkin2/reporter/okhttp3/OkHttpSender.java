@@ -36,6 +36,7 @@ import zipkin2.reporter.BytesMessageSender;
 import zipkin2.reporter.CheckResult;
 import zipkin2.reporter.ClosedSenderException;
 import zipkin2.reporter.Encoding;
+import zipkin2.reporter.HttpEndpointSupplier;
 import zipkin2.reporter.Sender;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -93,7 +94,8 @@ public final class OkHttpSender extends Sender {
 
   public static final class Builder {
     final OkHttpClient.Builder clientBuilder;
-    HttpUrl endpoint;
+    HttpEndpointSupplier.Factory endpointSupplierFactory = HttpEndpointSupplier.FIXED_FACTORY;
+    String endpoint;
     Encoding encoding = Encoding.JSON;
     boolean compressionEnabled = true;
     int maxRequests = 64;
@@ -105,6 +107,7 @@ public final class OkHttpSender extends Sender {
 
     Builder(OkHttpSender sender) {
       clientBuilder = sender.client.newBuilder();
+      endpointSupplierFactory = sender.endpointSupplierFactory;
       endpoint = sender.endpoint;
       maxRequests = sender.client.dispatcher().getMaxRequests();
       compressionEnabled = sender.compressionEnabled;
@@ -113,20 +116,30 @@ public final class OkHttpSender extends Sender {
     }
 
     /**
-     * No default. The POST URL for zipkin's <a href="https://zipkin.io/zipkin-api/#/">v2 api</a>,
+     * No default. See JavaDoc on {@link HttpEndpointSupplier} for implementation notes.
+     */
+    public Builder endpointSupplierFactory(HttpEndpointSupplier.Factory endpointSupplierFactory) {
+      if (endpointSupplierFactory == null) {
+        throw new NullPointerException("endpointSupplierFactory == null");
+      }
+      this.endpointSupplierFactory = endpointSupplierFactory;
+      return this;
+    }
+
+    /**
+     * No default. The POST HttpUrl for zipkin's <a href="https://zipkin.io/zipkin-api/#/">v2 api</a>,
      * usually "http://zipkinhost:9411/api/v2/spans"
      */
     // customizable so that users can re-map /api/v2/spans ex for browser-originated traces
     public Builder endpoint(String endpoint) {
       if (endpoint == null) throw new NullPointerException("endpoint == null");
-      HttpUrl parsed = HttpUrl.parse(endpoint);
-      if (parsed == null) throw new IllegalArgumentException("invalid POST url: " + endpoint);
-      return endpoint(parsed);
+      this.endpoint = endpoint;
+      return this;
     }
 
     public Builder endpoint(HttpUrl endpoint) {
       if (endpoint == null) throw new NullPointerException("endpoint == null");
-      this.endpoint = endpoint;
+      this.endpoint = endpoint.toString();
       return this;
     }
 
@@ -182,21 +195,80 @@ public final class OkHttpSender extends Sender {
       return clientBuilder;
     }
 
-    public final OkHttpSender build() {
-      return new OkHttpSender(this);
+    public OkHttpSender build() {
+      String endpoint = this.endpoint;
+      if (endpoint == null) throw new NullPointerException("endpoint == null");
+
+      HttpEndpointSupplier endpointSupplier = endpointSupplierFactory.create(endpoint);
+      if (endpointSupplier == null) {
+        throw new NullPointerException("endpointSupplierFactory.create() returned null");
+      }
+      if (endpointSupplier instanceof HttpEndpointSupplier.Fixed) {
+        endpoint = endpointSupplier.get(); // eagerly resolve the endpoint
+        return new OkHttpSender(this, new ConstantHttpUrlSupplier(endpoint));
+      }
+      return new OkHttpSender(this, new DynamicHttpUrlSupplier(endpointSupplier));
     }
   }
 
-  final HttpUrl endpoint;
+  static HttpUrl toHttpUrl(String endpoint) {
+    HttpUrl parsed = HttpUrl.parse(endpoint);
+    if (parsed == null) throw new IllegalArgumentException("invalid POST url: " + endpoint);
+    return parsed;
+  }
+
+  interface HttpUrlSupplier {
+    HttpUrl get();
+  }
+
+  static final class ConstantHttpUrlSupplier implements HttpUrlSupplier {
+    final HttpUrl url;
+
+    ConstantHttpUrlSupplier(String endpoint) {
+      this.url = toHttpUrl(endpoint);
+    }
+
+    @Override public HttpUrl get() {
+      return url;
+    }
+
+    @Override public String toString() {
+      return url.toString();
+    }
+  }
+
+  static final class DynamicHttpUrlSupplier implements HttpUrlSupplier {
+    final HttpEndpointSupplier endpointSupplier;
+
+    DynamicHttpUrlSupplier(HttpEndpointSupplier endpointSupplier) {
+      this.endpointSupplier = endpointSupplier;
+    }
+
+    @Override public HttpUrl get() {
+      String endpoint = endpointSupplier.get();
+      if (endpoint == null) throw new NullPointerException("endpointSupplier.get() returned null");
+      return toHttpUrl(endpointSupplier.get());
+    }
+
+    @Override public String toString() {
+      return endpointSupplier.toString();
+    }
+  }
+
+  final HttpEndpointSupplier.Factory endpointSupplierFactory; // for toBuilder()
+  final String endpoint; // for toBuilder()
+
+  final HttpUrlSupplier urlSupplier;
   final OkHttpClient client;
   final RequestBodyMessageEncoder encoder;
   final Encoding encoding;
   final int messageMaxBytes, maxRequests;
   final boolean compressionEnabled;
 
-  OkHttpSender(Builder builder) {
-    if (builder.endpoint == null) throw new NullPointerException("endpoint == null");
+  OkHttpSender(Builder builder, HttpUrlSupplier urlSupplier) {
+    endpointSupplierFactory = builder.endpointSupplierFactory;
     endpoint = builder.endpoint;
+    this.urlSupplier = urlSupplier;
     encoding = builder.encoding;
     switch (encoding) {
       case JSON:
@@ -295,7 +367,7 @@ public final class OkHttpSender extends Sender {
   /** {@inheritDoc} */
   @Override @Deprecated public CheckResult check() {
     try {
-      Request request = new Request.Builder().url(endpoint)
+      Request request = new Request.Builder().url(urlSupplier.get())
         .post(RequestBody.create(MediaType.parse("application/json"), "[]")).build();
       try (Response response = client.newCall(request).execute()) {
         if (!response.isSuccessful()) {
@@ -325,7 +397,7 @@ public final class OkHttpSender extends Sender {
   }
 
   Request newRequest(RequestBody body) throws IOException {
-    Request.Builder request = new Request.Builder().url(endpoint);
+    Request.Builder request = new Request.Builder().url(urlSupplier.get());
     // Amplification can occur when the Zipkin endpoint is proxied, and the proxy is instrumented.
     // This prevents that in proxies, such as Envoy, that understand B3 single format,
     request.addHeader("b3", "0");
@@ -341,8 +413,8 @@ public final class OkHttpSender extends Sender {
     return request.build();
   }
 
-  @Override public final String toString() {
-    return "OkHttpSender{" + endpoint + "}";
+  @Override public String toString() {
+    return "OkHttpSender{" + urlSupplier + "}";
   }
 
   static final class BufferRequestBody extends RequestBody {

@@ -64,6 +64,17 @@ public final class URLConnectionSender extends Sender {
     }
 
     /**
+     * No default. See JavaDoc on {@link HttpEndpointSupplier} for implementation notes.
+     */
+    public Builder endpointSupplierFactory(HttpEndpointSupplier.Factory endpointSupplierFactory) {
+      if (endpointSupplierFactory == null) {
+        throw new NullPointerException("endpointSupplierFactory == null");
+      }
+      this.endpointSupplierFactory = endpointSupplierFactory;
+      return this;
+    }
+
+    /**
      * No default. The POST URL for zipkin's <a href="https://zipkin.io/zipkin-api/#/">v2 api</a>,
      * usually "http://zipkinhost:9411/api/v2/spans"
      */
@@ -77,17 +88,6 @@ public final class URLConnectionSender extends Sender {
     public Builder endpoint(URL endpoint) {
       if (endpoint == null) throw new NullPointerException("endpoint == null");
       this.endpoint = endpoint.toString();
-      return this;
-    }
-
-    /**
-     * No default. See JavaDoc on {@link HttpEndpointSupplier} for implementation notes.
-     */
-    public Builder endpointSupplierFactory(HttpEndpointSupplier.Factory endpointSupplierFactory) {
-      if (endpointSupplierFactory == null) {
-        throw new NullPointerException("endpointSupplierFactory == null");
-      }
-      this.endpointSupplierFactory = endpointSupplierFactory;
       return this;
     }
 
@@ -132,7 +132,9 @@ public final class URLConnectionSender extends Sender {
       if (endpoint == null) throw new NullPointerException("endpoint == null");
 
       HttpEndpointSupplier endpointSupplier = endpointSupplierFactory.create(endpoint);
-      if (endpointSupplier == null) throw new NullPointerException("endpointSupplier == null");
+      if (endpointSupplier == null) {
+        throw new NullPointerException("endpointSupplierFactory.create() returned null");
+      }
       if (endpointSupplier instanceof HttpEndpointSupplier.Fixed) {
         endpoint = endpointSupplier.get(); // eagerly resolve the endpoint
         return new URLConnectionSender(this, new ConstantHttpURLConnectionSupplier(endpoint));
@@ -144,7 +146,7 @@ public final class URLConnectionSender extends Sender {
     }
   }
 
-  private static URL toURL(String endpoint) {
+  static URL toURL(String endpoint) {
     try {
       return new URL(endpoint);
     } catch (MalformedURLException e) {
@@ -157,18 +159,18 @@ public final class URLConnectionSender extends Sender {
   }
 
   static final class ConstantHttpURLConnectionSupplier implements HttpURLConnectionSupplier {
-    final URL endpoint;
+    final URL url;
 
     ConstantHttpURLConnectionSupplier(String endpoint) {
-      this.endpoint = toURL(endpoint);
+      this.url = toURL(endpoint);
     }
 
     @Override public HttpURLConnection openConnection() throws IOException {
-      return (HttpURLConnection) endpoint.openConnection();
+      return (HttpURLConnection) url.openConnection();
     }
 
     @Override public String toString() {
-      return endpoint.toString();
+      return url.toString();
     }
   }
 
@@ -180,8 +182,10 @@ public final class URLConnectionSender extends Sender {
     }
 
     @Override public HttpURLConnection openConnection() throws IOException {
-      URL endpoint = toURL(endpointSupplier.get());
-      return (HttpURLConnection) endpoint.openConnection();
+      String endpoint = endpointSupplier.get();
+      if (endpoint == null) throw new NullPointerException("endpointSupplier.get() returned null");
+      URL url = toURL(endpointSupplier.get());
+      return (HttpURLConnection) url.openConnection();
     }
 
     @Override public String toString() {

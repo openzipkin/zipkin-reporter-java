@@ -39,7 +39,7 @@ class OkHttpSenderFactoryBeanTest {
 
     assertThat(context.getBean("sender", OkHttpSender.class))
         .extracting("endpoint")
-        .isEqualTo(HttpUrl.parse("http://localhost:9411/api/v2/spans"));
+        .isEqualTo("http://localhost:9411/api/v2/spans");
   }
 
   @Test void connectTimeout() {
