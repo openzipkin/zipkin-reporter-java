@@ -37,6 +37,31 @@ class OkHttpSenderTest {
   OkHttpSender sender = OkHttpSender.newBuilder()
     .readTimeout(100).endpoint("http://localhost:19092").build();
 
+  @Test void toBuilder() {
+    sender.close();
+
+    // Change the supplier, but not the endpoint.
+    sender = sender.toBuilder()
+      .endpointSupplierFactory(e -> new Constant("http://localhost:29092"))
+      .build();
+    assertThat(sender)
+      .hasToString("OkHttpSender{http://localhost:29092/}");
+
+    // Change the supplier, and see the prior endpoint.
+    sender = sender.toBuilder()
+      .endpointSupplierFactory(HttpEndpointSupplier.CONSTANT_FACTORY)
+      .build();
+    assertThat(sender)
+      .hasToString("OkHttpSender{http://localhost:19092/}");
+
+    // Change the endpoint.
+    sender = sender.toBuilder()
+      .endpoint("http://localhost:29092")
+      .build();
+    assertThat(sender)
+      .hasToString("OkHttpSender{http://localhost:29092/}");
+  }
+
   @Test void sendFailsWhenEndpointIsDown() {
     // Depending on JRE, this could be a ConnectException or a SocketException.
     // Assert IOException to satisfy both!

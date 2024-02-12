@@ -283,8 +283,9 @@ public final class OkHttpSender extends Sender {
   final boolean compressionEnabled;
 
   OkHttpSender(Builder builder, HttpUrlSupplier urlSupplier) {
-    endpointSupplierFactory = builder.endpointSupplierFactory;
-    endpoint = builder.endpoint;
+    endpointSupplierFactory = builder.endpointSupplierFactory; // for toBuilder()
+    endpoint = builder.endpoint; // for toBuilder()
+
     this.urlSupplier = urlSupplier;
     encoding = builder.encoding;
     switch (encoding) {

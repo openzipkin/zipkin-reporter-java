@@ -223,8 +223,9 @@ public final class URLConnectionSender extends Sender {
   final boolean compressionEnabled;
 
   URLConnectionSender(Builder builder, HttpURLConnectionSupplier connectionSupplier) {
-    this.endpointSupplierFactory = builder.endpointSupplierFactory;
-    this.endpoint = builder.endpoint;
+    this.endpointSupplierFactory = builder.endpointSupplierFactory; // for toBuilder()
+    this.endpoint = builder.endpoint; // for toBuilder()
+
     this.connectionSupplier = connectionSupplier;
     this.encoding = builder.encoding;
     switch (builder.encoding) {
