@@ -22,7 +22,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeoutException;
 import zipkin2.reporter.AsyncReporter;
-import zipkin2.reporter.BytesMessageEncoder;
 import zipkin2.reporter.BytesMessageSender;
 import zipkin2.reporter.Call;
 import zipkin2.reporter.Callback;
@@ -179,12 +178,10 @@ public final class RabbitMQSender extends Sender {
   final List<Address> addresses;
   final String queue;
   final ConnectionFactory connectionFactory;
-  final BytesMessageEncoder encoder;
 
   RabbitMQSender(Builder builder) {
     if (builder.addresses == null) throw new NullPointerException("addresses == null");
     encoding = builder.encoding;
-    encoder = BytesMessageEncoder.forEncoding(encoding);
     messageMaxBytes = builder.messageMaxBytes;
     addresses = builder.addresses;
     queue = builder.queue;
@@ -218,14 +215,14 @@ public final class RabbitMQSender extends Sender {
   /** {@inheritDoc} */
   @Override @Deprecated public Call<Void> sendSpans(List<byte[]> encodedSpans) {
     if (closeCalled) throw new ClosedSenderException();
-    byte[] message = encoder.encode(encodedSpans);
+    byte[] message = encoding.encode(encodedSpans);
     return new RabbitMQCall(message);
   }
 
   /** {@inheritDoc} */
   @Override public void send(List<byte[]> encodedSpans) throws IOException {
     if (closeCalled) throw new ClosedSenderException();
-    publish(encoder.encode(encodedSpans));
+    publish(encoding.encode(encodedSpans));
   }
 
   void publish(byte[] message) throws IOException {

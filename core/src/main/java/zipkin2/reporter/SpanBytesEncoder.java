@@ -16,7 +16,6 @@ package zipkin2.reporter;
 import zipkin2.Span;
 
 /** Includes built-in formats used in Zipkin. */
-@SuppressWarnings("ImmutableEnumChecker") // because span is immutable
 public enum SpanBytesEncoder implements BytesEncoder<Span> {
   /** Corresponds to the Zipkin v1 thrift format */
   THRIFT {
@@ -73,4 +72,23 @@ public enum SpanBytesEncoder implements BytesEncoder<Span> {
       return zipkin2.codec.SpanBytesEncoder.PROTO3.encode(input);
     }
   };
+
+  /**
+   * Returns the default {@linkplain Span} encoder for given encoding.
+   *
+   * @since 3.3
+   */
+  public static BytesEncoder<Span> forEncoding(Encoding encoding) {
+    if (encoding == null) throw new NullPointerException("encoding == null");
+    switch (encoding) {
+      case JSON:
+        return JSON_V2;
+      case PROTO3:
+        return PROTO3;
+      case THRIFT:
+        return THRIFT;
+      default: // BUG: as encoding is an enum!
+        throw new UnsupportedOperationException("BUG: " + encoding.name());
+    }
+  }
 }

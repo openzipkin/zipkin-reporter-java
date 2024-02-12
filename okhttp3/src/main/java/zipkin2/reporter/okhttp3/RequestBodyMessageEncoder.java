@@ -43,8 +43,8 @@ enum RequestBodyMessageEncoder {
     final List<byte[]> values;
     final long contentLength;
 
-    StreamingRequestBody(Encoding encoding, MediaType contentType, List<byte[]> values) {
-      this.contentType = contentType;
+    StreamingRequestBody(Encoding encoding, List<byte[]> values) {
+      this.contentType = MediaType.parse(encoding.mediaType());
       this.values = values;
       this.contentLength = encoding.listSizeInBytes(values);
     }
@@ -59,10 +59,8 @@ enum RequestBodyMessageEncoder {
   }
 
   static final class JsonRequestBody extends StreamingRequestBody {
-    static final MediaType CONTENT_TYPE = MediaType.parse("application/json");
-
     JsonRequestBody(List<byte[]> values) {
-      super(Encoding.JSON, CONTENT_TYPE, values);
+      super(Encoding.JSON, values);
     }
 
     @Override public void writeTo(BufferedSink sink) throws IOException {
@@ -77,10 +75,8 @@ enum RequestBodyMessageEncoder {
   }
 
   static final class ThriftRequestBody extends StreamingRequestBody {
-    static final MediaType CONTENT_TYPE = MediaType.parse("application/x-thrift");
-
     ThriftRequestBody(List<byte[]> values) {
-      super(Encoding.THRIFT, CONTENT_TYPE, values);
+      super(Encoding.THRIFT, values);
     }
 
     @Override
@@ -102,10 +98,8 @@ enum RequestBodyMessageEncoder {
   }
 
   static final class Protobuf3RequestBody extends StreamingRequestBody {
-    static final MediaType CONTENT_TYPE = MediaType.parse("application/x-protobuf");
-
     Protobuf3RequestBody(List<byte[]> values) {
-      super(Encoding.PROTO3, CONTENT_TYPE, values);
+      super(Encoding.PROTO3, values);
     }
 
     @Override public void writeTo(BufferedSink sink) throws IOException {

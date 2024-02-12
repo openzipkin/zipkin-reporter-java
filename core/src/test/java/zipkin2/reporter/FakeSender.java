@@ -23,41 +23,38 @@ import zipkin2.codec.SpanBytesDecoder;
 public final class FakeSender extends BytesMessageSender.Base {
 
   public static FakeSender create() {
-    return new FakeSender(Encoding.JSON, Integer.MAX_VALUE,
-      BytesMessageEncoder.forEncoding(Encoding.JSON), SpanBytesEncoder.JSON_V2,
+    return new FakeSender(Encoding.JSON, Integer.MAX_VALUE, SpanBytesEncoder.JSON_V2,
       SpanBytesDecoder.JSON_V2, spans -> {
     });
   }
 
   final int messageMaxBytes;
-  final BytesMessageEncoder messageEncoder;
   final BytesEncoder<Span> encoder;
   final BytesDecoder<Span> decoder;
   final Consumer<List<Span>> onSpans;
 
-  FakeSender(Encoding encoding, int messageMaxBytes, BytesMessageEncoder messageEncoder,
-    BytesEncoder<Span> encoder, BytesDecoder<Span> decoder, Consumer<List<Span>> onSpans) {
+  FakeSender(Encoding encoding, int messageMaxBytes, BytesEncoder<Span> encoder,
+    BytesDecoder<Span> decoder, Consumer<List<Span>> onSpans) {
     super(encoding);
     this.messageMaxBytes = messageMaxBytes;
-    this.messageEncoder = messageEncoder;
     this.encoder = encoder;
     this.decoder = decoder;
     this.onSpans = onSpans;
   }
 
   public FakeSender encoding(Encoding encoding) {
-    return new FakeSender(encoding, messageMaxBytes, messageEncoder, // invalid but not needed, yet
+    return new FakeSender(encoding, messageMaxBytes, // invalid but not needed, yet
       encoder, // invalid but not needed, yet
       decoder, // invalid but not needed, yet
       onSpans);
   }
 
   public FakeSender onSpans(Consumer<List<Span>> onSpans) {
-    return new FakeSender(encoding, messageMaxBytes, messageEncoder, encoder, decoder, onSpans);
+    return new FakeSender(encoding, messageMaxBytes, encoder, decoder, onSpans);
   }
 
   public FakeSender messageMaxBytes(int messageMaxBytes) {
-    return new FakeSender(encoding, messageMaxBytes, messageEncoder, encoder, decoder, onSpans);
+    return new FakeSender(encoding, messageMaxBytes, encoder, decoder, onSpans);
   }
 
   @Override public int messageMaxBytes() {

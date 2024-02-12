@@ -14,20 +14,16 @@
 package zipkin2.reporter.internal;
 
 import java.util.List;
-import zipkin2.reporter.BytesMessageEncoder;
 import zipkin2.reporter.BytesMessageSender;
 import zipkin2.reporter.Encoding;
 
 /** Encodes messages on {@link #send(List)}, but doesn't do anything else. */
 final class NoopSender extends BytesMessageSender.Base {
-  final BytesMessageEncoder messageEncoder;
-
   /** close is typically called from a different thread */
   volatile boolean closeCalled;
 
   NoopSender(Encoding encoding) {
     super(encoding);
-    this.messageEncoder = BytesMessageEncoder.forEncoding(encoding);
   }
 
   @Override public int messageMaxBytes() {
@@ -35,7 +31,7 @@ final class NoopSender extends BytesMessageSender.Base {
   }
 
   @Override public void send(List<byte[]> encodedSpans) {
-    messageEncoder.encode(encodedSpans);
+    encoding.encode(encodedSpans);
   }
 
   @Override public void close() {

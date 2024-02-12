@@ -13,56 +13,55 @@
  */
 package zipkin2.reporter;
 
-import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class BytesMessageEncoderTest {
+class EncodingTest {
   @Test void emptyList_json() {
-    List<byte[]> encoded = Arrays.asList();
-    assertThat(BytesMessageEncoder.JSON.encode(encoded))
+    List<byte[]> encoded = List.of();
+    assertThat(Encoding.JSON.encode(encoded))
       .containsExactly('[', ']');
   }
 
   @Test void singletonList_json() {
-    List<byte[]> encoded = Arrays.asList(new byte[] {'{', '}'});
+    List<byte[]> encoded = List.of(new byte[] {'{', '}'});
 
-    assertThat(BytesMessageEncoder.JSON.encode(encoded))
+    assertThat(Encoding.JSON.encode(encoded))
       .containsExactly('[', '{', '}', ']');
   }
 
   @Test void multiItemList_json() {
-    List<byte[]> encoded = Arrays.asList(
+    List<byte[]> encoded = List.of(
       "{\"k\":\"1\"}".getBytes(),
       "{\"k\":\"2\"}".getBytes(),
       "{\"k\":\"3\"}".getBytes()
     );
-    assertThat(new String(BytesMessageEncoder.JSON.encode(encoded)))
+    assertThat(new String(Encoding.JSON.encode(encoded)))
       .isEqualTo("[{\"k\":\"1\"},{\"k\":\"2\"},{\"k\":\"3\"}]");
   }
 
   @Test void emptyList_proto3() {
-    List<byte[]> encoded = Arrays.asList();
-    assertThat(BytesMessageEncoder.PROTO3.encode(encoded))
+    List<byte[]> encoded = List.of();
+    assertThat(Encoding.PROTO3.encode(encoded))
       .isEmpty();
   }
 
   @Test void singletonList_proto3() {
-    List<byte[]> encoded = Arrays.asList(new byte[] {1, 1, 'a'});
+    List<byte[]> encoded = List.of(new byte[] {1, 1, 'a'});
 
-    assertThat(BytesMessageEncoder.PROTO3.encode(encoded))
+    assertThat(Encoding.PROTO3.encode(encoded))
       .containsExactly(1, 1, 'a');
   }
 
   @Test void multiItemList_proto3() {
-    List<byte[]> encoded = Arrays.asList(
+    List<byte[]> encoded = List.of(
       new byte[] {1, 1, 'a'},
       new byte[] {1, 1, 'b'},
       new byte[] {1, 1, 'c'}
     );
-    assertThat(BytesMessageEncoder.PROTO3.encode(encoded)).containsExactly(
+    assertThat(Encoding.PROTO3.encode(encoded)).containsExactly(
       1, 1, 'a',
       1, 1, 'b',
       1, 1, 'c'

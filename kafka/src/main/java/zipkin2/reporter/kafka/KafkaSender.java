@@ -28,7 +28,6 @@ import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import zipkin2.reporter.AsyncReporter;
 import zipkin2.reporter.AwaitableCallback;
-import zipkin2.reporter.BytesMessageEncoder;
 import zipkin2.reporter.BytesMessageSender;
 import zipkin2.reporter.Call;
 import zipkin2.reporter.Callback;
@@ -204,7 +203,6 @@ public final class KafkaSender extends Sender {
   final Properties properties;
   final String topic;
   final Encoding encoding;
-  final BytesMessageEncoder encoder;
   final int messageMaxBytes;
 
   KafkaSender(Builder builder) {
@@ -212,7 +210,6 @@ public final class KafkaSender extends Sender {
     properties.putAll(builder.properties);
     topic = builder.topic;
     encoding = builder.encoding;
-    encoder = BytesMessageEncoder.forEncoding(builder.encoding);
     messageMaxBytes = builder.messageMaxBytes;
   }
 
@@ -260,7 +257,7 @@ public final class KafkaSender extends Sender {
   /** {@inheritDoc} */
   @Override @Deprecated public Call<Void> sendSpans(List<byte[]> encodedSpans) {
     if (closeCalled) throw new ClosedSenderException();
-    byte[] message = encoder.encode(encodedSpans);
+    byte[] message = encoding.encode(encodedSpans);
     return new KafkaCall(message);
   }
 
@@ -271,7 +268,7 @@ public final class KafkaSender extends Sender {
    */
   @Override public void send(List<byte[]> encodedSpans) {
     if (closeCalled) throw new ClosedSenderException();
-    send(encoder.encode(encodedSpans));
+    send(encoding.encode(encodedSpans));
   }
 
   void send(byte[] message) {

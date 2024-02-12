@@ -19,11 +19,11 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 import java.util.zip.GZIPOutputStream;
-import zipkin2.reporter.BytesMessageEncoder;
 import zipkin2.reporter.Call;
 import zipkin2.reporter.Callback;
 import zipkin2.reporter.CheckResult;
@@ -217,8 +217,6 @@ public final class URLConnectionSender extends Sender {
 
   final HttpURLConnectionSupplier connectionSupplier;
   final Encoding encoding;
-  final String mediaType;
-  final BytesMessageEncoder encoder;
   final int messageMaxBytes;
   final int connectTimeout, readTimeout;
   final boolean compressionEnabled;
@@ -229,22 +227,6 @@ public final class URLConnectionSender extends Sender {
 
     this.connectionSupplier = connectionSupplier;
     this.encoding = builder.encoding;
-    switch (builder.encoding) {
-      case JSON:
-        this.mediaType = "application/json";
-        this.encoder = BytesMessageEncoder.JSON;
-        break;
-      case THRIFT:
-        this.mediaType = "application/x-thrift";
-        this.encoder = BytesMessageEncoder.THRIFT;
-        break;
-      case PROTO3:
-        this.mediaType = "application/x-protobuf";
-        this.encoder = BytesMessageEncoder.PROTO3;
-        break;
-      default:
-        throw new UnsupportedOperationException("Unsupported encoding: " + encoding.name());
-    }
     this.messageMaxBytes = builder.messageMaxBytes;
     this.connectTimeout = builder.connectTimeout;
     this.readTimeout = builder.readTimeout;
@@ -277,19 +259,19 @@ public final class URLConnectionSender extends Sender {
   /** {@inheritDoc} */
   @Override @Deprecated public Call<Void> sendSpans(List<byte[]> encodedSpans) {
     if (closeCalled.get()) throw new ClosedSenderException();
-    return new HttpPostCall(encoder.encode(encodedSpans));
+    return new HttpPostCall(encoding.encode(encodedSpans));
   }
 
   /** Sends spans as a POST to {@link Builder#endpoint}. */
   @Override public void send(List<byte[]> encodedSpans) throws IOException {
     if (closeCalled.get()) throw new ClosedSenderException();
-    send(encoder.encode(encodedSpans), mediaType);
+    send(encoding.encode(encodedSpans));
   }
 
   /** {@inheritDoc} */
   @Override @Deprecated public CheckResult check() {
     try {
-      send(new byte[] {'[', ']'}, "application/json");
+      send(encoding.encode(Collections.<byte[]>emptyList()));
       return CheckResult.OK;
     } catch (Throwable e) {
       Call.propagateIfFatal(e);
@@ -297,7 +279,7 @@ public final class URLConnectionSender extends Sender {
     }
   }
 
-  void send(byte[] body, String mediaType) throws IOException {
+  void send(byte[] body) throws IOException {
     // intentionally not closing the connection, to use keep-alives
     HttpURLConnection connection = connectionSupplier.openConnection();
     connection.setConnectTimeout(connectTimeout);
@@ -306,7 +288,7 @@ public final class URLConnectionSender extends Sender {
     // Amplification can occur when the Zipkin endpoint is proxied, and the proxy is instrumented.
     // This prevents that in proxies, such as Envoy, that understand B3 single format,
     connection.addRequestProperty("b3", "0");
-    connection.addRequestProperty("Content-Type", mediaType);
+    connection.addRequestProperty("Content-Type", encoding.mediaType());
     if (compressionEnabled) {
       connection.addRequestProperty("Content-Encoding", "gzip");
       ByteArrayOutputStream gzipped = new ByteArrayOutputStream();
@@ -366,13 +348,13 @@ public final class URLConnectionSender extends Sender {
     }
 
     @Override protected Void doExecute() throws IOException {
-      send(message, mediaType);
+      send(message);
       return null;
     }
 
     @Override protected void doEnqueue(Callback<Void> callback) {
       try {
-        send(message, mediaType);
+        send(message);
         callback.onSuccess(null);
       } catch (Throwable t) {
         Call.propagateIfFatal(t);

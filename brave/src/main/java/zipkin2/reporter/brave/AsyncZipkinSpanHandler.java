@@ -172,12 +172,7 @@ public final class AsyncZipkinSpanHandler extends SpanHandler implements Closeab
      */
     // AsyncZipkinSpanHandler not SpanHandler, so that Flushable and Closeable are accessible
     public AsyncZipkinSpanHandler build() {
-      switch (encoding) {
-        case JSON:
-          return build(new JsonV2Encoder(errorTag));
-        default:
-          throw new UnsupportedOperationException(encoding.name());
-      }
+      return build(MutableSpanBytesEncoder.create(encoding, errorTag));
     }
 
     /**

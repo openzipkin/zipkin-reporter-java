@@ -14,6 +14,7 @@
 package zipkin2.reporter.okhttp3;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadFactory;
@@ -387,7 +388,7 @@ public final class OkHttpSender extends Sender {
   @Override @Deprecated public CheckResult check() {
     try {
       Request request = new Request.Builder().url(urlSupplier.get())
-        .post(RequestBody.create(MediaType.parse("application/json"), "[]")).build();
+        .post(encoder.encode(Collections.<byte[]>emptyList())).build();
       try (Response response = client.newCall(request).execute()) {
         if (!response.isSuccessful()) {
           return CheckResult.failed(new RuntimeException("check response failed: " + response));
