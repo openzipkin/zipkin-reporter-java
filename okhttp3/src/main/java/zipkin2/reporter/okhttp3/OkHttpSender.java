@@ -37,6 +37,7 @@ import zipkin2.reporter.AsyncReporter;
 import zipkin2.reporter.BytesMessageSender;
 import zipkin2.reporter.CheckResult;
 import zipkin2.reporter.ClosedSenderException;
+import zipkin2.reporter.ConstantHttpEndpointSupplier;
 import zipkin2.reporter.Encoding;
 import zipkin2.reporter.HttpEndpointSupplier;
 import zipkin2.reporter.Sender;
