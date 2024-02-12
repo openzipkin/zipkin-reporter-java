@@ -98,7 +98,7 @@ public final class OkHttpSender extends Sender {
 
   public static final class Builder {
     final OkHttpClient.Builder clientBuilder;
-    HttpEndpointSupplier.Factory endpointSupplierFactory = HttpEndpointSupplier.CONSTANT_FACTORY;
+    HttpEndpointSupplier.Factory endpointSupplierFactory = ConstantHttpEndpointSupplier.FACTORY;
     String endpoint;
     Encoding encoding = Encoding.JSON;
     boolean compressionEnabled = true;
@@ -207,7 +207,7 @@ public final class OkHttpSender extends Sender {
       if (endpointSupplier == null) {
         throw new NullPointerException("endpointSupplierFactory.create() returned null");
       }
-      if (endpointSupplier instanceof HttpEndpointSupplier.Constant) {
+      if (endpointSupplier instanceof ConstantHttpEndpointSupplier) {
         endpoint = endpointSupplier.get(); // eagerly resolve the endpoint
         return new OkHttpSender(this, new ConstantHttpUrlSupplier(endpoint));
       }

@@ -20,7 +20,6 @@ import zipkin2.reporter.AsyncReporter;
 import zipkin2.reporter.BytesMessageSender;
 import zipkin2.reporter.Encoding;
 import zipkin2.reporter.ReporterMetrics;
-import zipkin2.reporter.Sender;
 import zipkin2.reporter.SpanBytesEncoder;
 
 import static org.assertj.core.api.Assertions.assertThat;

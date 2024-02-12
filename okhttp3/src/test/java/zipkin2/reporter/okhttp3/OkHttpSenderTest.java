@@ -24,8 +24,8 @@ import zipkin2.codec.SpanBytesEncoder;
 import zipkin2.reporter.AsyncReporter;
 import zipkin2.reporter.BytesMessageSender;
 import zipkin2.reporter.ClosedSenderException;
+import zipkin2.reporter.ConstantHttpEndpointSupplier;
 import zipkin2.reporter.HttpEndpointSupplier;
-import zipkin2.reporter.HttpEndpointSupplier.Constant;
 
 import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -42,14 +42,14 @@ class OkHttpSenderTest {
 
     // Change the supplier, but not the endpoint.
     sender = sender.toBuilder()
-      .endpointSupplierFactory(e -> new Constant("http://localhost:29092"))
+      .endpointSupplierFactory(e -> ConstantHttpEndpointSupplier.create("http://localhost:29092"))
       .build();
     assertThat(sender)
       .hasToString("OkHttpSender{http://localhost:29092/}");
 
     // Change the supplier, and see the prior endpoint.
     sender = sender.toBuilder()
-      .endpointSupplierFactory(HttpEndpointSupplier.CONSTANT_FACTORY)
+      .endpointSupplierFactory(ConstantHttpEndpointSupplier.FACTORY)
       .build();
     assertThat(sender)
       .hasToString("OkHttpSender{http://localhost:19092/}");
@@ -86,7 +86,7 @@ class OkHttpSenderTest {
   @Test void endpointSupplierFactory_constant() {
     sender.close();
     sender = sender.toBuilder()
-      .endpointSupplierFactory(e -> new Constant("http://localhost:29092"))
+      .endpointSupplierFactory(e -> ConstantHttpEndpointSupplier.create("http://localhost:29092"))
       .build();
 
     // The connection supplier has a constant URL
@@ -97,7 +97,7 @@ class OkHttpSenderTest {
 
   @Test void endpointSupplierFactory_constantBad() {
     OkHttpSender.Builder builder = sender.toBuilder()
-      .endpointSupplierFactory(e -> new Constant("htp://localhost:9411/api/v1/spans"));
+      .endpointSupplierFactory(e -> ConstantHttpEndpointSupplier.create("htp://localhost:9411/api/v1/spans"));
 
     assertThatThrownBy(builder::build)
       .isInstanceOf(IllegalArgumentException.class)

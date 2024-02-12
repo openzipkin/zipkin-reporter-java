@@ -18,9 +18,7 @@ import brave.propagation.TraceContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import zipkin2.reporter.Reporter;
-import zipkin2.reporter.Sender;
 import zipkin2.reporter.brave.ZipkinSpanHandler;
-import zipkin2.reporter.urlconnection.URLConnectionSender;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

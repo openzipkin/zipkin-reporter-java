@@ -17,7 +17,6 @@ import java.io.IOException;
 import java.net.ConnectException;
 import java.net.MalformedURLException;
 import java.net.URI;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
@@ -26,8 +25,8 @@ import zipkin2.codec.SpanBytesEncoder;
 import zipkin2.reporter.AsyncReporter;
 import zipkin2.reporter.BytesMessageSender;
 import zipkin2.reporter.ClosedSenderException;
+import zipkin2.reporter.ConstantHttpEndpointSupplier;
 import zipkin2.reporter.HttpEndpointSupplier;
-import zipkin2.reporter.HttpEndpointSupplier.Constant;
 
 import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -44,14 +43,14 @@ class URLConnectionSenderTest {
 
     // Change the supplier, but not the endpoint
     sender = sender.toBuilder()
-      .endpointSupplierFactory(e -> new Constant("http://localhost:29092"))
+      .endpointSupplierFactory(e -> ConstantHttpEndpointSupplier.create("http://localhost:29092"))
       .build();
     assertThat(sender)
       .hasToString("URLConnectionSender{http://localhost:29092}");
 
     // Change the supplier, and see the prior endpoint.
     sender = sender.toBuilder()
-      .endpointSupplierFactory(HttpEndpointSupplier.CONSTANT_FACTORY)
+      .endpointSupplierFactory(ConstantHttpEndpointSupplier.FACTORY)
       .build();
     assertThat(sender)
       .hasToString("URLConnectionSender{http://localhost:19092}");
@@ -86,7 +85,7 @@ class URLConnectionSenderTest {
   @Test void endpointSupplierFactory_constant() throws MalformedURLException {
     sender.close();
     sender = sender.toBuilder()
-      .endpointSupplierFactory(e -> new Constant("http://localhost:29092"))
+      .endpointSupplierFactory(e -> ConstantHttpEndpointSupplier.create("http://localhost:29092"))
       .build();
 
     // The connection supplier has a constant URL
@@ -97,7 +96,7 @@ class URLConnectionSenderTest {
 
   @Test void endpointSupplierFactory_constantBad() {
     URLConnectionSender.Builder builder = sender.toBuilder()
-      .endpointSupplierFactory(e -> new Constant("htp://localhost:9411/api/v1/spans"));
+      .endpointSupplierFactory(e -> ConstantHttpEndpointSupplier.create("htp://localhost:9411/api/v1/spans"));
 
     assertThatThrownBy(builder::build)
       .isInstanceOf(IllegalArgumentException.class)
