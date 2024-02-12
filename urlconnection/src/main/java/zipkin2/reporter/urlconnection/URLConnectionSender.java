@@ -28,6 +28,7 @@ import zipkin2.reporter.Call;
 import zipkin2.reporter.Callback;
 import zipkin2.reporter.CheckResult;
 import zipkin2.reporter.ClosedSenderException;
+import zipkin2.reporter.ConstantHttpEndpointSupplier;
 import zipkin2.reporter.Encoding;
 import zipkin2.reporter.HttpEndpointSupplier;
 import zipkin2.reporter.Sender;
@@ -52,7 +53,7 @@ public final class URLConnectionSender extends Sender {
   }
 
   public static final class Builder {
-    HttpEndpointSupplier.Factory endpointSupplierFactory = HttpEndpointSupplier.CONSTANT_FACTORY;
+    HttpEndpointSupplier.Factory endpointSupplierFactory = ConstantHttpEndpointSupplier.FACTORY;
     String endpoint;
     Encoding encoding = Encoding.JSON;
     int messageMaxBytes = 500000;
@@ -141,7 +142,7 @@ public final class URLConnectionSender extends Sender {
       if (endpointSupplier == null) {
         throw new NullPointerException("endpointSupplierFactory.create() returned null");
       }
-      if (endpointSupplier instanceof HttpEndpointSupplier.Constant) {
+      if (endpointSupplier instanceof ConstantHttpEndpointSupplier) {
         endpoint = endpointSupplier.get(); // eagerly resolve the endpoint
         return new URLConnectionSender(this, new ConstantHttpURLConnectionSupplier(endpoint));
       }

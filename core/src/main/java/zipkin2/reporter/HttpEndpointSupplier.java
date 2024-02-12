@@ -25,7 +25,8 @@ import java.util.List;
  * <p>{@link BytesMessageSender senders} should implement the following logic:
  * <ul>
  *   <li>During build, the sender should invoke the {@linkplain Factory}.</li>
- *   <li>If the result is {@link Constant}, build the sender to use a static value.</li>
+ *   <li>If the result is {@link ConstantHttpEndpointSupplier}, build the sender to use a static
+ *       value.</li>
  *   <li>Otherwise, call {@link HttpEndpointSupplier#get()} each time
  *       {@linkplain BytesMessageSender#send(List)} is invoked.</li>
  *   <li>Call {@link #close()} once during {@link BytesMessageSender#close()}.</li>
@@ -49,22 +50,10 @@ import java.util.List;
  */
 public interface HttpEndpointSupplier extends Closeable {
   /**
-   * HTTP {@link BytesMessageSender sender} builders check for this symbol, and return the input as
-   * a {@linkplain Constant} result rather than perform dynamic lookups.
-   *
-   * @since 3.3
-   */
-  Factory CONSTANT_FACTORY = new Factory() {
-    @Override public Constant create(String endpoint) {
-      return new Constant(endpoint);
-    }
-  };
-
-  /**
    * Returns a possibly cached endpoint to an HTTP {@link BytesMessageSender sender}.
    *
    * <p>This will be called inside {@linkplain BytesMessageSender#send(List)}, unless this is an
-   * instance of {@linkplain Constant}.
+   * instance of {@linkplain ConstantHttpEndpointSupplier}.
    *
    * @since 3.3
    */
@@ -81,35 +70,15 @@ public interface HttpEndpointSupplier extends Closeable {
   interface Factory {
 
     /**
-     * Returns a possibly {@linkplain Constant} endpoint supplier, given a static endpoint from
-     * configuration.
+     * Returns a possibly {@linkplain ConstantHttpEndpointSupplier} endpoint supplier, given a
+     * static endpoint from configuration.
      *
-     * <p>Note: Some factories may perform I/O to lazy-create a {@linkplain Constant} endpoint.
+     * <p>Note: Some factories may perform I/O to lazy-create a
+     * {@linkplain ConstantHttpEndpointSupplier} endpoint.
      *
      * @param endpoint a static HTTP endpoint from configuration. For example,
      *                 http://localhost:9411/api/v2/spans
      */
     HttpEndpointSupplier create(String endpoint);
-  }
-
-  /**
-   * HTTP {@link BytesMessageSender senders} check for this type, and will cache its first value.
-   *
-   * @since 3.3
-   */
-  final class Constant implements HttpEndpointSupplier {
-    private final String endpoint;
-
-    public Constant(String endpoint) {
-      if (endpoint == null) throw new NullPointerException("endpoint == null");
-      this.endpoint = endpoint;
-    }
-
-    @Override public String get() {
-      return endpoint;
-    }
-
-    @Override public void close() {
-    }
   }
 }

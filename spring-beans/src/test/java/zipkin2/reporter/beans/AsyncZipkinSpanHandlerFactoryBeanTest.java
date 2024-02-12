@@ -20,9 +20,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import zipkin2.reporter.BytesMessageSender;
 import zipkin2.reporter.ReporterMetrics;
-import zipkin2.reporter.Sender;
 import zipkin2.reporter.brave.AsyncZipkinSpanHandler;
-import zipkin2.reporter.brave.ZipkinSpanHandler;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

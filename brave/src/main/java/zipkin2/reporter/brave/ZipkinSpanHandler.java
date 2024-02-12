@@ -20,8 +20,8 @@ import brave.handler.SpanHandler;
 import brave.propagation.TraceContext;
 import java.io.Closeable;
 import zipkin2.Span;
-import zipkin2.reporter.SpanBytesEncoder;
 import zipkin2.reporter.Reporter;
+import zipkin2.reporter.SpanBytesEncoder;
 
 /**
  * This allows you to send spans recorded by Brave to a pre-configured {@linkplain Reporter Zipkin

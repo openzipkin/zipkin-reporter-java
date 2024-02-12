@@ -34,7 +34,7 @@ internal detail.
 
 Someone who wants to employ client-side loadbalancer logic can do that inside the
 `HttpEndpointSupplier`, and return a chosen endpoint. This will work because the supplier is
-documented to not be cached, unless it implements `HttpEndpointSupplier.Constant`.
+documented to not be cached, unless it is a `ConstantHttpEndpointSupplier`.
 
 ### Why is `HttpEndpointSupplier` closeable?
 

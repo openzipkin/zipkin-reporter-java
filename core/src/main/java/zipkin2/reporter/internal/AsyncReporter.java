@@ -15,7 +15,6 @@ package zipkin2.reporter.internal;
 
 import java.io.Closeable;
 import java.io.Flushable;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.concurrent.CountDownLatch;
@@ -33,7 +32,6 @@ import zipkin2.reporter.ClosedSenderException;
 import zipkin2.reporter.Component;
 import zipkin2.reporter.Reporter;
 import zipkin2.reporter.ReporterMetrics;
-import zipkin2.reporter.Sender;
 
 import static java.lang.String.format;
 import static java.util.logging.Level.FINE;

@@ -34,7 +34,6 @@ import zipkin2.Span;
 import zipkin2.TestObjects;
 import zipkin2.reporter.BytesMessageSender;
 import zipkin2.reporter.InMemoryReporterMetrics;
-import zipkin2.reporter.BytesMessageSender;
 import zipkin2.reporter.SpanBytesEncoder;
 
 /**

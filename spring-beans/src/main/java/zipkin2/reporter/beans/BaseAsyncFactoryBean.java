@@ -16,7 +16,6 @@ package zipkin2.reporter.beans;
 import org.springframework.beans.factory.config.AbstractFactoryBean;
 import zipkin2.reporter.BytesMessageSender;
 import zipkin2.reporter.ReporterMetrics;
-import zipkin2.reporter.Sender;
 
 abstract class BaseAsyncFactoryBean extends AbstractFactoryBean {
   BytesMessageSender sender;
