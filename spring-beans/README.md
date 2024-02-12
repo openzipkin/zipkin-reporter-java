@@ -10,9 +10,10 @@ Bean Factories exist for the following types:
 * KafkaSenderFactoryBean - for [zipkin-sender-kafka](../kafka)
 * RabbitMQSenderFactoryBean - for [zipkin-sender-amqp-client](../amqp-client)
 * URLConnectionSenderFactoryBean - for [zipkin-sender-urlconnection](../urlconnection)
-* ZipkinSpanHandlerFactoryBeanTest - for [brave](https://github.com/openzipkin/brave)
+* AsyncZipkinSpanHandlerFactoryBean - for [brave](https://github.com/openzipkin/brave)
+* ZipkinSpanHandlerFactoryBeanTest - for [brave](https://github.com/openzipkin/brave) reporter bridge
 
-Here's a basic example
+* Here's a basic example
 ```xml
   <bean id="spanReporter" class="zipkin2.reporter.beans.AsyncReporterFactoryBean">
     <property name="sender">

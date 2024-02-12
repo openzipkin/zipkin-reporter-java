@@ -15,11 +15,12 @@ package zipkin2.reporter.beans;
 
 import org.springframework.beans.factory.config.AbstractFactoryBean;
 import zipkin2.reporter.Encoding;
+import zipkin2.reporter.HttpEndpointSupplier;
 import zipkin2.reporter.urlconnection.URLConnectionSender;
 
 /** Spring XML config does not support chained builders. This converts accordingly */
 public class URLConnectionSenderFactoryBean extends AbstractFactoryBean {
-
+  HttpEndpointSupplier.Factory endpointSupplierFactory;
   String endpoint;
   Encoding encoding;
   Integer connectTimeout, readTimeout;
@@ -28,6 +29,7 @@ public class URLConnectionSenderFactoryBean extends AbstractFactoryBean {
 
   @Override protected URLConnectionSender createInstance() {
     URLConnectionSender.Builder builder = URLConnectionSender.newBuilder();
+    if (endpointSupplierFactory != null) builder.endpointSupplierFactory(endpointSupplierFactory);
     if (endpoint != null) builder.endpoint(endpoint);
     if (encoding != null) builder.encoding(encoding);
     if (connectTimeout != null) builder.connectTimeout(connectTimeout);
@@ -47,6 +49,10 @@ public class URLConnectionSenderFactoryBean extends AbstractFactoryBean {
 
   @Override protected void destroyInstance(Object instance) {
     ((URLConnectionSender) instance).close();
+  }
+
+  public void setEndpointSupplierFactory(HttpEndpointSupplier.Factory endpointSupplierFactory) {
+    this.endpointSupplierFactory = endpointSupplierFactory;
   }
 
   public void setEndpoint(String endpoint) {

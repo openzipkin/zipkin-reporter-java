@@ -1,5 +1,49 @@
 # zipkin-reporter rationale
 
+## HttpEndpointSupplier
+
+`HttpEndpointSupplier` was generalizes endpoint resolution for built-in and third-party senders.
+Specifically, it allows Zipkin to be looked up in a way besides DNS.
+
+For example, Netflix/Eureka was formalized in Zipkin 2.27 and until `HttpEndpointSupplier`, there
+was no means for Zipkin Reporter users to integrate, except for the discontinued spring-cloud-sleuth
+project. By adding support a common hook, any framework, new or old, can integrate a custom
+discovery or client-side loadbalancer.
+
+### Why does the `Factory` accept a string endpoint?
+
+Not all discovery solutions include components to build a zipkin endpoint. For example,
+Netflix/Eureka instance information includes vipAddress and port details, but not the path, and
+which of the secure or non-secure IP addresses should be used. Since HTTP based senders already
+configure a static endpoint, this can be re-used to pass a virtual endpoint. Specifically, a fake
+hostname can represent a symbolic application, and be substituted with a real host or IP address
+later.
+
+A string is used for two reasons. One is that it is the least common denominator across typical
+endpoint types, which could be `URL` or a library-specific `HttpUrl`. The other reason is that
+allowing the (configuration) endpoint to be a string, a user can supply an invalid URL, but valid
+configuration through. For example, it could be a comma-separated list of well-known addresses the
+endpoint supplier will seed its configuration with.
+
+### Why does the `HttpEndpointSupplier` only return a single endpoint?
+
+The `HttpEndpointSupplier` returns a single endpoint to integrate with existing
+`URLConnectionSender` and `OkHttpSender` logic, which doesn't act like a client-side loadbalancer.
+While HTTP libraries may internally resolve a name to multiple IP addresses, this is usually an
+internal detail.
+
+Someone who wants to employ client-side loadbalancer logic can do that inside the
+`HttpEndpointSupplier`, and return a chosen endpoint. This will work because the supplier is
+documented to not be cached, unless it implements `HttpEndpointSupplier.Constant`.
+
+### Why is `HttpEndpointSupplier` closeable?
+
+Just like `BytesMessageSender`, an `HttpEndpointSupplier` can open resources. An example could be
+an HTTP client for the Netflix Eureka API. A sender is passed an endpoint supplier factory and uses
+it during construction, usually in `senderBuilder.build()`. The caller of `senderBuilder.build()`
+has no reference to the `HttpEndpointSupplier` created. Hence, the sender needs to close it, during
+`sender.close()`.
+
 ## Sending an empty list is permitted
 
 Historically, we had a `Sender.check()` function for fail fast reasons, but it was rarely used and

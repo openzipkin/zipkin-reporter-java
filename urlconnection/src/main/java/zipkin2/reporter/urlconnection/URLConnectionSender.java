@@ -20,6 +20,8 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Logger;
 import java.util.zip.GZIPOutputStream;
 import zipkin2.reporter.BytesMessageEncoder;
 import zipkin2.reporter.Call;
@@ -27,7 +29,10 @@ import zipkin2.reporter.Callback;
 import zipkin2.reporter.CheckResult;
 import zipkin2.reporter.ClosedSenderException;
 import zipkin2.reporter.Encoding;
+import zipkin2.reporter.HttpEndpointSupplier;
 import zipkin2.reporter.Sender;
+
+import static zipkin2.reporter.Call.propagateIfFatal;
 
 /**
  * Reports spans to Zipkin, using its <a href="https://zipkin.io/zipkin-api/#/">POST</a> endpoint.
@@ -35,6 +40,8 @@ import zipkin2.reporter.Sender;
  * <p>This sender is thread-safe.
  */
 public final class URLConnectionSender extends Sender {
+  static final Logger logger = Logger.getLogger(URLConnectionSender.class.getName());
+
   /** Creates a sender that posts {@link Encoding#JSON} messages. */
   public static URLConnectionSender create(String endpoint) {
     return newBuilder().endpoint(endpoint).build();
@@ -45,13 +52,15 @@ public final class URLConnectionSender extends Sender {
   }
 
   public static final class Builder {
-    URL endpoint;
+    HttpEndpointSupplier.Factory endpointSupplierFactory = HttpEndpointSupplier.CONSTANT_FACTORY;
+    String endpoint;
     Encoding encoding = Encoding.JSON;
     int messageMaxBytes = 500000;
     int connectTimeout = 10 * 1000, readTimeout = 60 * 1000;
     boolean compressionEnabled = true;
 
     Builder(URLConnectionSender sender) {
+      this.endpointSupplierFactory = sender.endpointSupplierFactory;
       this.endpoint = sender.endpoint;
       this.encoding = sender.encoding;
       this.messageMaxBytes = sender.messageMaxBytes;
@@ -61,23 +70,30 @@ public final class URLConnectionSender extends Sender {
     }
 
     /**
+     * No default. See JavaDoc on {@link HttpEndpointSupplier} for implementation notes.
+     */
+    public Builder endpointSupplierFactory(HttpEndpointSupplier.Factory endpointSupplierFactory) {
+      if (endpointSupplierFactory == null) {
+        throw new NullPointerException("endpointSupplierFactory == null");
+      }
+      this.endpointSupplierFactory = endpointSupplierFactory;
+      return this;
+    }
+
+    /**
      * No default. The POST URL for zipkin's <a href="https://zipkin.io/zipkin-api/#/">v2 api</a>,
      * usually "http://zipkinhost:9411/api/v2/spans"
      */
     // customizable so that users can re-map /api/v2/spans ex for browser-originated traces
     public Builder endpoint(String endpoint) {
       if (endpoint == null) throw new NullPointerException("endpoint == null");
-
-      try {
-        return endpoint(new URL(endpoint));
-      } catch (MalformedURLException e) {
-        throw new IllegalArgumentException(e.getMessage());
-      }
+      this.endpoint = endpoint;
+      return this;
     }
 
     public Builder endpoint(URL endpoint) {
       if (endpoint == null) throw new NullPointerException("endpoint == null");
-      this.endpoint = endpoint;
+      this.endpoint = endpoint.toString();
       return this;
     }
 
@@ -118,14 +134,87 @@ public final class URLConnectionSender extends Sender {
     }
 
     public URLConnectionSender build() {
-      return new URLConnectionSender(this);
+      String endpoint = this.endpoint;
+      if (endpoint == null) throw new NullPointerException("endpoint == null");
+
+      HttpEndpointSupplier endpointSupplier = endpointSupplierFactory.create(endpoint);
+      if (endpointSupplier == null) {
+        throw new NullPointerException("endpointSupplierFactory.create() returned null");
+      }
+      if (endpointSupplier instanceof HttpEndpointSupplier.Constant) {
+        endpoint = endpointSupplier.get(); // eagerly resolve the endpoint
+        return new URLConnectionSender(this, new ConstantHttpURLConnectionSupplier(endpoint));
+      }
+      return new URLConnectionSender(this, new DynamicHttpURLConnectionSupplier(endpointSupplier));
     }
 
     Builder() {
     }
   }
 
-  final URL endpoint;
+  static URL toURL(String endpoint) {
+    try {
+      return new URL(endpoint);
+    } catch (MalformedURLException e) {
+      throw new IllegalArgumentException(e.getMessage());
+    }
+  }
+
+  static abstract class HttpURLConnectionSupplier {
+    abstract HttpURLConnection openConnection() throws IOException;
+
+    void close() {
+    }
+  }
+
+  static final class ConstantHttpURLConnectionSupplier extends HttpURLConnectionSupplier {
+    final URL url;
+
+    ConstantHttpURLConnectionSupplier(String endpoint) {
+      this.url = toURL(endpoint);
+    }
+
+    @Override HttpURLConnection openConnection() throws IOException {
+      return (HttpURLConnection) url.openConnection();
+    }
+
+    @Override public String toString() {
+      return url.toString();
+    }
+  }
+
+  static final class DynamicHttpURLConnectionSupplier extends HttpURLConnectionSupplier {
+    final HttpEndpointSupplier endpointSupplier;
+
+    DynamicHttpURLConnectionSupplier(HttpEndpointSupplier endpointSupplier) {
+      this.endpointSupplier = endpointSupplier;
+    }
+
+    @Override HttpURLConnection openConnection() throws IOException {
+      String endpoint = endpointSupplier.get();
+      if (endpoint == null) throw new NullPointerException("endpointSupplier.get() returned null");
+      URL url = toURL(endpoint);
+      return (HttpURLConnection) url.openConnection();
+    }
+
+    @Override void close() {
+      try {
+        endpointSupplier.close();
+      } catch (Throwable t) {
+        propagateIfFatal(t);
+        logger.fine("ignoring error closing endpoint supplier: " + t.getMessage());
+      }
+    }
+
+    @Override public String toString() {
+      return endpointSupplier.toString();
+    }
+  }
+
+  final HttpEndpointSupplier.Factory endpointSupplierFactory; // for toBuilder()
+  final String endpoint; // for toBuilder()
+
+  final HttpURLConnectionSupplier connectionSupplier;
   final Encoding encoding;
   final String mediaType;
   final BytesMessageEncoder encoder;
@@ -133,9 +222,11 @@ public final class URLConnectionSender extends Sender {
   final int connectTimeout, readTimeout;
   final boolean compressionEnabled;
 
-  URLConnectionSender(Builder builder) {
-    if (builder.endpoint == null) throw new NullPointerException("endpoint == null");
-    this.endpoint = builder.endpoint;
+  URLConnectionSender(Builder builder, HttpURLConnectionSupplier connectionSupplier) {
+    this.endpointSupplierFactory = builder.endpointSupplierFactory; // for toBuilder()
+    this.endpoint = builder.endpoint; // for toBuilder()
+
+    this.connectionSupplier = connectionSupplier;
     this.encoding = builder.encoding;
     switch (builder.encoding) {
       case JSON:
@@ -164,7 +255,7 @@ public final class URLConnectionSender extends Sender {
   }
 
   /** close is typically called from a different thread */
-  volatile boolean closeCalled;
+  final AtomicBoolean closeCalled = new AtomicBoolean();
 
   @Override public int messageSizeInBytes(List<byte[]> encodedSpans) {
     return encoding().listSizeInBytes(encodedSpans);
@@ -184,13 +275,13 @@ public final class URLConnectionSender extends Sender {
 
   /** {@inheritDoc} */
   @Override @Deprecated public Call<Void> sendSpans(List<byte[]> encodedSpans) {
-    if (closeCalled) throw new ClosedSenderException();
+    if (closeCalled.get()) throw new ClosedSenderException();
     return new HttpPostCall(encoder.encode(encodedSpans));
   }
 
   /** Sends spans as a POST to {@link Builder#endpoint}. */
   @Override public void send(List<byte[]> encodedSpans) throws IOException {
-    if (closeCalled) throw new ClosedSenderException();
+    if (closeCalled.get()) throw new ClosedSenderException();
     send(encoder.encode(encodedSpans), mediaType);
   }
 
@@ -207,7 +298,7 @@ public final class URLConnectionSender extends Sender {
 
   void send(byte[] body, String mediaType) throws IOException {
     // intentionally not closing the connection, to use keep-alives
-    HttpURLConnection connection = (HttpURLConnection) endpoint.openConnection();
+    HttpURLConnection connection = connectionSupplier.openConnection();
     connection.setConnectTimeout(connectTimeout);
     connection.setReadTimeout(readTimeout);
     connection.setRequestMethod("POST");
@@ -258,11 +349,12 @@ public final class URLConnectionSender extends Sender {
   }
 
   @Override public void close() {
-    closeCalled = true;
+    if (!closeCalled.compareAndSet(false, true)) return; // already closed
+    connectionSupplier.close();
   }
 
   @Override public String toString() {
-    return "URLConnectionSender{" + endpoint + "}";
+    return "URLConnectionSender{" + connectionSupplier + "}";
   }
 
   class HttpPostCall extends Call.Base<Void> {
