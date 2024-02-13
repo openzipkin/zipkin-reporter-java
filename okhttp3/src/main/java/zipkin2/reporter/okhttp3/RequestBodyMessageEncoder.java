@@ -38,6 +38,19 @@ enum RequestBodyMessageEncoder {
     }
   };
 
+  static RequestBodyMessageEncoder forEncoding(Encoding encoding) {
+    switch (encoding) {
+      case JSON:
+        return RequestBodyMessageEncoder.JSON;
+      case THRIFT:
+        return RequestBodyMessageEncoder.THRIFT;
+      case PROTO3:
+        return RequestBodyMessageEncoder.PROTO3;
+      default:
+        throw new UnsupportedOperationException("Unsupported encoding: " + encoding.name());
+    }
+  }
+
   static abstract class StreamingRequestBody extends RequestBody {
     final MediaType contentType;
     final List<byte[]> values;

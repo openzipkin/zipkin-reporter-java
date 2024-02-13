@@ -69,125 +69,6 @@ class OkHttpSenderTest {
       .isInstanceOf(IOException.class);
   }
 
-  @Test void illegalToSendWhenClosed() {
-    sender.close();
-
-    assertThatThrownBy(() -> sendSpans(sender, CLIENT_SPAN, CLIENT_SPAN))
-      .isInstanceOf(ClosedSenderException.class);
-  }
-
-  @Test void endpointSupplierFactory_defaultsToConstant() {
-    // The default connection supplier returns a constant URL
-    assertThat(sender)
-      .extracting("urlSupplier.url")
-      .isEqualTo(HttpUrl.parse("http://localhost:19092"));
-  }
-
-  @Test void endpointSupplierFactory_constant() {
-    sender.close();
-    sender = sender.toBuilder()
-      .endpointSupplierFactory(e -> ConstantHttpEndpointSupplier.create("http://localhost:29092"))
-      .build();
-
-    // The connection supplier has a constant URL
-    assertThat(sender)
-      .extracting("urlSupplier.url")
-      .isEqualTo(HttpUrl.parse("http://localhost:29092"));
-  }
-
-  @Test void endpointSupplierFactory_constantBad() {
-    OkHttpSender.Builder builder = sender.toBuilder()
-      .endpointSupplierFactory(e -> ConstantHttpEndpointSupplier.create("htp://localhost:9411/api/v1/spans"));
-
-    assertThatThrownBy(builder::build)
-      .isInstanceOf(IllegalArgumentException.class)
-      .hasMessageContaining("invalid POST url");
-  }
-
-  @Test void endpointSupplierFactory_dynamic() {
-    AtomicInteger closeCalled = new AtomicInteger();
-    HttpEndpointSupplier dynamicEndpointSupplier = new HttpEndpointSupplier() {
-      @Override public String get() {
-        throw new UnsupportedOperationException();
-      }
-
-      @Override public void close() {
-        closeCalled.incrementAndGet();
-      }
-    };
-
-    sender.close();
-    sender = sender.toBuilder()
-      .endpointSupplierFactory(e -> dynamicEndpointSupplier)
-      .build();
-
-    // The connection supplier is deferred until send
-    assertThat(sender)
-      .extracting("urlSupplier.endpointSupplier")
-      .isEqualTo(dynamicEndpointSupplier);
-
-    assertThatThrownBy(() -> sendSpans(sender, CLIENT_SPAN, CLIENT_SPAN))
-      .isInstanceOf(UnsupportedOperationException.class);
-
-    // Ensure that closing the sender closes the endpoint supplier
-    sender.close();
-    sender.close(); // check only closed once
-    assertThat(closeCalled).hasValue(1);
-  }
-
-  @Test void endpointSupplierFactory_ignoresCloseFailure() {
-    AtomicInteger closeCalled = new AtomicInteger();
-    HttpEndpointSupplier dynamicEndpointSupplier = new HttpEndpointSupplier() {
-      @Override public String get() {
-        throw new UnsupportedOperationException();
-      }
-
-      @Override public void close() throws IOException {
-        closeCalled.incrementAndGet();
-        throw new IOException("unexpected");
-      }
-    };
-
-    sender.close();
-    sender = sender.toBuilder()
-      .endpointSupplierFactory(e -> dynamicEndpointSupplier)
-      .build();
-
-    // Ensure that an exception closing the endpoint supplier doesn't propagate.
-    sender.close();
-    assertThat(closeCalled).hasValue(1);
-  }
-
-  @Test void endpointSupplierFactory_dynamicNull() {
-    sender.close();
-    sender = sender.toBuilder()
-      .endpointSupplierFactory(e -> new BaseHttpEndpointSupplier() {
-        @Override public String get() {
-          return null;
-        }
-      })
-      .build();
-
-    assertThatThrownBy(() -> sendSpans(sender, CLIENT_SPAN, CLIENT_SPAN))
-      .isInstanceOf(NullPointerException.class)
-      .hasMessage("endpointSupplier.get() returned null");
-  }
-
-  @Test void endpointSupplierFactory_dynamicBad() {
-    sender.close();
-    sender = sender.toBuilder()
-      .endpointSupplierFactory(e -> new BaseHttpEndpointSupplier() {
-        @Override public String get() {
-          return "htp://localhost:9411/api/v1/spans";
-        }
-      })
-      .build();
-
-    assertThatThrownBy(() -> sendSpans(sender, CLIENT_SPAN, CLIENT_SPAN))
-      .isInstanceOf(IllegalArgumentException.class)
-      .hasMessageContaining("invalid POST url");
-  }
-
   /**
    * The output of toString() on {@link BytesMessageSender} implementations appears in thread names
    * created by {@link AsyncReporter}. Since thread names are likely to be exposed in logs and other
@@ -198,15 +79,8 @@ class OkHttpSenderTest {
     assertThat(sender).hasToString("OkHttpSender{http://localhost:19092/}");
   }
 
-  @Test void outOfBandCancel() {
-    HttpCall call = (HttpCall) sender.sendSpans(Collections.emptyList());
-    call.cancel();
-
-    assertThat(call.isCanceled()).isTrue();
-  }
-
   @Test void bugGuardCache() {
-    assertThat(sender.client.cache())
+    assertThat(sender.delegate.client.cache())
       .withFailMessage("senders should not open a disk cache")
       .isNull();
   }

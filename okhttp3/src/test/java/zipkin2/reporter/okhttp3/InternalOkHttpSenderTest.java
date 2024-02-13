@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2023 The OpenZipkin Authors
+ * Copyright 2016-2024 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class HttpCallTest {
+class InternalOkHttpSenderTest {
   @Test void parseResponse_closesBody() throws Exception {
 
     // It is difficult to prove close was called, this approach looks at an underlying stream
@@ -45,7 +45,7 @@ class HttpCallTest {
         .body(ResponseBody.create(null, 1, Okio.buffer(Okio.source(in))))
         .build();
 
-    HttpCall.parseResponse(response);
+    InternalOkHttpSender.parseResponse(response);
 
     assertThat(closed.get()).isTrue();
   }

@@ -13,7 +13,7 @@
  */
 package zipkin2.reporter.beans;
 
-import java.util.Arrays;
+import java.util.List;
 import okhttp3.HttpUrl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -41,7 +41,7 @@ class OkHttpSenderFactoryBeanTest {
     );
 
     assertThat(context.getBean("sender", OkHttpSender.class))
-      .extracting("urlSupplier.endpointSupplier")
+      .extracting("delegate.endpointSupplier")
       .isEqualTo(FakeEndpointSupplier.INSTANCE);
   }
 
@@ -53,7 +53,7 @@ class OkHttpSenderFactoryBeanTest {
     );
 
     assertThat(context.getBean("sender", OkHttpSender.class))
-      .extracting("urlSupplier.url")
+      .extracting("delegate.endpoint")
       .isEqualTo(HttpUrl.parse("http://localhost:9411/api/v2/spans"));
   }
 
@@ -66,7 +66,7 @@ class OkHttpSenderFactoryBeanTest {
     );
 
     assertThat(context.getBean("sender", OkHttpSender.class))
-        .extracting("client.connectTimeoutMillis")
+        .extracting("delegate.client.connectTimeoutMillis")
         .isEqualTo(1000);
   }
 
@@ -79,7 +79,7 @@ class OkHttpSenderFactoryBeanTest {
     );
 
     assertThat(context.getBean("sender", OkHttpSender.class))
-        .extracting("client.writeTimeoutMillis")
+        .extracting("delegate.client.writeTimeoutMillis")
         .isEqualTo(1000);
   }
 
@@ -92,7 +92,7 @@ class OkHttpSenderFactoryBeanTest {
     );
 
     assertThat(context.getBean("sender", OkHttpSender.class))
-        .extracting("client.readTimeoutMillis")
+        .extracting("delegate.client.readTimeoutMillis")
         .isEqualTo(1000);
   }
 
@@ -105,7 +105,7 @@ class OkHttpSenderFactoryBeanTest {
     );
 
     assertThat(context.getBean("sender", OkHttpSender.class))
-        .extracting("client.dispatcher.maxRequests")
+        .extracting("delegate.client.dispatcher.maxRequests")
         .isEqualTo(4);
   }
 
@@ -118,7 +118,7 @@ class OkHttpSenderFactoryBeanTest {
     );
 
     assertThat(context.getBean("sender", OkHttpSender.class))
-        .extracting("compressionEnabled")
+        .extracting("delegate.compressionEnabled")
         .isEqualTo(false);
   }
 
@@ -131,7 +131,7 @@ class OkHttpSenderFactoryBeanTest {
     );
 
     assertThat(context.getBean("sender", OkHttpSender.class))
-        .extracting("messageMaxBytes")
+        .extracting("delegate.messageMaxBytes")
         .isEqualTo(1024);
   }
 
@@ -144,7 +144,7 @@ class OkHttpSenderFactoryBeanTest {
     );
 
     assertThat(context.getBean("sender", OkHttpSender.class))
-        .extracting("encoding")
+        .extracting("delegate.encoding")
         .isEqualTo(Encoding.PROTO3);
   }
 
@@ -159,7 +159,7 @@ class OkHttpSenderFactoryBeanTest {
       OkHttpSender sender = context.getBean("sender", OkHttpSender.class);
       context.close();
 
-      sender.send(Arrays.asList(new byte[]{'{', '}'}));
+      sender.send(List.of(new byte[]{'{', '}'}));
     });
   }
 }
