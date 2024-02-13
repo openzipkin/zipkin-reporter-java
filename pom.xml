@@ -65,13 +65,16 @@
     <zipkin.version>2.27.1</zipkin.version>
 
     <!-- Do not set this value in bom/pom.xml to avoid cyclic pinning -->
-    <brave.version>6.0.0</brave.version>
+    <brave.version>6.0.1</brave.version>
 
-    <junit-jupiter.version>5.10.1</junit-jupiter.version>
-    <assertj.version>3.25.1</assertj.version>
-    <okhttp.version>4.12.0</okhttp.version>
     <log4j.version>2.22.1</log4j.version>
-    <testcontainers.version>1.19.3</testcontainers.version>
+    <okhttp.version>4.12.0</okhttp.version>
+
+    <junit-jupiter.version>5.10.2</junit-jupiter.version>
+    <mockito.version>5.10.0</mockito.version>
+    <assertj.version>3.25.3</assertj.version>
+    <awaitility.version>4.2.0</awaitility.version>
+    <testcontainers.version>1.19.4</testcontainers.version>
 
     <license.skip>${skipTests}</license.skip>
 

@@ -16,7 +16,9 @@ package zipkin2.reporter.beans;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import zipkin2.Span;
 import zipkin2.reporter.AsyncReporter;
+import zipkin2.reporter.BytesEncoder;
 import zipkin2.reporter.BytesMessageSender;
 import zipkin2.reporter.Encoding;
 import zipkin2.reporter.ReporterMetrics;
@@ -29,6 +31,19 @@ class AsyncReporterFactoryBeanTest {
   public static BytesMessageSender PROTO3_SENDER = new FakeSender() {
     @Override public Encoding encoding() {
       return Encoding.PROTO3;
+    }
+  };
+  public static BytesEncoder<Span> CUSTOM_ENCODER = new BytesEncoder<Span>() {
+    @Override public Encoding encoding() {
+      return Encoding.PROTO3;
+    }
+
+    @Override public int sizeInBytes(Span input) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override public byte[] encode(Span input) {
+      throw new UnsupportedOperationException();
     }
   };
   public static ReporterMetrics METRICS = ReporterMetrics.NOOP_METRICS;
@@ -180,5 +195,23 @@ class AsyncReporterFactoryBeanTest {
     assertThat(context.getBean("asyncReporter", AsyncReporter.class))
       .extracting("delegate.encoder.delegate")
       .isEqualTo(SpanBytesEncoder.PROTO3);
+  }
+
+  @Test void encoder_custom() {
+    context = new XmlBeans(""
+      + "<bean id=\"asyncReporter\" class=\"zipkin2.reporter.beans.AsyncReporterFactoryBean\">\n"
+      + "  <property name=\"sender\">\n"
+      + "    <util:constant static-field=\"" + getClass().getName() + ".PROTO3_SENDER\"/>\n"
+      + "  </property>\n"
+      + "  <property name=\"encoder\">\n"
+      + "    <util:constant static-field=\"" + getClass().getName() + ".CUSTOM_ENCODER\"/>\n"
+      + "  </property>\n"
+      + "  <property name=\"messageTimeout\" value=\"0\"/>\n" // disable thread for test
+      + "</bean>"
+    );
+
+    assertThat(context.getBean("asyncReporter", AsyncReporter.class))
+      .extracting("delegate.encoder.delegate")
+      .isEqualTo(CUSTOM_ENCODER);
   }
 }

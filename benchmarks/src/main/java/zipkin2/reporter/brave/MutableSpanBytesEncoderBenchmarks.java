@@ -14,8 +14,6 @@
 package zipkin2.reporter.brave;
 
 import brave.handler.MutableSpan;
-import brave.handler.SpanHandler;
-import brave.propagation.TraceContext;
 import java.util.concurrent.TimeUnit;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -31,7 +29,7 @@ import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
-import zipkin2.reporter.Reporter;
+import zipkin2.reporter.BytesEncoder;
 
 import static zipkin2.reporter.brave.MutableSpans.newBigClientSpan;
 import static zipkin2.reporter.brave.MutableSpans.newServerSpan;
@@ -43,26 +41,50 @@ import static zipkin2.reporter.brave.MutableSpans.newServerSpan;
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
 @State(Scope.Thread)
 @Threads(1)
-public class ZipkinSpanHandlerBenchmarks {
-  final SpanHandler handler =
-    ZipkinSpanHandler.newBuilder(Reporter.NOOP).alwaysReportSpans(true).build();
-  final TraceContext context = TraceContext.newBuilder().traceId(1).spanId(2).sampled(true).build();
-  final MutableSpan serverSpan = newServerSpan();
-  final MutableSpan bigClientSpan = newBigClientSpan();
+public class MutableSpanBytesEncoderBenchmarks {
 
-  @Benchmark public boolean handleServerSpan() {
-    return handler.end(context, serverSpan, SpanHandler.Cause.FINISHED);
+  static final BytesEncoder<MutableSpan> jsonEncoder = MutableSpanBytesEncoder.JSON_V2;
+  static final BytesEncoder<MutableSpan> protoEncoder = MutableSpanBytesEncoder.PROTO3;
+  static final MutableSpan serverSpan = newServerSpan();
+  static final MutableSpan bigClientSpan = newBigClientSpan();
+
+  @Benchmark public int sizeInBytes_serverSpan_json() {
+    return jsonEncoder.sizeInBytes(serverSpan);
   }
 
-  @Benchmark public boolean handleBigClientSpan() {
-    return handler.end(context, bigClientSpan, SpanHandler.Cause.FINISHED);
+  @Benchmark public int sizeInBytes_serverSpan_proto() {
+    return protoEncoder.sizeInBytes(serverSpan);
+  }
+
+  @Benchmark public byte[] encode_serverSpan_json() {
+    return jsonEncoder.encode(serverSpan);
+  }
+
+  @Benchmark public byte[] encode_serverSpan_proto() {
+    return protoEncoder.encode(serverSpan);
+  }
+
+  @Benchmark public int sizeInBytes_bigClientSpan_json() {
+    return jsonEncoder.sizeInBytes(bigClientSpan);
+  }
+
+  @Benchmark public int sizeInBytes_bigClientSpan_proto() {
+    return protoEncoder.sizeInBytes(bigClientSpan);
+  }
+
+  @Benchmark public byte[] encode_bigClientSpan_json() {
+    return jsonEncoder.encode(bigClientSpan);
+  }
+
+  @Benchmark public byte[] encode_bigClientSpan_proto() {
+    return protoEncoder.encode(bigClientSpan);
   }
 
   // Convenience main entry-point
   public static void main(String[] args) throws RunnerException {
     Options opt = new OptionsBuilder()
       .addProfiler("gc")
-      .include(".*" + ZipkinSpanHandlerBenchmarks.class.getSimpleName() + ".*")
+      .include(".*" + MutableSpanBytesEncoderBenchmarks.class.getSimpleName() + ".*")
       .build();
 
     new Runner(opt).run();

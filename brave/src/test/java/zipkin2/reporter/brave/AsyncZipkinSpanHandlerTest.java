@@ -31,13 +31,14 @@ import zipkin2.reporter.Encoding;
 import zipkin2.reporter.Sender;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class AsyncZipkinSpanHandlerTest {
-  @Test void build_protoNotYetSupported() {
+  @Test void build_proto() {
     FakeSender sender = FakeSender.create().encoding(Encoding.PROTO3);
-    AsyncZipkinSpanHandler.Builder builder = AsyncZipkinSpanHandler.newBuilder(sender);
-    assertThrows(UnsupportedOperationException.class, builder::build);
+    try (AsyncZipkinSpanHandler spanReporter = AsyncZipkinSpanHandler.newBuilder(sender).build()) {
+      assertThat(spanReporter).isNotNull();
+      assertThat(spanReporter.encoding).isEqualTo(Encoding.PROTO3);
+    }
   }
 
   /** Ready for custom format such as OTLP or Stackdriver. */
