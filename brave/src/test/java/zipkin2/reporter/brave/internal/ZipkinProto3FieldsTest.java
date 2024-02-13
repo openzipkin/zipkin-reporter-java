@@ -16,11 +16,7 @@ package zipkin2.reporter.brave.internal;
 import brave.Span.Kind;
 import brave.Tags;
 import brave.handler.MutableSpan;
-import java.nio.ByteBuffer;
 import org.junit.jupiter.api.Test;
-import zipkin2.Span;
-import zipkin2.TestObjects;
-import zipkin2.codec.SpanBytesDecoder;
 import zipkin2.reporter.brave.internal.ZipkinProto3Fields.AnnotationField;
 import zipkin2.reporter.brave.internal.ZipkinProto3Fields.EndpointField;
 import zipkin2.reporter.brave.internal.ZipkinProto3Fields.SpanField;
@@ -28,7 +24,6 @@ import zipkin2.reporter.brave.internal.ZipkinProto3Fields.TagField;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.atIndex;
-import static zipkin2.reporter.brave.ZipkinSpanConverter.toMutableSpan;
 import static zipkin2.reporter.brave.internal.Proto3Fields.WIRETYPE_LENGTH_DELIMITED;
 
 class ZipkinProto3FieldsTest {

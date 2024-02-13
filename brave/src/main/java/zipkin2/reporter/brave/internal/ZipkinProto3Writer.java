@@ -18,7 +18,10 @@ import brave.handler.MutableSpan;
 
 import static zipkin2.reporter.brave.internal.Proto3Fields.sizeOfLengthDelimitedField;
 
-//@Immutable
+/**
+ * Stripped version of {@linkplain zipkin2.internal.Proto3SpanWriter}, which only can write a single
+ * span at a time.
+ */
 public final class ZipkinProto3Writer {
 
   final ZipkinProto3Fields.SpanField spanField;

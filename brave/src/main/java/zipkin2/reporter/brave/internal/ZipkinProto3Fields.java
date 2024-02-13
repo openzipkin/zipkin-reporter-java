@@ -15,9 +15,9 @@ package zipkin2.reporter.brave.internal;
 
 import brave.Tag;
 import brave.handler.MutableSpan;
-import zipkin2.reporter.internal.Nullable;
 import zipkin2.reporter.brave.internal.Proto3Fields.BooleanField;
 import zipkin2.reporter.brave.internal.Proto3Fields.Utf8Field;
+import zipkin2.reporter.internal.Nullable;
 
 import static zipkin2.reporter.brave.internal.IpParser.getIpv4Bytes;
 import static zipkin2.reporter.brave.internal.IpParser.getIpv6Bytes;
@@ -31,7 +31,15 @@ import static zipkin2.reporter.brave.internal.Proto3Fields.WIRETYPE_LENGTH_DELIM
 import static zipkin2.reporter.brave.internal.Proto3Fields.WIRETYPE_VARINT;
 import static zipkin2.reporter.brave.internal.Proto3Fields.sizeOfLengthDelimitedField;
 
-/** Keys are used in this class because while verbose, it allows us to use switch statements */
+/**
+ * Stripped version of {@linkplain zipkin2.internal.Proto3ZipkinFields}, without decoding logic.
+ *
+ * <p>Also, brave has no structs for things like annotations or endpoints, so we have to flatten
+ * some logic.
+ *
+ * <p>Finally, brave has more involved error logic, so this logic was derived from
+ * {@link brave.internal.codec.ZipkinV2JsonWriter}.
+ */
 //@Immutable
 final class ZipkinProto3Fields {
   static class EndpointField extends Proto3Fields.Field {

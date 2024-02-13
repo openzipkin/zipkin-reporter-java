@@ -16,7 +16,9 @@ package zipkin2.reporter.brave.internal;
 import static zipkin2.internal.HexCodec.HEX_DIGITS;
 
 /**
- * Writes are unsafe as they do no bounds checks. This means you should take care to allocate or
+ * Stripped version of {@linkplain zipkin2.internal.WriteBuffer}, without fields we don't use.
+ *
+ * <p>Writes are unsafe as they do no bounds checks. This means you should take care to allocate or
  * wrap an array at least as big as you need prior to writing. As it is possible to calculate size
  * prior to writing, overrunning a buffer is a programming error.
  */

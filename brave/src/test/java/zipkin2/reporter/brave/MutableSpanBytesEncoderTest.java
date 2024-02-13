@@ -17,7 +17,6 @@ import brave.Tag;
 import brave.Tags;
 import brave.handler.MutableSpan;
 import brave.propagation.TraceContext;
-import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.Test;
 import zipkin2.reporter.BytesEncoder;
 import zipkin2.reporter.Encoding;

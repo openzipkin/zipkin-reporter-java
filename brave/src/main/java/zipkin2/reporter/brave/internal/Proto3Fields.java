@@ -13,17 +13,18 @@
  */
 package zipkin2.reporter.brave.internal;
 
-import zipkin2.Endpoint;
 import static zipkin2.reporter.brave.internal.WriteBuffer.utf8SizeInBytes;
 import static zipkin2.reporter.brave.internal.WriteBuffer.varintSizeInBytes;
 
 /**
- * Everything here assumes the field numbers are less than 16, implying a 1 byte tag.
+ * Stripped version of {@linkplain zipkin2.internal.Proto3Fields}, without decoding logic.
+ *
+ * <p>Everything here assumes the field numbers are less than 16, implying a 1 byte tag.
  */
 //@Immutable
 final class Proto3Fields {
   /**
-   * Define the wire types, except the deprecated ones (groups)
+   * Define the wire types we use.
    *
    * <p>See https://developers.google.com/protocol-buffers/docs/encoding#structure
    */
@@ -69,13 +70,6 @@ final class Proto3Fields {
     }
   }
 
-  /**
-   * Leniently skips out null, but not on empty string, allowing tag "error" -> "" to serialize
-   * properly.
-   *
-   * <p>This won't result in empty {@link brave.handler.MutableSpan#name()} or {@link Endpoint#serviceName()}
-   * because in both cases constructors coerce empty values to null.
-   */
   static abstract class LengthDelimitedField<T> extends Field {
     LengthDelimitedField(int key) {
       super(key);
