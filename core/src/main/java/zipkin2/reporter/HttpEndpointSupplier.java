@@ -20,9 +20,9 @@ import java.util.List;
  * HTTP-based {@link BytesMessageSender senders} use this to resolve a potentially-pseudo endpoint
  * passed by configuration to a real endpoint.
  *
- * <h3>Usage Notes</h3>
+ * <h3>Implementation Notes</h3>
  *
- * <p>{@link BytesMessageSender senders} should implement the following logic:
+ * {@linkplain HttpSender} is a convenience type that implements the following logic:
  * <ul>
  *   <li>During build, the sender should invoke the {@linkplain Factory}.</li>
  *   <li>If the result is {@link ConstantHttpEndpointSupplier}, build the sender to use a static
@@ -31,8 +31,6 @@ import java.util.List;
  *       {@linkplain BytesMessageSender#send(List)} is invoked.</li>
  *   <li>Call {@link #close()} once during {@link BytesMessageSender#close()}.</li>
  * </ul>
- *
- * <h3>Implementation Notes</h3>
  *
  * <p>Implement friendly {@code toString()} functions, that include the real endpoint or the one
  * passed to the {@linkplain Factory}.
@@ -46,6 +44,8 @@ import java.util.List;
  * dependency injection, without limiting an HTTP framework that can handle groups, to a
  * single-endpoint supplier.
  *
+ * @see ConstantHttpEndpointSupplier
+ * @see HttpSender
  * @since 3.3
  */
 public interface HttpEndpointSupplier extends Closeable {

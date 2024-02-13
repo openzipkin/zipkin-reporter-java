@@ -11,23 +11,23 @@
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
  */
-package zipkin2.reporter.okhttp3;
+package zipkin2.reporter.internal;
 
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 
 /** Taken from {@code zipkin2.reporter.internal.Platform} to avoid needing to shade over a single method. */
-abstract class Platform {
+public abstract class Platform {
   private static final Platform PLATFORM = findPlatform();
 
   Platform() {
   }
 
-  RuntimeException uncheckedIOException(IOException e) {
+  public RuntimeException uncheckedIOException(IOException e) {
     return new RuntimeException(e);
   }
 
-  static Platform get() {
+  public static Platform get() {
     return PLATFORM;
   }
 

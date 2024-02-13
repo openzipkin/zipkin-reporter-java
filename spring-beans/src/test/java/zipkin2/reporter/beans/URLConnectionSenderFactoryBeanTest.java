@@ -16,6 +16,7 @@ package zipkin2.reporter.beans;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.util.Arrays;
+import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import zipkin2.reporter.Encoding;
@@ -42,7 +43,7 @@ class URLConnectionSenderFactoryBeanTest {
     );
 
     assertThat(context.getBean("sender", URLConnectionSender.class))
-      .extracting("connectionSupplier.endpointSupplier")
+      .extracting("delegate.endpointSupplier")
       .isEqualTo(FakeEndpointSupplier.INSTANCE);
   }
 
@@ -54,7 +55,7 @@ class URLConnectionSenderFactoryBeanTest {
     );
 
     assertThat(context.getBean("sender", URLConnectionSender.class))
-      .extracting("connectionSupplier.url")
+      .extracting("delegate.endpoint")
       .isEqualTo(URI.create("http://localhost:9411/api/v2/spans").toURL());
   }
 
@@ -98,7 +99,7 @@ class URLConnectionSenderFactoryBeanTest {
     );
 
     assertThat(context.getBean("sender", URLConnectionSender.class))
-        .extracting("compressionEnabled")
+        .extracting("delegate.compressionEnabled")
         .isEqualTo(false);
   }
 
@@ -111,7 +112,7 @@ class URLConnectionSenderFactoryBeanTest {
     );
 
     assertThat(context.getBean("sender", URLConnectionSender.class))
-        .extracting("messageMaxBytes")
+        .extracting("delegate.messageMaxBytes")
         .isEqualTo(1024);
   }
 
@@ -124,7 +125,7 @@ class URLConnectionSenderFactoryBeanTest {
     );
 
     assertThat(context.getBean("sender", URLConnectionSender.class))
-        .extracting("encoding")
+        .extracting("delegate.encoding")
         .isEqualTo(Encoding.PROTO3);
   }
 
@@ -139,7 +140,7 @@ class URLConnectionSenderFactoryBeanTest {
       URLConnectionSender sender = context.getBean("sender", URLConnectionSender.class);
       context.close();
 
-      sender.send(Arrays.asList(new byte[]{'{', '}'}));
+      sender.send(List.of(new byte[]{'{', '}'}));
     });
   }
 }
