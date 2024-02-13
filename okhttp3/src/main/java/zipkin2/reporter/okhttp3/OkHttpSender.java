@@ -295,7 +295,7 @@ public final class OkHttpSender extends Sender {
         encoder = RequestBodyMessageEncoder.JSON;
         break;
       case THRIFT:
-        this.encoder = RequestBodyMessageEncoder.THRIFT;
+        encoder = RequestBodyMessageEncoder.THRIFT;
         break;
       case PROTO3:
         encoder = RequestBodyMessageEncoder.PROTO3;

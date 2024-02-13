@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2020 The OpenZipkin Authors
+ * Copyright 2016-2024 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -15,36 +15,9 @@ package zipkin2.reporter.brave;
 
 import brave.Span;
 import brave.handler.MutableSpan;
-import java.util.concurrent.TimeUnit;
-import org.openjdk.jmh.annotations.Benchmark;
-import org.openjdk.jmh.annotations.BenchmarkMode;
-import org.openjdk.jmh.annotations.Fork;
-import org.openjdk.jmh.annotations.Measurement;
-import org.openjdk.jmh.annotations.Mode;
-import org.openjdk.jmh.annotations.OutputTimeUnit;
-import org.openjdk.jmh.annotations.Scope;
-import org.openjdk.jmh.annotations.State;
-import org.openjdk.jmh.annotations.Threads;
-import org.openjdk.jmh.annotations.Warmup;
-import org.openjdk.jmh.runner.Runner;
-import org.openjdk.jmh.runner.RunnerException;
-import org.openjdk.jmh.runner.options.Options;
-import org.openjdk.jmh.runner.options.OptionsBuilder;
 
-@Measurement(iterations = 5, time = 1)
-@Warmup(iterations = 10, time = 1)
-@Fork(3)
-@BenchmarkMode(Mode.SampleTime)
-@OutputTimeUnit(TimeUnit.MICROSECONDS)
-@State(Scope.Thread)
-@Threads(1)
-public class MutableSpanBenchmarks {
-
-  @Benchmark public MutableSpan makeServerSpan() {
-    return newServerSpan();
-  }
-
-  public static MutableSpan newServerSpan() {
+class MutableSpans {
+  static MutableSpan newServerSpan() {
     MutableSpan span = new MutableSpan();
     span.name("get /");
     span.kind(Span.Kind.SERVER);
@@ -58,11 +31,7 @@ public class MutableSpanBenchmarks {
     return span;
   }
 
-  @Benchmark public MutableSpan makeBigClientSpan() {
-    return newBigClientSpan();
-  }
-
-  public static MutableSpan newBigClientSpan() {
+  static MutableSpan newBigClientSpan() {
     MutableSpan span = new MutableSpan();
     span.name("getuserinfobyaccesstoken");
     span.kind(Span.Kind.CLIENT);
@@ -77,19 +46,11 @@ public class MutableSpanBenchmarks {
     span.tag("http.path", "/thrift/shopForTalk");
     span.tag("http.status_code", "200");
     span.tag("http.url", "tbinary+h2c://abasdasgad.hsadas.ism/thrift/shopForTalk");
+    span.tag("error", "true");
     span.tag("instanceId", "line-wallet-api");
     span.tag("phase", "beta");
     span.tag("siteId", "shop");
+    span.error(new RuntimeException("ice cream"));
     return span;
-  }
-
-  // Convenience main entry-point
-  public static void main(String[] args) throws RunnerException {
-    Options opt = new OptionsBuilder()
-        .addProfiler("gc")
-        .include(".*" + MutableSpanBenchmarks.class.getSimpleName() + ".*")
-        .build();
-
-    new Runner(opt).run();
   }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2020 The OpenZipkin Authors
+ * Copyright 2016-2024 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -14,13 +14,19 @@
 package zipkin2.reporter.beans;
 
 import brave.Tag;
+import brave.handler.MutableSpan;
 import java.util.concurrent.TimeUnit;
+import zipkin2.reporter.BytesEncoder;
+import zipkin2.reporter.Encoding;
 import zipkin2.reporter.brave.AsyncZipkinSpanHandler;
+import zipkin2.reporter.brave.MutableSpanBytesEncoder;
 
 /** Spring XML config does not support chained builders. This converts accordingly */
 public class AsyncZipkinSpanHandlerFactoryBean extends BaseAsyncFactoryBean {
   Tag<Throwable> errorTag;
   Boolean alwaysReportSpans;
+
+  BytesEncoder<MutableSpan> encoder;
 
   @Override public Class<? extends AsyncZipkinSpanHandler> getObjectType() {
     return AsyncZipkinSpanHandler.class;
@@ -36,7 +42,7 @@ public class AsyncZipkinSpanHandlerFactoryBean extends BaseAsyncFactoryBean {
     if (closeTimeout != null) builder.closeTimeout(closeTimeout, TimeUnit.MILLISECONDS);
     if (queuedMaxSpans != null) builder.queuedMaxSpans(queuedMaxSpans);
     if (queuedMaxBytes != null) builder.queuedMaxBytes(queuedMaxBytes);
-    return builder.build();
+    return encoder != null ? builder.build(encoder) : builder.build();
   }
 
   @Override protected void destroyInstance(Object instance) {
@@ -49,5 +55,14 @@ public class AsyncZipkinSpanHandlerFactoryBean extends BaseAsyncFactoryBean {
 
   public void setAlwaysReportSpans(Boolean alwaysReportSpans) {
     this.alwaysReportSpans = alwaysReportSpans;
+  }
+
+  // Object to allow built-in encoder types.
+  public void setEncoder(Object encoder) {
+    if (encoder instanceof String) {
+      this.encoder = MutableSpanBytesEncoder.forEncoding(Encoding.valueOf(encoder.toString()));
+    } else if (encoder instanceof BytesEncoder) {
+      this.encoder = (BytesEncoder) encoder;
+    }
   }
 }

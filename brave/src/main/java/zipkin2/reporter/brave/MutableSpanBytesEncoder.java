@@ -34,6 +34,19 @@ public enum MutableSpanBytesEncoder implements BytesEncoder<MutableSpan> {
     @Override public byte[] encode(MutableSpan input) {
       return JsonV2Encoder.INSTANCE.encode(input);
     }
+  },
+  PROTO3 {
+    @Override public Encoding encoding() {
+      return Encoding.PROTO3;
+    }
+
+    @Override public int sizeInBytes(MutableSpan input) {
+      return ZipkinProto3Encoder.INSTANCE.sizeInBytes(input);
+    }
+
+    @Override public byte[] encode(MutableSpan input) {
+      return ZipkinProto3Encoder.INSTANCE.encode(input);
+    }
   };
 
   /**
@@ -48,7 +61,7 @@ public enum MutableSpanBytesEncoder implements BytesEncoder<MutableSpan> {
       case JSON:
         return JSON_V2;
       case PROTO3:
-        throw new UnsupportedOperationException("PROTO3 is not yet a built-in encoder");
+        return PROTO3;
       case THRIFT:
         throw new UnsupportedOperationException("THRIFT is not yet a built-in encoder");
       default: // BUG: as encoding is an enum!
@@ -70,7 +83,7 @@ public enum MutableSpanBytesEncoder implements BytesEncoder<MutableSpan> {
       case JSON:
         return new JsonV2Encoder(errorTag);
       case PROTO3:
-        throw new UnsupportedOperationException("PROTO3 is not yet a built-in encoder");
+        return new ZipkinProto3Encoder(errorTag);
       case THRIFT:
         throw new UnsupportedOperationException("THRIFT is not yet a built-in encoder");
       default: // BUG: as encoding is an enum!
