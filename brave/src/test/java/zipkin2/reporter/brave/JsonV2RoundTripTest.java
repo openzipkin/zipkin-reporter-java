@@ -13,16 +13,10 @@
  */
 package zipkin2.reporter.brave;
 
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
 import zipkin2.codec.SpanBytesDecoder;
 
 class JsonV2RoundTripTest extends RoundTripTest {
   JsonV2RoundTripTest() {
     super(MutableSpanBytesEncoder.JSON_V2, SpanBytesDecoder.JSON_V2);
-  }
-
-  @Override @Disabled @Test void differentErrorTagName() {
-    // awaiting https://github.com/openzipkin/brave/pull/1415 to be released
   }
 }
