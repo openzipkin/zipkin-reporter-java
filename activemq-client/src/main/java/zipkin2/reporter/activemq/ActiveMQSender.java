@@ -20,7 +20,6 @@ import javax.jms.JMSException;
 import javax.jms.QueueSender;
 import org.apache.activemq.ActiveMQConnectionFactory;
 import zipkin2.reporter.AsyncReporter;
-import zipkin2.reporter.BytesMessageEncoder;
 import zipkin2.reporter.BytesMessageSender;
 import zipkin2.reporter.Call;
 import zipkin2.reporter.Callback;
@@ -111,7 +110,7 @@ public final class ActiveMQSender extends Sender {
       return this;
     }
 
-    public final ActiveMQSender build() {
+    public ActiveMQSender build() {
       if (connectionFactory == null) throw new NullPointerException("connectionFactory == null");
       return new ActiveMQSender(this);
     }
@@ -122,14 +121,12 @@ public final class ActiveMQSender extends Sender {
 
   final Encoding encoding;
   final int messageMaxBytes;
-  final BytesMessageEncoder encoder;
 
   final LazyInit lazyInit;
 
   ActiveMQSender(Builder builder) {
     this.encoding = builder.encoding;
     this.messageMaxBytes = builder.messageMaxBytes;
-    this.encoder = BytesMessageEncoder.forEncoding(encoding);
     this.lazyInit = new LazyInit(builder);
   }
 
@@ -155,14 +152,14 @@ public final class ActiveMQSender extends Sender {
   /** {@inheritDoc} */
   @Override @Deprecated public Call<Void> sendSpans(List<byte[]> encodedSpans) {
     if (closeCalled) throw new ClosedSenderException();
-    byte[] message = encoder.encode(encodedSpans);
+    byte[] message = encoding.encode(encodedSpans);
     return new ActiveMQCall(message);
   }
 
   /** {@inheritDoc} */
   @Override public void send(List<byte[]> encodedSpans) throws IOException {
     if (closeCalled) throw new ClosedSenderException();
-    send(encoder.encode(encodedSpans));
+    send(encoding.encode(encodedSpans));
   }
 
   void send(byte[] message) throws IOException {

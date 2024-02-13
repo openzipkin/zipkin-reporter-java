@@ -14,12 +14,14 @@
 package zipkin2.reporter.brave;
 
 import brave.Tag;
+import brave.Tags;
 import brave.handler.MutableSpan;
 import brave.handler.MutableSpanBytesEncoder;
 import zipkin2.reporter.BytesEncoder;
 import zipkin2.reporter.Encoding;
 
 final class JsonV2Encoder implements BytesEncoder<MutableSpan> {
+  static final BytesEncoder<MutableSpan> INSTANCE = new JsonV2Encoder(Tags.ERROR);
   final MutableSpanBytesEncoder delegate;
 
   JsonV2Encoder(Tag<Throwable> errorTag) {

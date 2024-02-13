@@ -163,16 +163,7 @@ public class AsyncReporter<S> extends Component implements Reporter<S>, Closeabl
 
     /** Builds an async reporter that encodes zipkin spans as they are reported. */
     public AsyncReporter<zipkin2.Span> build() {
-      switch (encoding) {
-        case JSON:
-          return build(SpanBytesEncoder.JSON_V2);
-        case PROTO3:
-          return build(SpanBytesEncoder.PROTO3);
-        case THRIFT:
-          return build(SpanBytesEncoder.THRIFT);
-        default:
-          throw new UnsupportedOperationException(encoding.name());
-      }
+      return build(SpanBytesEncoder.forEncoding(encoding));
     }
 
     /** Builds an async reporter that encodes arbitrary spans as they are reported. */

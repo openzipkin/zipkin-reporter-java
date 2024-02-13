@@ -36,6 +36,15 @@ public enum Encoding {
       }
       return sizeInBytes;
     }
+
+    @SuppressWarnings("deprecation")
+    @Override public byte[] encode(List<byte[]> encodedSpans) {
+      return BytesMessageEncoder.JSON.encode(encodedSpans);
+    }
+
+    @Override public String mediaType() {
+      return "application/json";
+    }
   },
   /**
    * The first format of Zipkin was TBinaryProtocol, big-endian thrift. It is no longer used, but
@@ -61,6 +70,15 @@ public enum Encoding {
       }
       return sizeInBytes;
     }
+
+    @SuppressWarnings("deprecation")
+    @Override public byte[] encode(List<byte[]> encodedSpans) {
+      return BytesMessageEncoder.THRIFT.encode(encodedSpans);
+    }
+
+    @Override public String mediaType() {
+      return "application/x-thrift";
+    }
   },
   /**
    * Repeated (type 2) fields are length-prefixed. A list is a concatenation of fields with no
@@ -82,10 +100,40 @@ public enum Encoding {
       }
       return sizeInBytes;
     }
+
+    @SuppressWarnings("deprecation")
+    @Override public byte[] encode(List<byte[]> encodedSpans) {
+      return BytesMessageEncoder.PROTO3.encode(encodedSpans);
+    }
+
+    @Override public String mediaType() {
+      return "application/x-protobuf";
+    }
   };
+
+  /**
+   * Combines a list of encoded spans into an encoded list. For example, in {@linkplain #THRIFT},
+   * this would be length-prefixed, whereas in {@linkplain #JSON}, this would be comma-separated and
+   * enclosed by brackets.
+   *
+   * <p>The primary use of this is batch reporting spans. For example, spans are {@link
+   * BytesEncoder#encode(Object) encoded} one-by-one into a queue. This queue is drained up to a byte
+   * threshold. Then, the list is encoded with this function and reported out-of-process.
+   *
+   * @since 3.3
+   */
+  public abstract byte[] encode(List<byte[]> encodedSpans);
 
   /** Like {@link #listSizeInBytes(List)}, except for a single element. */
   public abstract int listSizeInBytes(int encodedSizeInBytes);
 
   public abstract int listSizeInBytes(List<byte[]> values);
+
+  /**
+   * Returns this message's "Content-Type" for use in an HTTP {@link BytesMessageSender sender}
+   * targeting the Zipkin <a href="https://zipkin.io/zipkin-api/#/">POST</a> endpoint.
+   *
+   * @since 3.3
+   */
+  public abstract String mediaType();
 }

@@ -18,7 +18,10 @@ import java.util.List;
 /**
  * Senders like Kafka use byte[] message encoding. This provides helpers to concatenate spans into a
  * list.
+ *
+ * @deprecated As of 3.3, use {@linkplain Encoding#encode(List)}. This will be removed in v4.0.
  */
+@Deprecated
 public enum BytesMessageEncoder {
   JSON {
     @Override public byte[] encode(List<byte[]> values) {

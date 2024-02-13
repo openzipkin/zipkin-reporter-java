@@ -20,7 +20,6 @@ import zipkin2.Span;
 import zipkin2.codec.BytesDecoder;
 import zipkin2.codec.SpanBytesDecoder;
 import zipkin2.reporter.BytesEncoder;
-import zipkin2.reporter.BytesMessageEncoder;
 import zipkin2.reporter.BytesMessageSender;
 import zipkin2.reporter.ClosedSenderException;
 import zipkin2.reporter.Encoding;
@@ -29,37 +28,34 @@ import zipkin2.reporter.SpanBytesEncoder;
 public final class FakeSender extends BytesMessageSender.Base {
 
   public static FakeSender create() {
-    return new FakeSender(Encoding.JSON, Integer.MAX_VALUE,
-      BytesMessageEncoder.forEncoding(Encoding.JSON), SpanBytesEncoder.JSON_V2,
+    return new FakeSender(Encoding.JSON, Integer.MAX_VALUE, SpanBytesEncoder.JSON_V2,
       SpanBytesDecoder.JSON_V2, spans -> {
     });
   }
 
   final int messageMaxBytes;
-  final BytesMessageEncoder messageEncoder;
   final BytesEncoder<Span> encoder;
   final BytesDecoder<Span> decoder;
   final Consumer<List<Span>> onSpans;
 
-  FakeSender(Encoding encoding, int messageMaxBytes, BytesMessageEncoder messageEncoder,
-    BytesEncoder<Span> encoder, BytesDecoder<Span> decoder, Consumer<List<Span>> onSpans) {
+  FakeSender(Encoding encoding, int messageMaxBytes, BytesEncoder<Span> encoder,
+    BytesDecoder<Span> decoder, Consumer<List<Span>> onSpans) {
     super(encoding);
     this.messageMaxBytes = messageMaxBytes;
-    this.messageEncoder = messageEncoder;
     this.encoder = encoder;
     this.decoder = decoder;
     this.onSpans = onSpans;
   }
 
   FakeSender encoding(Encoding encoding) {
-    return new FakeSender(encoding, messageMaxBytes, messageEncoder, // invalid but not needed, yet
+    return new FakeSender(encoding, messageMaxBytes, // invalid but not needed, yet
       encoder, // invalid but not needed, yet
       decoder, // invalid but not needed, yet
       onSpans);
   }
 
   FakeSender onSpans(Consumer<List<Span>> onSpans) {
-    return new FakeSender(encoding, messageMaxBytes, messageEncoder, encoder, decoder, onSpans);
+    return new FakeSender(encoding, messageMaxBytes, encoder, decoder, onSpans);
   }
 
   @Override public int messageMaxBytes() {
