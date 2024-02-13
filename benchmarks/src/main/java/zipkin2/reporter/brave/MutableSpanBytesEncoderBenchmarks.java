@@ -84,7 +84,7 @@ public class MutableSpanBytesEncoderBenchmarks {
   public static void main(String[] args) throws RunnerException {
     Options opt = new OptionsBuilder()
       .addProfiler("gc")
-      .include(".*" + MutableSpanBytesEncoderBenchmarks.class.getSimpleName())
+      .include(".*" + MutableSpanBytesEncoderBenchmarks.class.getSimpleName() + ".*")
       .build();
 
     new Runner(opt).run();

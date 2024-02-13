@@ -16,12 +16,11 @@ package zipkin2.reporter.brave.internal;
 import brave.Tag;
 import brave.handler.MutableSpan;
 import zipkin2.reporter.brave.internal.Proto3Fields.BooleanField;
+import zipkin2.reporter.brave.internal.Proto3Fields.IPv4Field;
+import zipkin2.reporter.brave.internal.Proto3Fields.IPv6Field;
 import zipkin2.reporter.brave.internal.Proto3Fields.Utf8Field;
 import zipkin2.reporter.internal.Nullable;
 
-import static zipkin2.reporter.brave.internal.IpParser.getIpv4Bytes;
-import static zipkin2.reporter.brave.internal.IpParser.getIpv6Bytes;
-import static zipkin2.reporter.brave.internal.Proto3Fields.BytesField;
 import static zipkin2.reporter.brave.internal.Proto3Fields.Fixed64Field;
 import static zipkin2.reporter.brave.internal.Proto3Fields.HexField;
 import static zipkin2.reporter.brave.internal.Proto3Fields.LengthDelimitedField;
@@ -49,8 +48,8 @@ final class ZipkinProto3Fields {
     static final int PORT_KEY = (4 << 3) | WIRETYPE_VARINT;
 
     static final Utf8Field SERVICE_NAME = new Utf8Field(SERVICE_NAME_KEY);
-    static final BytesField IPV4 = new BytesField(IPV4_KEY);
-    static final BytesField IPV6 = new BytesField(IPV6_KEY);
+    static final IPv4Field IPV4 = new IPv4Field(IPV4_KEY);
+    static final IPv6Field IPV6 = new IPv6Field(IPV6_KEY);
     static final VarintField PORT = new VarintField(PORT_KEY);
 
     EndpointField(int key) {
@@ -67,13 +66,11 @@ final class ZipkinProto3Fields {
     static int sizeOfValue(@Nullable String serviceName, @Nullable String ip, int port) {
       int sizeInBytes = 0;
       sizeInBytes += SERVICE_NAME.sizeInBytes(serviceName);
-      if (ip != null) {
-        // MutableSpan unwraps any Ipv4 from a mapped or compatability mode IPv6.
-        if (ip.indexOf('.') != -1) {
-          sizeInBytes += 6; // tag + size of 4 + 4 bytes
-        } else {
-          sizeInBytes += 18; // tag + size of 16 + 16 bytes
-        }
+      // MutableSpan unwraps any Ipv4 from a mapped or compatability mode IPv6.
+      if (ip != null && ip.indexOf('.') != -1) {
+        sizeInBytes += IPV4.sizeInBytes(ip);
+      } else {
+        sizeInBytes += IPV6.sizeInBytes(ip);
       }
       sizeInBytes += PORT.sizeInBytes(port);
       return sizeInBytes;
@@ -85,13 +82,11 @@ final class ZipkinProto3Fields {
       b.writeByte(key);
       b.writeVarint(sizeOfValue); // length prefix
       SERVICE_NAME.write(b, serviceName);
-      if (ip != null) {
-        // MutableSpan unwraps any Ipv4 from a mapped or compatability mode IPv6.
-        if (ip.indexOf('.') != -1) {
-          IPV4.write(b, getIpv4Bytes(ip));
-        } else {
-          IPV6.write(b, getIpv6Bytes(ip));
-        }
+      // MutableSpan unwraps any Ipv4 from a mapped or compatability mode IPv6.
+      if (ip != null && ip.indexOf('.') != -1) {
+        IPV4.write(b, ip);
+      } else {
+        IPV6.write(b, ip);
       }
       PORT.write(b, port);
     }

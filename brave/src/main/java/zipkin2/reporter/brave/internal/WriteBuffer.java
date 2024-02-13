@@ -35,6 +35,11 @@ final class WriteBuffer {
     buf[pos++] = (byte) (v & 0xff);
   }
 
+  public void writeShort(short v) {
+    buf[pos++] = (byte) ((v >> 8) & 0xff);
+    buf[pos++] = (byte) ((v) & 0xff);
+  }
+
   void write(byte[] v) {
     System.arraycopy(v, 0, buf, pos, v.length);
     pos += v.length;

@@ -13,6 +13,8 @@
  */
 package zipkin2.reporter.brave.internal;
 
+import zipkin2.reporter.internal.Nullable;
+
 import static zipkin2.reporter.brave.internal.WriteBuffer.utf8SizeInBytes;
 import static zipkin2.reporter.brave.internal.WriteBuffer.varintSizeInBytes;
 
@@ -106,6 +108,34 @@ final class Proto3Fields {
 
     @Override void writeValue(WriteBuffer b, byte[] bytes) {
       b.write(bytes);
+    }
+  }
+
+  static class IPv4Field extends LengthDelimitedField<String> {
+    IPv4Field(int key) {
+      super(key);
+    }
+
+    @Override int sizeOfValue(@Nullable String ipv4) {
+      return ipv4 != null ? 4 : 0;
+    }
+
+    @Override void writeValue(WriteBuffer b, String ipv4) {
+      IpWriter.writeIpv4Bytes(b, ipv4);
+    }
+  }
+
+  static class IPv6Field extends LengthDelimitedField<String> {
+    IPv6Field(int key) {
+      super(key);
+    }
+
+    @Override int sizeOfValue(String ipv6) {
+      return ipv6 != null ? 16 : 0;
+    }
+
+    @Override void writeValue(WriteBuffer b, String ipv6) {
+      IpWriter.writeIpv6Bytes(b, ipv6);
     }
   }
 

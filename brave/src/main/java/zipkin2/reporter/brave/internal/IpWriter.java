@@ -13,45 +13,44 @@
  */
 package zipkin2.reporter.brave.internal;
 
-import java.nio.ByteBuffer;
 import zipkin2.reporter.internal.Nullable;
 
-class IpParser {
+class IpWriter {
   /** Originally from zipkin2.Endpoint.getIpv4Bytes */
-  @Nullable static byte[] getIpv4Bytes(String ipv4) {
-    byte[] result = new byte[4];
-    int pos = 0;
+  @Nullable static void writeIpv4Bytes(WriteBuffer b, @Nullable String ipv4) {
+    if (ipv4 == null) return;
     for (int i = 0, len = ipv4.length(); i < len; ) {
       char ch = ipv4.charAt(i++);
       int octet = ch - '0';
       if (i == len || (ch = ipv4.charAt(i++)) == '.') {
         // then we have a single digit octet
-        result[pos++] = (byte) octet;
+        b.writeByte((byte) octet);
         continue;
       }
       // push the decimal
       octet = (octet * 10) + (ch - '0');
       if (i == len || (ch = ipv4.charAt(i++)) == '.') {
         // then we have a two digit octet
-        result[pos++] = (byte) octet;
+        b.writeByte((byte) octet);
         continue;
       }
       // otherwise, we have a three digit octet
       octet = (octet * 10) + (ch - '0');
-      result[pos++] = (byte) octet;
+      b.writeByte((byte) octet);
       i++; // skip the dot
     }
-    return result;
   }
 
-  // Begin code from com.google.common.net.InetAddresses.textToNumericFormatV6 23
+  // Begin code originally adapted from com.google.common.net.InetAddresses.textToNumericFormatV6 23
   static final int IPV6_PART_COUNT = 8;
 
-  @Nullable static byte[] getIpv6Bytes(String ipString) {
+  @Nullable static void writeIpv6Bytes(WriteBuffer b, @Nullable String ipv6) {
+    if (ipv6 == null) return;
     // An address can have [2..8] colons, and N colons make N+1 parts.
-    String[] parts = ipString.split(":", IPV6_PART_COUNT + 2);
+    // TODO: this allocates
+    String[] parts = ipv6.split(":", IPV6_PART_COUNT + 2);
     if (parts.length < 3 || parts.length > IPV6_PART_COUNT + 1) {
-      return null;
+      return; // invalid
     }
 
     // Disregarding the endpoints, find "::" with nothing in between.
@@ -60,7 +59,7 @@ class IpParser {
     for (int i = 1; i < parts.length - 1; i++) {
       if (parts[i].isEmpty()) {
         if (skipIndex >= 0) {
-          return null; // Can't have more than one ::
+          return; // Can't have more than one ::
         }
         skipIndex = i;
       }
@@ -73,10 +72,10 @@ class IpParser {
       partsHi = skipIndex;
       partsLo = parts.length - skipIndex - 1;
       if (parts[0].isEmpty() && --partsHi != 0) {
-        return null; // ^: requires ^::
+        return; // ^: requires ^::
       }
       if (parts[parts.length - 1].isEmpty() && --partsLo != 0) {
-        return null; // :$ requires ::$
+        return; // :$ requires ::$
       }
     } else {
       // Otherwise, allocate the entire address to partsHi. The endpoints
@@ -89,25 +88,22 @@ class IpParser {
     // Otherwise, we must have exactly the right number of parts.
     int partsSkipped = IPV6_PART_COUNT - (partsHi + partsLo);
     if (!(skipIndex >= 0 ? partsSkipped >= 1 : partsSkipped == 0)) {
-      return null;
+      return;
     }
 
     // Now parse the hextets into a byte array.
-    ByteBuffer rawBytes = ByteBuffer.allocate(2 * IPV6_PART_COUNT);
     try {
       for (int i = 0; i < partsHi; i++) {
-        rawBytes.putShort(parseHextet(parts[i]));
+        b.writeShort(parseHextet(parts[i]));
       }
       for (int i = 0; i < partsSkipped; i++) {
-        rawBytes.putShort((short) 0);
+        b.writeShort((short) 0);
       }
       for (int i = partsLo; i > 0; i--) {
-        rawBytes.putShort(parseHextet(parts[parts.length - i]));
+        b.writeShort(parseHextet(parts[parts.length - i]));
       }
-    } catch (NumberFormatException ex) {
-      return null;
+    } catch (NumberFormatException ignored) {
     }
-    return rawBytes.array();
   }
 
   static short parseHextet(String ipPart) {
