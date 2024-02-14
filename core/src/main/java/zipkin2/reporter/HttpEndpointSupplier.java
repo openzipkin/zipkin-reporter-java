@@ -27,6 +27,11 @@ import java.util.List;
  * way to create constants is to use {@link HttpEndpointSuppliers#constantFactory()} or
  * {@link HttpEndpointSuppliers#newConstant(String)}.
  *
+ * <p>Those using dynamic implementations that make remote calls should consider wrapping with
+ * {@link HttpEndpointSuppliers#newRateLimitedFactory(Factory, int)} or
+ * {@link HttpEndpointSuppliers#newRateLimited(HttpEndpointSupplier, int)} to avoid excessive errors
+ * or overhead by calling the backend in a tight loop.
+ *
  * <h3>Implementation Notes</h3>
  *
  * {@linkplain HttpSender} is a convenience type that implements the following logic:
