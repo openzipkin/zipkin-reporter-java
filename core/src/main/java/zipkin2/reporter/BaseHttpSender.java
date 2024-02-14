@@ -64,7 +64,7 @@ public abstract class BaseHttpSender<U, B> extends BytesMessageSender.Base {
    *
    * @since 3.3
    */
-  protected abstract B newBody(List<byte[]> encodedSpans);
+  protected abstract B newBody(List<byte[]> encodedSpans) throws IOException;
 
   /**
    * Implement to POST spans to the given endpoint.
