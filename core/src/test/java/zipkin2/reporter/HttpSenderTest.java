@@ -31,6 +31,7 @@ import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static zipkin2.TestObjects.CLIENT_SPAN;
+import static zipkin2.reporter.HttpEndpointSuppliers.newConstant;
 
 @ExtendWith(MockitoExtension.class)
 class HttpSenderTest {
@@ -60,7 +61,7 @@ class HttpSenderTest {
   @Test void endpointSupplierFactory_constant() {
     sender.close();
     sender = sender.withHttpEndpointSupplierFactory(
-      e -> ConstantHttpEndpointSupplier.create("http://localhost:29092")
+      e -> newConstant("http://localhost:29092")
     );
 
     // The connection supplier has a constant URL
@@ -70,7 +71,7 @@ class HttpSenderTest {
 
   @Test void endpointSupplierFactory_constantBad() {
     HttpEndpointSupplier.Factory badFactory =
-      e -> ConstantHttpEndpointSupplier.create("htp://localhost:9411/api/v1/spans");
+      e -> newConstant("htp://localhost:9411/api/v1/spans");
 
     assertThatThrownBy(() -> sender.withHttpEndpointSupplierFactory(badFactory))
       .isInstanceOf(IllegalArgumentException.class)
@@ -142,10 +143,10 @@ class HttpSenderTest {
   @Test void endpointSupplierFactory_dynamicBad() {
     sender.close();
     sender = sender.withHttpEndpointSupplierFactory(e -> new BaseHttpEndpointSupplier() {
-        @Override public String get() {
-          return "htp://localhost:9411/api/v1/spans";
-        }
-      });
+      @Override public String get() {
+        return "htp://localhost:9411/api/v1/spans";
+      }
+    });
 
     assertThatThrownBy(() -> sendSpans(sender, CLIENT_SPAN, CLIENT_SPAN))
       .isInstanceOf(IllegalArgumentException.class)
@@ -163,21 +164,7 @@ class HttpSenderTest {
   }
 
   static void sendSpans(BytesMessageSender sender, Span... spans) throws IOException {
-    SpanBytesEncoder bytesEncoder;
-    switch (sender.encoding()) {
-      case JSON:
-        bytesEncoder = SpanBytesEncoder.JSON_V2;
-        break;
-      case THRIFT:
-        bytesEncoder = SpanBytesEncoder.THRIFT;
-        break;
-      case PROTO3:
-        bytesEncoder = SpanBytesEncoder.PROTO3;
-        break;
-      default:
-        throw new UnsupportedOperationException("encoding: " + sender.encoding());
-    }
-    sender.send(Stream.of(spans).map(bytesEncoder::encode).collect(toList()));
+    sender.send(Stream.of(spans).map(SpanBytesEncoder.JSON_V2::encode).collect(toList()));
   }
 
   static abstract class BaseHttpEndpointSupplier implements HttpEndpointSupplier {

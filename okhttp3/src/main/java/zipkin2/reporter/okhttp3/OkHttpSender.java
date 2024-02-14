@@ -17,12 +17,13 @@ import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
 import zipkin2.reporter.AsyncReporter;
 import zipkin2.reporter.BytesMessageSender;
-import zipkin2.reporter.ConstantHttpEndpointSupplier;
 import zipkin2.reporter.Encoding;
 import zipkin2.reporter.HttpEndpointSupplier;
+import zipkin2.reporter.HttpEndpointSuppliers;
 import zipkin2.reporter.internal.SenderAdapter;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static zipkin2.reporter.HttpEndpointSuppliers.constantFactory;
 
 /**
  * Reports spans to Zipkin, using its <a href="https://zipkin.io/zipkin-api/#/">POST</a> endpoint.
@@ -75,7 +76,7 @@ public final class OkHttpSender extends SenderAdapter {
 
   public static final class Builder {
     final OkHttpClient.Builder clientBuilder;
-    HttpEndpointSupplier.Factory endpointSupplierFactory = ConstantHttpEndpointSupplier.FACTORY;
+    HttpEndpointSupplier.Factory endpointSupplierFactory = constantFactory();
     String endpoint;
     Encoding encoding = Encoding.JSON;
     boolean compressionEnabled = true;
@@ -97,7 +98,9 @@ public final class OkHttpSender extends SenderAdapter {
     }
 
     /**
-     * No default. See JavaDoc on {@link HttpEndpointSupplier} for implementation notes.
+     * Defaults to {@link HttpEndpointSuppliers#constantFactory()}.
+     *
+     * <p>See JavaDoc on {@link HttpEndpointSupplier} for implementation notes.
      */
     public Builder endpointSupplierFactory(HttpEndpointSupplier.Factory endpointSupplierFactory) {
       if (endpointSupplierFactory == null) {

@@ -14,23 +14,20 @@
 package zipkin2.reporter.okhttp3;
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
-import okhttp3.HttpUrl;
 import org.junit.jupiter.api.Test;
 import zipkin2.Span;
 import zipkin2.codec.SpanBytesEncoder;
 import zipkin2.reporter.AsyncReporter;
 import zipkin2.reporter.BytesMessageSender;
-import zipkin2.reporter.ClosedSenderException;
-import zipkin2.reporter.ConstantHttpEndpointSupplier;
 import zipkin2.reporter.HttpEndpointSupplier;
 
 import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static zipkin2.TestObjects.CLIENT_SPAN;
+import static zipkin2.reporter.HttpEndpointSuppliers.constantFactory;
+import static zipkin2.reporter.HttpEndpointSuppliers.newConstant;
 
 class OkHttpSenderTest {
   // We can be pretty certain Zipkin isn't listening on localhost port 19092
@@ -42,14 +39,14 @@ class OkHttpSenderTest {
 
     // Change the supplier, but not the endpoint.
     sender = sender.toBuilder()
-      .endpointSupplierFactory(e -> ConstantHttpEndpointSupplier.create("http://localhost:29092"))
+      .endpointSupplierFactory(e -> newConstant("http://localhost:29092"))
       .build();
     assertThat(sender)
       .hasToString("OkHttpSender{http://localhost:29092/}");
 
     // Change the supplier, and see the prior endpoint.
     sender = sender.toBuilder()
-      .endpointSupplierFactory(ConstantHttpEndpointSupplier.FACTORY)
+      .endpointSupplierFactory(constantFactory())
       .build();
     assertThat(sender)
       .hasToString("OkHttpSender{http://localhost:19092/}");
