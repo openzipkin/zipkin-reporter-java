@@ -19,7 +19,7 @@
 
   <groupId>io.zipkin.reporter2</groupId>
   <artifactId>zipkin-reporter-parent</artifactId>
-  <version>3.3.0</version>
+  <version>3.3.1-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <modules>
@@ -122,7 +122,7 @@
     <url>https://github.com/openzipkin/zipkin-reporter-java</url>
     <connection>scm:git:https://github.com/openzipkin/zipkin-reporter-java.git</connection>
     <developerConnection>scm:git:https://github.com/openzipkin/zipkin-reporter-java.git</developerConnection>
-    <tag>3.3.0</tag>
+    <tag>HEAD</tag>
   </scm>
 
   <!-- Developer section is needed for Maven Central, but doesn't need to include each person -->
