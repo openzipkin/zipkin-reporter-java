@@ -16,7 +16,6 @@ package zipkin2.reporter.internal;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import org.junit.jupiter.api.Test;
-import zipkin2.reporter.internal.Platform;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

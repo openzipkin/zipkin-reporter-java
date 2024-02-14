@@ -34,15 +34,15 @@ import okio.BufferedSource;
 import okio.GzipSink;
 import okio.GzipSource;
 import okio.Okio;
+import zipkin2.reporter.BaseHttpSender;
 import zipkin2.reporter.Component;
 import zipkin2.reporter.Encoding;
-import zipkin2.reporter.HttpSender;
 
 /**
  * We have to nest this class until v4 when {@linkplain OkHttpSender} no longer needs to extend
  * {@linkplain Component}.
  */
-final class InternalOkHttpSender extends HttpSender<HttpUrl, RequestBody> {
+final class InternalOkHttpSender extends BaseHttpSender<HttpUrl, RequestBody> {
   final OkHttpClient client;
   final RequestBodyMessageEncoder encoder;
   final Encoding encoding;

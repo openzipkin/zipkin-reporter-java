@@ -49,8 +49,8 @@ public final class HttpEndpointSuppliers {
   }
 
   /**
-   * {@link HttpSender sender} implementations look for a {@linkplain Constant} to avoid the
-   * overhead of dynamic lookups on each call to {@link HttpSender#postSpans(Object, Object)}.
+   * {@link BaseHttpSender sender} implementations look for a {@linkplain Constant} to avoid the
+   * overhead of dynamic lookups on each call to {@link BaseHttpSender#postSpans(Object, Object)}.
    *
    * @since 3.3
    */

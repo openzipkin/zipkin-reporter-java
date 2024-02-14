@@ -21,14 +21,14 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.List;
 import java.util.zip.GZIPOutputStream;
+import zipkin2.reporter.BaseHttpSender;
 import zipkin2.reporter.Component;
-import zipkin2.reporter.HttpSender;
 
 /**
  * We have to nest this class until v4 when {@linkplain URLConnectionSender} no longer needs to
  * extend {@linkplain Component}.
  */
-final class InternalURLConnectionSender extends HttpSender<URL, byte[]> {
+final class InternalURLConnectionSender extends BaseHttpSender<URL, byte[]> {
 
   final int messageMaxBytes;
   final int connectTimeout;

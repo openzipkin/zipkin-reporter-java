@@ -15,7 +15,6 @@ package zipkin2.reporter.beans;
 
 import java.net.MalformedURLException;
 import java.net.URI;
-import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;

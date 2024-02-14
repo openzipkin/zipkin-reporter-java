@@ -17,8 +17,8 @@ import java.io.Closeable;
 import java.util.List;
 
 /**
- * HTTP-based {@link BytesMessageSender senders}, such as {@linkplain HttpSender} use this to get
- * the endpoint to post spans to. For example, http://localhost:9411/api/v2/spans
+ * HTTP-based {@link BytesMessageSender senders}, such as {@linkplain BaseHttpSender} use this to
+ * get the endpoint to POST spans to. For example, http://localhost:9411/api/v2/spans
  *
  * <p>These are created by a {@linkplain Factory}, allows this to be constructed with a
  * potentially-pseudo endpoint passed by configuration.
@@ -34,7 +34,7 @@ import java.util.List;
  *
  * <h3>Implementation Notes</h3>
  *
- * {@linkplain HttpSender} is a convenience type that implements the following logic:
+ * {@linkplain BaseHttpSender} is a convenience type that implements the following logic:
  * <ul>
  *   <li>During build, the sender should invoke the {@linkplain Factory}.</li>
  *   <li>If the result is {@link Constant}, build the sender to use a static value.</li>
@@ -55,8 +55,8 @@ import java.util.List;
  * dependency injection, without limiting an HTTP framework that can handle groups, to a
  * single-endpoint supplier.
  *
+ * @see BaseHttpSender
  * @see Constant
- * @see HttpSender
  * @see HttpEndpointSuppliers
  * @since 3.3
  */
