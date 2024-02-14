@@ -35,8 +35,8 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static zipkin2.reporter.HttpEndpointSuppliers.constantFactory;
 import static zipkin2.reporter.HttpEndpointSuppliers.newConstant;
-import static zipkin2.reporter.HttpEndpointSuppliers.rateLimited;
-import static zipkin2.reporter.HttpEndpointSuppliers.rateLimitedFactory;
+import static zipkin2.reporter.HttpEndpointSuppliers.newRateLimited;
+import static zipkin2.reporter.HttpEndpointSuppliers.newRateLimitedFactory;
 
 @ExtendWith(MockitoExtension.class)
 class RateLimitingSamplerTest {
@@ -60,31 +60,31 @@ class RateLimitingSamplerTest {
   }
 
   @Test void rateLimitedFactory_exceptions() {
-    assertThatThrownBy(() -> rateLimitedFactory(delegateFactory, 0))
+    assertThatThrownBy(() -> newRateLimitedFactory(delegateFactory, 0))
       .isInstanceOf(IllegalArgumentException.class);
-    assertThatThrownBy(() -> rateLimitedFactory(delegateFactory, -1))
+    assertThatThrownBy(() -> newRateLimitedFactory(delegateFactory, -1))
       .isInstanceOf(IllegalArgumentException.class);
-    assertThatThrownBy(() -> rateLimitedFactory(null, 3))
+    assertThatThrownBy(() -> newRateLimitedFactory(null, 3))
       .isInstanceOf(NullPointerException.class);
   }
 
   @Test void rateLimitedFactory_constant() {
-    assertThat(rateLimitedFactory(constantFactory(), 2))
+    assertThat(newRateLimitedFactory(constantFactory(), 2))
       .isSameAs(constantFactory());
   }
 
   @Test void rateLimited_exceptions() {
-    assertThatThrownBy(() -> rateLimited(delegate, 0))
+    assertThatThrownBy(() -> newRateLimited(delegate, 0))
       .isInstanceOf(IllegalArgumentException.class);
-    assertThatThrownBy(() -> rateLimited(delegate, -1))
+    assertThatThrownBy(() -> newRateLimited(delegate, -1))
       .isInstanceOf(IllegalArgumentException.class);
-    assertThatThrownBy(() -> rateLimited(null, 3))
+    assertThatThrownBy(() -> newRateLimited(null, 3))
       .isInstanceOf(NullPointerException.class);
   }
 
   @Test void rateLimited_constant() {
     Constant constant = newConstant("http://localhost:9411/api/v2/spans");
-    assertThat(rateLimited(constant, 2)).isSameAs(constant);
+    assertThat(newRateLimited(constant, 2)).isSameAs(constant);
   }
 
   @Test void initialGet() {

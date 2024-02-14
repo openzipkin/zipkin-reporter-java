@@ -91,7 +91,7 @@ public final class HttpEndpointSuppliers {
   }
 
   /**
-   * Returns a {@linkplain Factory} which calls {@link #rateLimited(HttpEndpointSupplier, int)}
+   * Returns a {@linkplain Factory} which calls {@link #newRateLimited(HttpEndpointSupplier, int)}
    * for each input.
    *
    * @param intervalSeconds amount of time to wait *after* calls to get before trying again.
@@ -100,7 +100,7 @@ public final class HttpEndpointSuppliers {
    * @throws IllegalArgumentException if intervalSeconds is less than one.
    * @since 3.3
    */
-  public static Factory rateLimitedFactory(Factory input, int intervalSeconds) {
+  public static Factory newRateLimitedFactory(Factory input, int intervalSeconds) {
     if (input == null) throw new NullPointerException("input == null");
     if (intervalSeconds < 1) throw new IllegalArgumentException("intervalSeconds < 1");
     if (input == ConstantFactory.INSTANCE) return input;
@@ -122,7 +122,7 @@ public final class HttpEndpointSuppliers {
    * @throws IllegalArgumentException if intervalSeconds is less than one.
    * @since 3.3
    */
-  public static HttpEndpointSupplier rateLimited(HttpEndpointSupplier input, int intervalSeconds) {
+  public static HttpEndpointSupplier newRateLimited(HttpEndpointSupplier input, int intervalSeconds) {
     if (input == null) throw new NullPointerException("input == null");
     if (intervalSeconds < 1) throw new IllegalArgumentException("intervalSeconds < 1");
     if (input instanceof HttpEndpointSupplier.Constant) return input;
@@ -142,7 +142,7 @@ public final class HttpEndpointSuppliers {
       }
 
       @Override public HttpEndpointSupplier create(String endpoint) {
-        return rateLimited(delegate.create(endpoint), intervalSeconds);
+        return newRateLimited(delegate.create(endpoint), intervalSeconds);
       }
 
       @Override public String toString() {
