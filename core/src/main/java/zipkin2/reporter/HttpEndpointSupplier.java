@@ -32,8 +32,7 @@ import java.util.List;
  * {@linkplain HttpSender} is a convenience type that implements the following logic:
  * <ul>
  *   <li>During build, the sender should invoke the {@linkplain Factory}.</li>
- *   <li>If the result is {@link Constant}, build the sender to use a static
- *       value.</li>
+ *   <li>If the result is {@link Constant}, build the sender to use a static value.</li>
  *   <li>Otherwise, call {@link HttpEndpointSupplier#get()} each time
  *       {@linkplain BytesMessageSender#send(List)} is invoked.</li>
  *   <li>Call {@link #close()} once during {@link BytesMessageSender#close()}.</li>
