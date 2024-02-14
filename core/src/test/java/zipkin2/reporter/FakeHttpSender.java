@@ -24,7 +24,7 @@ import zipkin2.reporter.HttpEndpointSupplier.Factory;
 
 import static zipkin2.reporter.HttpEndpointSuppliers.constantFactory;
 
-class FakeHttpSender extends HttpSender<String, byte[]> {
+class FakeHttpSender extends BaseHttpSender<String, byte[]> {
   final String originalEndpoint;
   final Consumer<List<Span>> onSpans;
 

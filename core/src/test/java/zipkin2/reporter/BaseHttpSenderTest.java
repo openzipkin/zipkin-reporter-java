@@ -34,7 +34,7 @@ import static zipkin2.TestObjects.CLIENT_SPAN;
 import static zipkin2.reporter.HttpEndpointSuppliers.newConstant;
 
 @ExtendWith(MockitoExtension.class)
-class HttpSenderTest {
+class BaseHttpSenderTest {
 
   @Mock Logger logger;
   @Mock Consumer<List<Span>> onSpans;

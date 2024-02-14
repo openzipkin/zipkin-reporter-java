@@ -14,6 +14,8 @@
 package zipkin2.reporter;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.URL;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
@@ -27,9 +29,11 @@ import static zipkin2.reporter.Call.propagateIfFatal;
  * <p>Calls to {@linkplain #postSpans(Object, Object)} happen on the same async reporting thread,
  * but {@linkplain #close()} might be called from any thread.
  *
+ * @param <U> The URL type for the HTTP client, such as {@linkplain URL} or {@linkplain URI}.
+ * @param <B> The POST body, such as {@code byte[]} or an HTTP client-specific body type.
  * @since 3.3
  */
-public abstract class HttpSender<U, B> extends BytesMessageSender.Base {
+public abstract class BaseHttpSender<U, B> extends BytesMessageSender.Base {
   final Logger logger;
   final HttpEndpointSupplier endpointSupplier;
   final U endpoint;
@@ -49,7 +53,7 @@ public abstract class HttpSender<U, B> extends BytesMessageSender.Base {
   /**
    * Creates a new POST body from the encoded spans.
    *
-   * <p>Below is the simplest implementation, when {@linkplain HttpSender#<B>} is a byte array.
+   * <p>Below is the simplest implementation, when {@linkplain BaseHttpSender#<B>} is a byte array.
    * <pre>{@code
    * @Override protected byte[] newBody(List<byte[]> encodedSpans) {
    *   return encoding.encode(encodedSpans);
@@ -79,11 +83,13 @@ public abstract class HttpSender<U, B> extends BytesMessageSender.Base {
   protected void doClose() {
   }
 
-  protected HttpSender(Encoding encoding, Factory endpointSupplierFactory, String endpoint) {
-    this(Logger.getLogger(HttpSender.class.getName()), encoding, endpointSupplierFactory, endpoint);
+  protected BaseHttpSender(Encoding encoding, Factory endpointSupplierFactory, String endpoint) {
+    this(Logger.getLogger(BaseHttpSender.class.getName()), encoding, endpointSupplierFactory,
+      endpoint);
   }
 
-  HttpSender(Logger logger, Encoding encoding, Factory endpointSupplierFactory, String endpoint) {
+  BaseHttpSender(Logger logger, Encoding encoding, Factory endpointSupplierFactory,
+    String endpoint) {
     super(encoding);
     this.logger = logger;
     if (endpointSupplierFactory == null) {
