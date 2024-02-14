@@ -15,6 +15,7 @@ package zipkin2.reporter;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import zipkin2.reporter.HttpEndpointSupplier.Factory;
 
@@ -93,7 +94,6 @@ public final class HttpEndpointSuppliers {
    * Returns a {@linkplain Factory} which calls {@link #rateLimited(HttpEndpointSupplier, int)}
    * for each input.
    *
-   * @param input           what to rate-limit.
    * @param intervalSeconds amount of time to wait *after* calls to get before trying again.
    * @return a factory that returns rate-limited suppliers unless the input was a
    * {@linkplain HttpEndpointSupplier.Constant}.
@@ -155,7 +155,7 @@ public final class HttpEndpointSuppliers {
     final int intervalSeconds;
 
     String endpoint;
-    long nextGet;
+    long nanoTimeout;
 
     RateLimited(Logger logger, HttpEndpointSupplier delegate, int intervalSeconds) {
       this.logger = logger;
@@ -177,18 +177,21 @@ public final class HttpEndpointSuppliers {
      * However, this is to guard against misuse.
      */
     @Override public final synchronized String get() {
-      long now = nanoTime(), updateAt = nextGet;
+      long now = nanoTime(), nanoTimeout = this.nanoTimeout;
 
       // Is it time to call get again?
-      long nanosUntilGet = -(now - updateAt); // because nanoTime can be negative
+      long nanosUntilGet = -(now - nanoTimeout); // because nanoTime can be negative
       if (nanosUntilGet <= 0) {
         // See if we won the race, and if so, update the endpoint.
         try {
           endpoint = delegate.get();
         } catch (Throwable t) {
           Call.propagateIfFatal(t);
-          logger.warning(format("error getting new endpoint from %s. will retry in %ds: %s",
-            delegate, intervalSeconds, t.getMessage()));
+          String message = format("error from httpEndpointSupplier.get() will retry in %ds: %s",
+            intervalSeconds, t.getMessage());
+          logger.warning(message);
+          // log the exception at fine/debug level
+          logger.log(Level.FINE, "exception from: " + delegate, t);
         } finally {
           updateNextGet();
         }
@@ -199,7 +202,7 @@ public final class HttpEndpointSuppliers {
 
     private void updateNextGet() {
       // Above may take more than a second, so update the interval again.
-      nextGet = nanoTime() + TimeUnit.SECONDS.toNanos(intervalSeconds);
+      nanoTimeout = nanoTime() + TimeUnit.SECONDS.toNanos(intervalSeconds);
     }
 
     @Override public final void close() throws IOException {
