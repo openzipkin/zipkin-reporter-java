@@ -39,7 +39,7 @@ public abstract class HttpSender<U, B> extends BytesMessageSender.Base {
 
   /**
    * Called each invocation of {@linkplain #postSpans(Object, Object)}, unless the
-   * {@linkplain HttpEndpointSupplier} is a {@linkplain ConstantHttpEndpointSupplier},
+   * {@linkplain HttpEndpointSupplier} is a {@linkplain HttpEndpointSupplier.Constant},
    * Implementations should perform any validation needed here.
    *
    * @since 3.3
@@ -95,7 +95,7 @@ public abstract class HttpSender<U, B> extends BytesMessageSender.Base {
     if (endpointSupplier == null) {
       throw new NullPointerException("endpointSupplierFactory.create() returned null");
     }
-    if (endpointSupplier instanceof ConstantHttpEndpointSupplier) {
+    if (endpointSupplier instanceof HttpEndpointSupplier.Constant) {
       this.endpoint = nextEndpoint(endpointSupplier);
       closeQuietly(endpointSupplier);
       this.endpointSupplier = null;

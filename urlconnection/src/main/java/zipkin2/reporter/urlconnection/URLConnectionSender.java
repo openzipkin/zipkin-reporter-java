@@ -15,11 +15,13 @@ package zipkin2.reporter.urlconnection;
 
 import java.net.URL;
 import zipkin2.reporter.BytesMessageSender;
-import zipkin2.reporter.ConstantHttpEndpointSupplier;
 import zipkin2.reporter.Encoding;
 import zipkin2.reporter.HttpEndpointSupplier;
 import zipkin2.reporter.HttpEndpointSupplier.Factory;
+import zipkin2.reporter.HttpEndpointSuppliers;
 import zipkin2.reporter.internal.SenderAdapter;
+
+import static zipkin2.reporter.HttpEndpointSuppliers.constantFactory;
 
 /**
  * Reports spans to Zipkin, using its <a href="https://zipkin.io/zipkin-api/#/">POST</a> endpoint.
@@ -38,7 +40,7 @@ public final class URLConnectionSender extends SenderAdapter {
   }
 
   public static final class Builder {
-    Factory endpointSupplierFactory = ConstantHttpEndpointSupplier.FACTORY;
+    Factory endpointSupplierFactory = constantFactory();
     String endpoint;
     Encoding encoding = Encoding.JSON;
     int messageMaxBytes = 500000;
@@ -56,7 +58,9 @@ public final class URLConnectionSender extends SenderAdapter {
     }
 
     /**
-     * No default. See JavaDoc on {@link HttpEndpointSupplier} for implementation notes.
+     * Defaults to {@link HttpEndpointSuppliers#constantFactory()}.
+     *
+     * <p>See JavaDoc on {@link HttpEndpointSupplier} for implementation notes.
      */
     public Builder endpointSupplierFactory(Factory endpointSupplierFactory) {
       if (endpointSupplierFactory == null) {

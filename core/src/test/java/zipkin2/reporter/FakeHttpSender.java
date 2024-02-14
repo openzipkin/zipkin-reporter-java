@@ -22,12 +22,14 @@ import zipkin2.Span;
 import zipkin2.codec.SpanBytesDecoder;
 import zipkin2.reporter.HttpEndpointSupplier.Factory;
 
+import static zipkin2.reporter.HttpEndpointSuppliers.constantFactory;
+
 class FakeHttpSender extends HttpSender<String, byte[]> {
   final String originalEndpoint;
   final Consumer<List<Span>> onSpans;
 
   FakeHttpSender(Logger logger, String endpoint, Consumer<List<Span>> onSpans) {
-    this(logger, endpoint, ConstantHttpEndpointSupplier.FACTORY, onSpans);
+    this(logger, endpoint, constantFactory(), onSpans);
   }
 
   FakeHttpSender(Logger logger, String endpoint, Factory endpointSupplierFactory,
