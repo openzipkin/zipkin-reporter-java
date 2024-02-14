@@ -25,7 +25,7 @@ public final class HttpEndpointSuppliers {
     INSTANCE;
 
     @Override public HttpEndpointSupplier create(String endpoint) {
-      return new Constant(endpoint);
+      return newConstant(endpoint);
     }
 
     @Override public String toString() {
