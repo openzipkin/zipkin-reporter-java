@@ -9,48 +9,44 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
- * Multi-producer, multi-consumer queue that is bounded by both count and size.
+ * Multi-producer, multi-consumer queue that is bounded by count.
  *
  * <p>This is similar to {@link java.util.concurrent.ArrayBlockingQueue} in implementation.
  */
-final class ByteBoundedQueue<S> extends BoundedQueue<S> implements SpanWithSizeConsumer<S> {
+final class SizeBoundedQueue<S> extends BoundedQueue<S> implements UnsizedSpanConsumer<S> {
 
   final ReentrantLock lock = new ReentrantLock(false);
   final Condition available = lock.newCondition();
 
   final int maxSize;
-  final int maxBytes;
 
   final S[] elements;
-  final int[] sizesInBytes;
   int count;
-  int sizeInBytes;
   int writePos;
   int readPos;
 
-  @SuppressWarnings("unchecked") ByteBoundedQueue(int maxSize, int maxBytes) {
+  @SuppressWarnings("unchecked") SizeBoundedQueue(int maxSize) {
     this.elements = (S[]) new Object[maxSize];
-    this.sizesInBytes = new int[maxSize];
     this.maxSize = maxSize;
-    this.maxBytes = maxBytes;
   }
 
+  @Override public boolean offer(S next, int nextSizeInBytes) {
+    return offer(next);
+  }
+  
   /**
    * Returns true if the element could be added or false if it could not due to its size.
    */
-  @Override public boolean offer(S next, int nextSizeInBytes) {
+  @Override public boolean offer(S next) {
     lock.lock();
     try {
       if (count == maxSize) return false;
-      if (sizeInBytes + nextSizeInBytes > maxBytes) return false;
 
-      elements[writePos] = next;
-      sizesInBytes[writePos++] = nextSizeInBytes;
+      elements[writePos++] = next;
 
       if (writePos == maxSize) writePos = 0; // circle back to the front of the array
 
       count++;
-      sizeInBytes += nextSizeInBytes;
 
       available.signal(); // alert any drainers
       return true;
@@ -81,11 +77,11 @@ final class ByteBoundedQueue<S> extends BoundedQueue<S> implements SpanWithSizeC
   }
 
   /** Clears the queue unconditionally and returns count of spans cleared. */
-  @Override int clear() {
+  @Override public int clear() {
     lock.lock();
     try {
       int result = count;
-      count = sizeInBytes = readPos = writePos = 0;
+      count = readPos = writePos = 0;
       Arrays.fill(elements, null);
       return result;
     } finally {
@@ -95,15 +91,12 @@ final class ByteBoundedQueue<S> extends BoundedQueue<S> implements SpanWithSizeC
 
   int doDrain(SpanWithSizeConsumer<S> consumer) {
     int drainedCount = 0;
-    int drainedSizeInBytes = 0;
     while (drainedCount < count) {
       S next = elements[readPos];
-      int nextSizeInBytes = sizesInBytes[readPos];
 
       if (next == null) break;
-      if (consumer.offer(next, nextSizeInBytes)) {
+      if (consumer.offer(next, 0)) {
         drainedCount++;
-        drainedSizeInBytes += nextSizeInBytes;
 
         elements[readPos] = null;
         if (++readPos == elements.length) readPos = 0; // circle back to the front of the array
@@ -112,29 +105,27 @@ final class ByteBoundedQueue<S> extends BoundedQueue<S> implements SpanWithSizeC
       }
     }
     count -= drainedCount;
-    sizeInBytes -= drainedSizeInBytes;
     return drainedCount;
   }
   
   @Override int count() {
     return count;
   }
-
+  
   @Override int maxBytes() {
-    return maxBytes;
+    return 0;
   }
-
+  
   @Override int maxSize() {
     return maxSize;
   }
   
-  @Override
-  public int sizeInBytes() {
-    return sizeInBytes;
+  @Override int sizeInBytes() {
+    return 0;
   }
 }
 
-interface SpanWithSizeConsumer<S> {
+interface UnsizedSpanConsumer<S> {
   /** Returns true if the element could be added or false if it could not due to its size. */
-  boolean offer(S next, int nextSizeInBytes);
+  boolean offer(S next);
 }

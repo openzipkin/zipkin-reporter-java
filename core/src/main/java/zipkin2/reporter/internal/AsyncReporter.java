@@ -82,8 +82,8 @@ public abstract class AsyncReporter<S> extends Component implements Reporter<S>,
       this.messageMaxBytes = asyncReporter.messageMaxBytes;
       this.messageTimeoutNanos = asyncReporter.messageTimeoutNanos;
       this.closeTimeoutNanos = asyncReporter.closeTimeoutNanos;
-      this.queuedMaxSpans = asyncReporter.pending.maxSize;
-      this.queuedMaxBytes = asyncReporter.pending.maxBytes;
+      this.queuedMaxSpans = asyncReporter.pending.maxSize();
+      this.queuedMaxBytes = asyncReporter.pending.maxBytes();
     }
 
     static int onePercentOfMemory() {
@@ -181,7 +181,7 @@ public abstract class AsyncReporter<S> extends Component implements Reporter<S>,
     static final Logger logger = Logger.getLogger(BoundedAsyncReporter.class.getName());
     final AtomicBoolean started, closed;
     final BytesEncoder<S> encoder;
-    final ByteBoundedQueue<S> pending;
+    final BoundedQueue<S> pending;
     final BytesMessageSender sender;
     final int messageMaxBytes;
     final long messageTimeoutNanos, closeTimeoutNanos;
@@ -193,7 +193,7 @@ public abstract class AsyncReporter<S> extends Component implements Reporter<S>,
     private boolean shouldWarnException = true;
 
     BoundedAsyncReporter(Builder builder, BytesEncoder<S> encoder) {
-      this.pending = new ByteBoundedQueue<S>(builder.queuedMaxSpans, builder.queuedMaxBytes);
+      this.pending = BoundedQueue.create(builder.queuedMaxSpans, builder.queuedMaxBytes);
       this.sender = builder.sender;
       this.messageMaxBytes = builder.messageMaxBytes;
       this.messageTimeoutNanos = builder.messageTimeoutNanos;
@@ -241,8 +241,8 @@ public abstract class AsyncReporter<S> extends Component implements Reporter<S>,
       pending.drainTo(bundler, bundler.remainingNanos());
 
       // record after flushing reduces the amount of gauge events vs on doing this on report
-      metrics.updateQueuedSpans(pending.count);
-      metrics.updateQueuedBytes(pending.sizeInBytes);
+      metrics.updateQueuedSpans(pending.count());
+      metrics.updateQueuedBytes(pending.sizeInBytes());
 
       // loop around if we are running, and the bundle isn't full
       // if we are closed, try to send what's pending
