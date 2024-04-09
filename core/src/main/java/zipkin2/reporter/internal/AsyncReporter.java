@@ -216,20 +216,30 @@ public abstract class AsyncReporter<S> extends Component implements Reporter<S>,
       flushThread.start();
     }
 
+    @SuppressWarnings("unchecked")
     @Override public void report(S next) {
       if (next == null) throw new NullPointerException("span == null");
       // Lazy start so that reporters never used don't spawn threads
       if (started.compareAndSet(false, true)) startFlusherThread();
       metrics.incrementSpans(1);
-      int nextSizeInBytes = encoder.sizeInBytes(next);
-      int messageSizeOfNextSpan = sender.messageSizeInBytes(nextSizeInBytes);
-      metrics.incrementSpanBytes(nextSizeInBytes);
-      if (closed.get() ||
-        // don't enqueue something larger than we can drain
-        messageSizeOfNextSpan > messageMaxBytes ||
-        !pending.offer(next, nextSizeInBytes)) {
-        metrics.incrementSpansDropped(1);
-      }
+      
+      if (pending instanceof UnsizedSpanConsumer) {
+          // enqueue now and filter our when we drain
+        final UnsizedSpanConsumer<S> consumer = (UnsizedSpanConsumer<S>)pending;
+        if (closed.get() || !consumer.offer(next)) {
+          metrics.incrementSpansDropped(1);
+        }
+      } else {
+        int nextSizeInBytes = encoder.sizeInBytes(next);
+        int messageSizeOfNextSpan = sender.messageSizeInBytes(nextSizeInBytes);
+        metrics.incrementSpanBytes(nextSizeInBytes);
+        if (closed.get() ||
+          // don't enqueue something larger than we can drain
+          messageSizeOfNextSpan > messageMaxBytes ||
+          !pending.offer(next, nextSizeInBytes)) {
+          metrics.incrementSpansDropped(1);
+        }
+      } 
     }
 
     @Override public void flush() {
