@@ -13,7 +13,7 @@ import java.util.concurrent.locks.ReentrantLock;
  *
  * <p>This is similar to {@link java.util.concurrent.ArrayBlockingQueue} in implementation.
  */
-final class SizeBoundedQueue<S> extends BoundedQueue<S> implements UnsizedSpanConsumer<S> {
+final class CountBoundedQueue<S> extends BoundedQueue<S> implements UnsizedSpanConsumer<S> {
 
   final ReentrantLock lock = new ReentrantLock(false);
   final Condition available = lock.newCondition();
@@ -25,7 +25,7 @@ final class SizeBoundedQueue<S> extends BoundedQueue<S> implements UnsizedSpanCo
   int writePos;
   int readPos;
 
-  @SuppressWarnings("unchecked") SizeBoundedQueue(int maxSize) {
+  @SuppressWarnings("unchecked") CountBoundedQueue(int maxSize) {
     this.elements = (S[]) new Object[maxSize];
     this.maxSize = maxSize;
   }

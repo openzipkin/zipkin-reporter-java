@@ -13,7 +13,7 @@ abstract class BoundedQueue<S> implements SpanWithSizeConsumer<S> {
         if (maxBytes > 0) {
             return new ByteBoundedQueue<S>(maxSize, maxBytes);
         } else {
-            return new SizeBoundedQueue<S>(maxSize);
+            return new CountBoundedQueue<S>(maxSize);
         }
     }
 
