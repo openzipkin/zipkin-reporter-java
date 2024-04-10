@@ -47,7 +47,7 @@
            common in libthrift and lead to rev-lock. As scribe is a deprecated
            transport in Zipkin, it is ok to update this to a signature breaking
            version on minor, but increment to the next minor in the PR. -->
-      <version>0.19.0</version>
+      <version>0.20.0</version>
     </dependency>
 
     <dependency>
