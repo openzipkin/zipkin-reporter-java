@@ -18,7 +18,7 @@ abstract class BoundedQueue<S> implements SpanWithSizeConsumer<S> {
     if (maxBytes > 0) {
       return new ByteBoundedQueue<S>(encoder, sender, metrics, messageMaxBytes, maxSize, maxBytes);
     } else {
-      return new CountBoundedQueue<S>(maxSize);
+      return new CountBoundedQueue<S>(metrics, maxSize);
     }
   }
 
@@ -28,24 +28,9 @@ abstract class BoundedQueue<S> implements SpanWithSizeConsumer<S> {
   abstract int maxSize();
 
   /**
-   * Max element'size of this bounded queue
-   */
-  abstract int maxBytes();
-
-  /**
    * Clear this bounded queue
    */
   abstract int clear();
-
-  /**
-   * Element's count of this bounded queue
-   */
-  abstract int count();
-
-  /**
-   * Element's size of this bounded queue
-   */
-  abstract int sizeInBytes();
 
   /**
    * Drains this bounded queue. Blocks for up to nanosTimeout for spans to appear.

@@ -90,6 +90,10 @@ final class ByteBoundedQueue<S> extends BoundedQueue<S> {
       }
     } catch (InterruptedException e) {
       return 0;
+    } finally {
+        // record after draining reduces the amount of gauge events vs on doing this on report
+        metrics.updateQueuedSpans(count);
+        metrics.updateQueuedBytes(sizeInBytes);
     }
   }
 
@@ -138,20 +142,7 @@ final class ByteBoundedQueue<S> extends BoundedQueue<S> {
     return drainedCount;
   }
 
-  @Override int count() {
-    return count;
-  }
-
-  @Override int maxBytes() {
-    return maxBytes;
-  }
-
   @Override int maxSize() {
     return maxSize;
-  }
-
-  @Override
-  public int sizeInBytes() {
-    return sizeInBytes;
   }
 }

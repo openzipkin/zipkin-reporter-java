@@ -8,10 +8,12 @@ import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
+import zipkin2.reporter.ReporterMetrics;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ByteBoundedQueueTest {
-  ByteBoundedQueue<byte[]> queue = new ByteBoundedQueue<>(null, null, null, 10, 10, 10);
+  ByteBoundedQueue<byte[]> queue = new ByteBoundedQueue<>(null, null, ReporterMetrics.NOOP_METRICS, 10, 10, 10);
 
   @Test void offer_failsWhenFull_size() {
     for (int i = 0; i < queue.maxSize; i++) {
@@ -40,7 +42,7 @@ class ByteBoundedQueueTest {
   }
 
   @Test void circular() {
-    ByteBoundedQueue<Integer> queue = new ByteBoundedQueue<>(null, null, null, 10, 10, 10);
+    ByteBoundedQueue<Integer> queue = new ByteBoundedQueue<>(null, null, ReporterMetrics.NOOP_METRICS, 10, 10, 10);
 
     List<Integer> polled = new ArrayList<>();
     SpanWithSizeConsumer<Integer> consumer = (next, ignored) -> polled.add(next);

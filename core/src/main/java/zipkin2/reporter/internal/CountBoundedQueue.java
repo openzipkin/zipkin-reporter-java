@@ -8,6 +8,8 @@ import java.util.Arrays;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
+import zipkin2.reporter.ReporterMetrics;
+
 /**
  * Multi-producer, multi-consumer queue that is bounded by count.
  *
@@ -17,6 +19,7 @@ final class CountBoundedQueue<S> extends BoundedQueue<S> {
 
   final ReentrantLock lock = new ReentrantLock(false);
   final Condition available = lock.newCondition();
+  final ReporterMetrics metrics;
 
   final int maxSize;
 
@@ -25,7 +28,8 @@ final class CountBoundedQueue<S> extends BoundedQueue<S> {
   int writePos;
   int readPos;
 
-  @SuppressWarnings("unchecked") CountBoundedQueue(int maxSize) {
+  @SuppressWarnings("unchecked") CountBoundedQueue(ReporterMetrics metrics, int maxSize) {
+    this.metrics = metrics;
     this.elements = (S[]) new Object[maxSize];
     this.maxSize = maxSize;
   }
@@ -73,6 +77,9 @@ final class CountBoundedQueue<S> extends BoundedQueue<S> {
       }
     } catch (InterruptedException e) {
       return 0;
+    } finally {
+        // record after draining reduces the amount of gauge events vs on doing this on report
+        metrics.updateQueuedSpans(count);
     }
   }
 
@@ -108,19 +115,7 @@ final class CountBoundedQueue<S> extends BoundedQueue<S> {
     return drainedCount;
   }
 
-  @Override int count() {
-    return count;
-  }
-
-  @Override int maxBytes() {
-    return 0;
-  }
-
   @Override int maxSize() {
     return maxSize;
-  }
-
-  @Override int sizeInBytes() {
-    return 0;
   }
 }

@@ -84,7 +84,7 @@ public abstract class AsyncReporter<S> extends Component
       this.messageTimeoutNanos = asyncReporter.messageTimeoutNanos;
       this.closeTimeoutNanos = asyncReporter.closeTimeoutNanos;
       this.queuedMaxSpans = asyncReporter.pending.maxSize();
-      this.queuedMaxBytes = asyncReporter.pending.maxBytes();
+      this.queuedMaxBytes = asyncReporter.queuedMaxBytes;
     }
 
     static int onePercentOfMemory() {
@@ -184,6 +184,7 @@ public abstract class AsyncReporter<S> extends Component
     final BytesEncoder<S> encoder;
     final BoundedQueue<S> pending;
     final BytesMessageSender sender;
+    final int queuedMaxBytes;
     final int messageMaxBytes;
     final long messageTimeoutNanos, closeTimeoutNanos;
     final CountDownLatch close;
@@ -197,6 +198,7 @@ public abstract class AsyncReporter<S> extends Component
       this.pending = BoundedQueue.create(encoder, builder.sender, builder.metrics,
         builder.messageMaxBytes, builder.queuedMaxSpans, builder.queuedMaxBytes);
       this.sender = builder.sender;
+      this.queuedMaxBytes = builder.queuedMaxBytes;
       this.messageMaxBytes = builder.messageMaxBytes;
       this.messageTimeoutNanos = builder.messageTimeoutNanos;
       this.closeTimeoutNanos = builder.closeTimeoutNanos;
@@ -238,10 +240,6 @@ public abstract class AsyncReporter<S> extends Component
 
     void flush(BufferNextMessage<S> bundler) {
       pending.drainTo(bundler, bundler.remainingNanos());
-
-      // record after flushing reduces the amount of gauge events vs on doing this on report
-      metrics.updateQueuedSpans(pending.count());
-      metrics.updateQueuedBytes(pending.sizeInBytes());
 
       // loop around if we are running, and the bundle isn't full
       // if we are closed, try to send what's pending
