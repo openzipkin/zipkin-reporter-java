@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ByteBoundedQueueTest {
-  ByteBoundedQueue<byte[]> queue = new ByteBoundedQueue<>(10, 10);
+  ByteBoundedQueue<byte[]> queue = new ByteBoundedQueue<>(null, null, null, 10, 10, 10);
 
   @Test void offer_failsWhenFull_size() {
     for (int i = 0; i < queue.maxSize; i++) {
@@ -40,7 +40,7 @@ class ByteBoundedQueueTest {
   }
 
   @Test void circular() {
-    ByteBoundedQueue<Integer> queue = new ByteBoundedQueue<>(10, 10);
+    ByteBoundedQueue<Integer> queue = new ByteBoundedQueue<>(null, null, null, 10, 10, 10);
 
     List<Integer> polled = new ArrayList<>();
     SpanWithSizeConsumer<Integer> consumer = (next, ignored) -> polled.add(next);

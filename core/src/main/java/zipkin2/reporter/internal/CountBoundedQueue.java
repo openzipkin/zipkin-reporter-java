@@ -13,7 +13,7 @@ import java.util.concurrent.locks.ReentrantLock;
  *
  * <p>This is similar to {@link java.util.concurrent.ArrayBlockingQueue} in implementation.
  */
-final class CountBoundedQueue<S> extends BoundedQueue<S> implements UnsizedSpanConsumer<S> {
+final class CountBoundedQueue<S> extends BoundedQueue<S> {
 
   final ReentrantLock lock = new ReentrantLock(false);
   final Condition available = lock.newCondition();
@@ -33,7 +33,7 @@ final class CountBoundedQueue<S> extends BoundedQueue<S> implements UnsizedSpanC
   @Override public boolean offer(S next, int nextSizeInBytes) {
     return offer(next);
   }
-  
+
   /**
    * Returns true if the element could be added or false if it could not due to its size.
    */
@@ -107,25 +107,20 @@ final class CountBoundedQueue<S> extends BoundedQueue<S> implements UnsizedSpanC
     count -= drainedCount;
     return drainedCount;
   }
-  
+
   @Override int count() {
     return count;
   }
-  
+
   @Override int maxBytes() {
     return 0;
   }
-  
+
   @Override int maxSize() {
     return maxSize;
   }
-  
+
   @Override int sizeInBytes() {
     return 0;
   }
-}
-
-interface UnsizedSpanConsumer<S> {
-  /** Returns true if the element could be added or false if it could not due to its size. */
-  boolean offer(S next);
 }

@@ -74,7 +74,7 @@ public class BoundedQueueBenchmarks {
 
   @Setup
   public void setup() {
-    q = BoundedQueue.create(10000, maxBytes);
+    q = BoundedQueue.create(null, null, null, 10000, 10000, maxBytes);
   }
 
   @Benchmark @Group("no_contention") @GroupThreads(1)

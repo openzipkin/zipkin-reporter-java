@@ -7,13 +7,20 @@ package zipkin2.reporter.internal;
 import java.util.Arrays;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
+import zipkin2.reporter.BytesEncoder;
+import zipkin2.reporter.BytesMessageSender;
+import zipkin2.reporter.ReporterMetrics;
 
 /**
  * Multi-producer, multi-consumer queue that is bounded by both count and size.
  *
  * <p>This is similar to {@link java.util.concurrent.ArrayBlockingQueue} in implementation.
  */
-final class ByteBoundedQueue<S> extends BoundedQueue<S> implements SpanWithSizeConsumer<S> {
+final class ByteBoundedQueue<S> extends BoundedQueue<S> {
+  final BytesEncoder<S> encoder;
+  final BytesMessageSender sender;
+  final ReporterMetrics metrics;
+  final int messageMaxBytes;
 
   final ReentrantLock lock = new ReentrantLock(false);
   final Condition available = lock.newCondition();
@@ -28,7 +35,13 @@ final class ByteBoundedQueue<S> extends BoundedQueue<S> implements SpanWithSizeC
   int writePos;
   int readPos;
 
-  @SuppressWarnings("unchecked") ByteBoundedQueue(int maxSize, int maxBytes) {
+  @SuppressWarnings("unchecked") ByteBoundedQueue(BytesEncoder<S> encoder,
+    BytesMessageSender sender, ReporterMetrics metrics, int messageMaxBytes, int maxSize,
+    int maxBytes) {
+    this.encoder = encoder;
+    this.sender = sender;
+    this.metrics = metrics;
+    this.messageMaxBytes = messageMaxBytes;
     this.elements = (S[]) new Object[maxSize];
     this.sizesInBytes = new int[maxSize];
     this.maxSize = maxSize;
@@ -80,6 +93,15 @@ final class ByteBoundedQueue<S> extends BoundedQueue<S> implements SpanWithSizeC
     }
   }
 
+  @Override boolean offer(S next) {
+    int nextSizeInBytes = encoder.sizeInBytes(next);
+    int messageSizeOfNextSpan = sender.messageSizeInBytes(nextSizeInBytes);
+    metrics.incrementSpanBytes(nextSizeInBytes);
+    // don't enqueue something larger than we can drain
+    if (messageSizeOfNextSpan > messageMaxBytes) return false;
+    return offer(next, nextSizeInBytes);
+  }
+
   /** Clears the queue unconditionally and returns count of spans cleared. */
   @Override int clear() {
     lock.lock();
@@ -115,7 +137,7 @@ final class ByteBoundedQueue<S> extends BoundedQueue<S> implements SpanWithSizeC
     sizeInBytes -= drainedSizeInBytes;
     return drainedCount;
   }
-  
+
   @Override int count() {
     return count;
   }
@@ -127,14 +149,9 @@ final class ByteBoundedQueue<S> extends BoundedQueue<S> implements SpanWithSizeC
   @Override int maxSize() {
     return maxSize;
   }
-  
+
   @Override
   public int sizeInBytes() {
     return sizeInBytes;
   }
-}
-
-interface SpanWithSizeConsumer<S> {
-  /** Returns true if the element could be added or false if it could not due to its size. */
-  boolean offer(S next, int nextSizeInBytes);
 }

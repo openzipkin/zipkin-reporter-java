@@ -45,7 +45,8 @@ import static java.util.logging.Level.WARNING;
  * @param <S> type of the span, usually {@code zipkin2.Span}
  * @since 3.0
  */
-public abstract class AsyncReporter<S> extends Component implements Reporter<S>, Closeable, Flushable {
+public abstract class AsyncReporter<S> extends Component
+  implements Reporter<S>, Closeable, Flushable {
   public static Builder newBuilder(BytesMessageSender sender) {
     return new Builder(sender);
   }
@@ -193,7 +194,8 @@ public abstract class AsyncReporter<S> extends Component implements Reporter<S>,
     private boolean shouldWarnException = true;
 
     BoundedAsyncReporter(Builder builder, BytesEncoder<S> encoder) {
-      this.pending = BoundedQueue.create(builder.queuedMaxSpans, builder.queuedMaxBytes);
+      this.pending = BoundedQueue.create(encoder, builder.sender, builder.metrics,
+        builder.messageMaxBytes, builder.queuedMaxSpans, builder.queuedMaxBytes);
       this.sender = builder.sender;
       this.messageMaxBytes = builder.messageMaxBytes;
       this.messageTimeoutNanos = builder.messageTimeoutNanos;
@@ -222,24 +224,11 @@ public abstract class AsyncReporter<S> extends Component implements Reporter<S>,
       // Lazy start so that reporters never used don't spawn threads
       if (started.compareAndSet(false, true)) startFlusherThread();
       metrics.incrementSpans(1);
-      
-      if (pending instanceof UnsizedSpanConsumer) {
-          // enqueue now and filter our when we drain
-        final UnsizedSpanConsumer<S> consumer = (UnsizedSpanConsumer<S>)pending;
-        if (closed.get() || !consumer.offer(next)) {
-          metrics.incrementSpansDropped(1);
-        }
-      } else {
-        int nextSizeInBytes = encoder.sizeInBytes(next);
-        int messageSizeOfNextSpan = sender.messageSizeInBytes(nextSizeInBytes);
-        metrics.incrementSpanBytes(nextSizeInBytes);
-        if (closed.get() ||
-          // don't enqueue something larger than we can drain
-          messageSizeOfNextSpan > messageMaxBytes ||
-          !pending.offer(next, nextSizeInBytes)) {
-          metrics.incrementSpansDropped(1);
-        }
-      } 
+
+      // enqueue now and filter our when we drain
+      if (closed.get() || !pending.offer(next)) {
+        metrics.incrementSpansDropped(1);
+      }
     }
 
     @Override public void flush() {

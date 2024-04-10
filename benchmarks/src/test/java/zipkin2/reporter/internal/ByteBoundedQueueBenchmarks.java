@@ -70,7 +70,7 @@ public class ByteBoundedQueueBenchmarks {
 
   @Setup
   public void setup() {
-    q = new ByteBoundedQueue<>(10000, 10000);
+    q = new ByteBoundedQueue<>(null, null, null, 10000, 10000, 10000);
   }
 
   @Benchmark @Group("no_contention") @GroupThreads(1)
