@@ -20,7 +20,7 @@ final class RabbitMQContainer extends GenericContainer<RabbitMQContainer> {
   static final int RABBIT_PORT = 5672;
 
   RabbitMQContainer() {
-    super(parse("ghcr.io/openzipkin/zipkin-rabbitmq:3.0.6"));
+    super(parse("ghcr.io/openzipkin/zipkin-rabbitmq:3.1.1"));
     withExposedPorts(RABBIT_PORT);
     waitStrategy = Wait.forLogMessage(".*Server startup complete.*", 1);
     withStartupTimeout(Duration.ofSeconds(60));
