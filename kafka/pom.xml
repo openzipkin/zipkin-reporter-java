@@ -58,10 +58,10 @@
     <profile>
       <id>release</id>
       <properties>
-        <!-- Kafka 0.11+ is Java 1.7 bytecode -->
-        <maven.compiler.source>1.7</maven.compiler.source>
-        <maven.compiler.target>1.7</maven.compiler.target>
-        <maven.compiler.release>7</maven.compiler.release>
+        <!-- Kafka 0.11+ is Java 8 bytecode -->
+        <maven.compiler.source>8</maven.compiler.source>
+        <maven.compiler.target>8</maven.compiler.target>
+        <maven.compiler.release>8</maven.compiler.release>
       </properties>
       <build>
         <plugins>
