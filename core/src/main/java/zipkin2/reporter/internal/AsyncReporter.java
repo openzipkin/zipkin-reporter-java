@@ -45,7 +45,8 @@ import static java.util.logging.Level.WARNING;
  * @param <S> type of the span, usually {@code zipkin2.Span}
  * @since 3.0
  */
-public abstract class AsyncReporter<S> extends Component implements Reporter<S>, Closeable, Flushable {
+public abstract class AsyncReporter<S> extends Component
+  implements Reporter<S>, Closeable, Flushable {
   public static Builder newBuilder(BytesMessageSender sender) {
     return new Builder(sender);
   }
@@ -83,7 +84,7 @@ public abstract class AsyncReporter<S> extends Component implements Reporter<S>,
       this.messageTimeoutNanos = asyncReporter.messageTimeoutNanos;
       this.closeTimeoutNanos = asyncReporter.closeTimeoutNanos;
       this.queuedMaxSpans = asyncReporter.pending.maxSize;
-      this.queuedMaxBytes = asyncReporter.pending.maxBytes;
+      this.queuedMaxBytes = asyncReporter.messageMaxBytes;
     }
 
     static int onePercentOfMemory() {
@@ -181,9 +182,9 @@ public abstract class AsyncReporter<S> extends Component implements Reporter<S>,
     static final Logger logger = Logger.getLogger(BoundedAsyncReporter.class.getName());
     final AtomicBoolean started, closed;
     final BytesEncoder<S> encoder;
-    final ByteBoundedQueue<S> pending;
+    final BoundedQueue<S> pending;
     final BytesMessageSender sender;
-    final int messageMaxBytes;
+    final int messageMaxBytes, queuedMaxBytes;
     final long messageTimeoutNanos, closeTimeoutNanos;
     final CountDownLatch close;
     final ReporterMetrics metrics;
@@ -193,9 +194,9 @@ public abstract class AsyncReporter<S> extends Component implements Reporter<S>,
     private boolean shouldWarnException = true;
 
     BoundedAsyncReporter(Builder builder, BytesEncoder<S> encoder) {
-      this.pending = new ByteBoundedQueue<S>(builder.queuedMaxSpans, builder.queuedMaxBytes);
       this.sender = builder.sender;
       this.messageMaxBytes = builder.messageMaxBytes;
+      this.queuedMaxBytes = builder.queuedMaxBytes;
       this.messageTimeoutNanos = builder.messageTimeoutNanos;
       this.closeTimeoutNanos = builder.closeTimeoutNanos;
       this.closed = new AtomicBoolean(false);
@@ -205,6 +206,34 @@ public abstract class AsyncReporter<S> extends Component implements Reporter<S>,
       this.metrics = builder.metrics;
       this.threadFactory = builder.threadFactory;
       this.encoder = encoder;
+      if (builder.queuedMaxBytes == 0) {
+        // Create a bounded queue which guards size on the flusher thread.
+        this.pending = new BoundedQueue<S>(metrics, builder.queuedMaxSpans) {
+          @Override int getSizeInBytes(int pos) {
+            return sizeInBytes(elements[pos]);
+          }
+        };
+      } else {
+        // Create a bounded queue which guards size on the reporting thread.
+        this.pending =
+          new ByteBoundedQueue<S>(metrics, builder.queuedMaxSpans, builder.queuedMaxBytes) {
+            @Override boolean offer(S next) {
+              int nextSizeInBytes = sizeInBytes(next);
+              // don't enqueue something larger than we can drain
+              return nextSizeInBytes != -1 && super.offer(next, nextSizeInBytes);
+            }
+          };
+      }
+    }
+
+    /** Returns -1 if the span is too large to enqueue */
+    int sizeInBytes(S next) {
+      int nextSizeInBytes = encoder.sizeInBytes(next);
+      int messageSizeOfNextSpan = sender.messageSizeInBytes(nextSizeInBytes);
+      metrics.incrementSpanBytes(nextSizeInBytes);
+      // don't enqueue something larger than we can drain
+      if (messageSizeOfNextSpan > messageMaxBytes) return -1;
+      return nextSizeInBytes;
     }
 
     void startFlusherThread() {
@@ -220,14 +249,9 @@ public abstract class AsyncReporter<S> extends Component implements Reporter<S>,
       if (next == null) throw new NullPointerException("span == null");
       // Lazy start so that reporters never used don't spawn threads
       if (started.compareAndSet(false, true)) startFlusherThread();
+
       metrics.incrementSpans(1);
-      int nextSizeInBytes = encoder.sizeInBytes(next);
-      int messageSizeOfNextSpan = sender.messageSizeInBytes(nextSizeInBytes);
-      metrics.incrementSpanBytes(nextSizeInBytes);
-      if (closed.get() ||
-        // don't enqueue something larger than we can drain
-        messageSizeOfNextSpan > messageMaxBytes ||
-        !pending.offer(next, nextSizeInBytes)) {
+      if (closed.get() || !pending.offer(next)) {
         metrics.incrementSpansDropped(1);
       }
     }
@@ -239,10 +263,6 @@ public abstract class AsyncReporter<S> extends Component implements Reporter<S>,
 
     void flush(BufferNextMessage<S> bundler) {
       pending.drainTo(bundler, bundler.remainingNanos());
-
-      // record after flushing reduces the amount of gauge events vs on doing this on report
-      metrics.updateQueuedSpans(pending.count);
-      metrics.updateQueuedBytes(pending.sizeInBytes);
 
       // loop around if we are running, and the bundle isn't full
       // if we are closed, try to send what's pending

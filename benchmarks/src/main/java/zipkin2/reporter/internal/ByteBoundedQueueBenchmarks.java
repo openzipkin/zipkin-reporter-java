@@ -24,6 +24,7 @@ import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
+import zipkin2.reporter.ReporterMetrics;
 
 @Measurement(iterations = 5, time = 1)
 @Warmup(iterations = 10, time = 1)
@@ -70,7 +71,7 @@ public class ByteBoundedQueueBenchmarks {
 
   @Setup
   public void setup() {
-    q = new ByteBoundedQueue<>(10000, 10000);
+    q = new ByteBoundedQueue<>(ReporterMetrics.NOOP_METRICS, 10000, 10000);
   }
 
   @Benchmark @Group("no_contention") @GroupThreads(1)
