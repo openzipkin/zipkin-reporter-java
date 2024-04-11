@@ -8,6 +8,8 @@ import java.util.Arrays;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
+import zipkin2.reporter.BytesEncoder;
+import zipkin2.reporter.BytesMessageSender;
 import zipkin2.reporter.ReporterMetrics;
 
 /**
@@ -19,8 +21,11 @@ final class CountBoundedQueue<S> extends BoundedQueue<S> {
 
   final ReentrantLock lock = new ReentrantLock(false);
   final Condition available = lock.newCondition();
-  final ReporterMetrics metrics;
 
+  final BytesEncoder<S> encoder;
+  final BytesMessageSender sender;
+  final ReporterMetrics metrics;
+  final int messageMaxBytes;
   final int maxSize;
 
   final S[] elements;
@@ -28,8 +33,12 @@ final class CountBoundedQueue<S> extends BoundedQueue<S> {
   int writePos;
   int readPos;
 
-  @SuppressWarnings("unchecked") CountBoundedQueue(ReporterMetrics metrics, int maxSize) {
+  @SuppressWarnings("unchecked") CountBoundedQueue(BytesEncoder<S> encoder,
+    BytesMessageSender sender, ReporterMetrics metrics, int messageMaxBytes, int maxSize) {
+    this.encoder = encoder;
+    this.sender = sender;
     this.metrics = metrics;
+    this.messageMaxBytes = messageMaxBytes;
     this.elements = (S[]) new Object[maxSize];
     this.maxSize = maxSize;
   }
@@ -102,7 +111,13 @@ final class CountBoundedQueue<S> extends BoundedQueue<S> {
       S next = elements[readPos];
 
       if (next == null) break;
-      if (consumer.offer(next, 0)) {
+
+      int nextSizeInBytes = encoder.sizeInBytes(next);
+      int messageSizeOfNextSpan = sender.messageSizeInBytes(nextSizeInBytes);
+      metrics.incrementSpanBytes(nextSizeInBytes);
+
+      if (messageSizeOfNextSpan > messageMaxBytes) break;
+      if (consumer.offer(next, nextSizeInBytes)) {
         drainedCount++;
 
         elements[readPos] = null;
