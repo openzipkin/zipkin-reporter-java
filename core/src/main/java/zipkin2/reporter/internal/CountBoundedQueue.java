@@ -116,8 +116,12 @@ final class CountBoundedQueue<S> extends BoundedQueue<S> {
       int messageSizeOfNextSpan = sender.messageSizeInBytes(nextSizeInBytes);
       metrics.incrementSpanBytes(nextSizeInBytes);
 
-      if (messageSizeOfNextSpan > messageMaxBytes) break;
-      if (consumer.offer(next, nextSizeInBytes)) {
+      if (messageSizeOfNextSpan > messageMaxBytes) {
+          drainedCount++;
+          metrics.incrementSpansDropped(1);
+          elements[readPos] = null; // should have been dropped before
+          if (++readPos == elements.length) readPos = 0; // circle back to the front of the array
+      } else if (consumer.offer(next, nextSizeInBytes)) {
         drainedCount++;
 
         elements[readPos] = null;

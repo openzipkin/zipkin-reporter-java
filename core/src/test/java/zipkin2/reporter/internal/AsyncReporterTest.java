@@ -154,6 +154,26 @@ class AsyncReporterTest {
     assertThat(metrics.spans()).isEqualTo(2);
     assertThat(metrics.spansDropped()).isEqualTo(1);
   }
+  
+  
+  @ParameterizedTest(name = "queuedMaxBytes={0}")
+  @ValueSource(ints = { 0, 1000000 })
+  void report_incrementsSpansDroppedOversizing(int queuedMaxBytes) {
+    AsyncReporter<Span> reporter = AsyncReporter.newBuilder(FakeSender.create())
+      .messageMaxBytes(1)
+      .metrics(metrics)
+      .queuedMaxBytes(queuedMaxBytes)
+      .messageTimeout(0, TimeUnit.MILLISECONDS)
+      .build(SpanBytesEncoder.JSON_V2);
+
+    reporter.report(span);
+    reporter.report(span);
+    reporter.flush();
+    reporter.close();
+
+    assertThat(metrics.spans()).isEqualTo(2);
+    assertThat(metrics.spansDropped()).isEqualTo(2);
+  }
 
   @ParameterizedTest(name = "queuedMaxBytes={0}")
   @ValueSource(ints = { 0, 1000000 })
