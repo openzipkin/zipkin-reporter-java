@@ -64,12 +64,13 @@ backlog as a function of bytes.
 
 Here are the most important properties to understand when tuning.
 
-Property | Description
---- | ---
-`queuedMaxBytes` |  Maximum backlog of span bytes reported vs sent. Corresponds to `ReporterMetrics.updateQueuedBytes`. Default 1% of heap
-`messageMaxBytes` | Maximum bytes sendable per message including overhead. Default `500,000` bytes (`500KB`). Defined by `BytesMessageSender.messageMaxBytes`
-`messageTimeout` |  Maximum time to wait for messageMaxBytes to accumulate before sending. Default 1 second
-`closeTimeout` |  Maximum time to block for in-flight spans to send on close. Default 1 second
+| Property          | Description                                                                                                                               |
+|-------------------|-------------------------------------------------------------------------------------------------------------------------------------------|
+| `queuedMaxSpans`  | Maximum backlog of spans reported vs sent. Default 10000                                                                                  |
+| `queuedMaxBytes`  | Maximum backlog of span bytes reported vs sent. Corresponds to `ReporterMetrics.updateQueuedBytes`. Disabled by default                   |
+| `messageMaxBytes` | Maximum bytes sendable per message including overhead. Default `500,000` bytes (`500KB`). Defined by `BytesMessageSender.messageMaxBytes` |
+| `messageTimeout`  | Maximum time to wait for messageMaxBytes to accumulate before sending. Default 1 second                                                   |
+| `closeTimeout`    | Maximum time to block for in-flight spans to send on close. Default 1 second                                                              |
 
 #### Dealing with span backlog
 When `messageTimeout` is non-zero, a single thread is responsible for
