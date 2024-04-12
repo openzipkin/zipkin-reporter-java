@@ -5,7 +5,9 @@
     SPDX-License-Identifier: Apache-2.0
 
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
@@ -23,47 +25,64 @@
     <jmh.version>1.37</jmh.version>
   </properties>
 
-  <dependencyManagement>
-    <dependencies>
-      <dependency>
-        <groupId>${project.groupId}</groupId>
-        <artifactId>zipkin-reporter-bom</artifactId>
-        <version>${project.version}</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-    </dependencies>
-  </dependencyManagement>
-
+  <!-- All dependencies are marked test, because benchmarks are a form of test.
+        This module is skipped on -DskipTests, ensuring it isn't deployed. -->
   <dependencies>
+    <!-- can't import zipkin-reporter-bom due to build-support/go-offline.sh -->
+    <dependency>
+      <groupId>org.openjdk.jmh</groupId>
+      <artifactId>jmh-core</artifactId>
+      <version>${jmh.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <!-- IntelliJ doesn't know to use annotation processing on tests without this -->
+    <dependency>
+      <groupId>org.openjdk.jmh</groupId>
+      <artifactId>jmh-generator-annprocess</artifactId>
+      <version>${jmh.version}</version>
+      <scope>test</scope>
+    </dependency>
+
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>zipkin-reporter</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
     </dependency>
 
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>zipkin-sender-urlconnection</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
     </dependency>
 
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>zipkin-sender-okhttp3</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
     </dependency>
 
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>zipkin-sender-kafka</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
     </dependency>
 
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>zipkin-sender-amqp-client</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
     </dependency>
 
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>zipkin-reporter-brave</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>io.zipkin.brave</groupId>
@@ -75,26 +94,7 @@
           <artifactId>*</artifactId>
         </exclusion>
       </exclusions>
-    </dependency>
-
-    <dependency>
-      <groupId>io.zipkin.zipkin2</groupId>
-      <artifactId>zipkin-tests</artifactId>
-      <version>${zipkin.version}</version>
-      <scope>compile</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>org.openjdk.jmh</groupId>
-      <artifactId>jmh-core</artifactId>
-      <version>${jmh.version}</version>
-    </dependency>
-
-    <dependency>
-      <groupId>org.openjdk.jmh</groupId>
-      <artifactId>jmh-generator-annprocess</artifactId>
-      <version>${jmh.version}</version>
-      <scope>provided</scope>
+      <scope>test</scope>
     </dependency>
 
     <dependency>
@@ -102,59 +102,44 @@
       <artifactId>armeria</artifactId>
       <!-- match Zipkin version to avoid classpath problems -->
       <version>1.26.4</version>
+      <scope>test</scope>
     </dependency>
 
     <dependency>
       <groupId>org.testcontainers</groupId>
       <artifactId>junit-jupiter</artifactId>
       <version>${testcontainers.version}</version>
-    </dependency>
-
-    <!-- Main code uses jul and tests log with log4j -->
-    <dependency>
-      <groupId>org.apache.logging.log4j</groupId>
-      <artifactId>log4j-core</artifactId>
-      <version>${log4j.version}</version>
-    </dependency>
-    <!-- route jul over log4j2 during integration tests -->
-    <dependency>
-      <groupId>org.apache.logging.log4j</groupId>
-      <artifactId>log4j-jul</artifactId>
-      <version>${log4j.version}</version>
-    </dependency>
-    <!-- route log4j over log4j2 during integration tests -->
-    <dependency>
-      <groupId>org.apache.logging.log4j</groupId>
-      <artifactId>log4j-1.2-api</artifactId>
-      <version>${log4j.version}</version>
-    </dependency>
-    <!-- route slf4j over log4j2 during integration tests -->
-    <dependency>
-      <groupId>org.apache.logging.log4j</groupId>
-      <artifactId>log4j-slf4j-impl</artifactId>
-      <version>${log4j.version}</version>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 
   <build>
+    <!-- use assembly instead of shade, as it naturally works for test-jar -->
     <plugins>
       <plugin>
-        <artifactId>maven-shade-plugin</artifactId>
-        <version>${maven-shade-plugin.version}</version>
+        <artifactId>maven-assembly-plugin</artifactId>
+        <version>${maven-assembly-plugin.version}</version>
+        <configuration>
+          <descriptors>
+            <descriptor>src/test/assembly/test-jar.xml</descriptor>
+          </descriptors>
+        </configuration>
         <executions>
           <execution>
+            <id>make-assembly</id>
             <phase>package</phase>
             <goals>
-              <goal>shade</goal>
+              <goal>single</goal>
             </goals>
             <configuration>
+              <attach>true</attach>
               <finalName>benchmarks</finalName>
-              <transformers>
-                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+              <appendAssemblyId>false</appendAssemblyId>
+              <archive>
+                <manifest>
                   <mainClass>org.openjdk.jmh.Main</mainClass>
-                </transformer>
-              </transformers>
-              <createDependencyReducedPom>false</createDependencyReducedPom>
+                </manifest>
+              </archive>
             </configuration>
           </execution>
         </executions>
@@ -164,15 +149,22 @@
         <executions>
           <execution>
             <id>default-compile</id>
-            <phase>compile</phase>
+            <phase>test-compile</phase>
             <goals>
-              <goal>compile</goal>
+              <goal>testCompile</goal>
             </goals>
             <configuration combine.self="override">
               <!-- instead of javac-with-errorprone -->
               <compilerId>javac</compilerId>
               <!-- scrub errorprone compiler args -->
-              <compilerArgs />
+              <compilerArgs/>
+              <annotationProcessorPaths>
+                <path>
+                  <groupId>org.openjdk.jmh</groupId>
+                  <artifactId>jmh-generator-annprocess</artifactId>
+                  <version>${jmh.version}</version>
+                </path>
+              </annotationProcessorPaths>
             </configuration>
           </execution>
         </executions>
