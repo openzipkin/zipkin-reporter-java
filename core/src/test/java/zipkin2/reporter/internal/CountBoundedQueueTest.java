@@ -57,7 +57,7 @@ class CountBoundedQueueTest {
       queue.drainTo(consumer, 1);
     }
 
-    // ensure we have all of the spans
+    // ensure we have all the spans
     assertThat(polled)
       .containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14);
   }

@@ -142,11 +142,13 @@ public final class AsyncZipkinSpanHandler extends SpanHandler implements Closeab
     }
 
     /**
-     * @see AsyncReporter.Builder#queuedMaxBytes(int)
-     * @since 2.14
+     * Maximum backlog of span bytes reported vs sent. Disabled by default
+     *
+     * @deprecated This will be removed in version 4.0. Use {@link #queuedMaxSpans(int)} instead.
      */
+    @Deprecated
     public Builder queuedMaxBytes(int queuedMaxBytes) {
-      delegate.queuedMaxBytes(queuedMaxBytes);
+      this.delegate.queuedMaxBytes(queuedMaxBytes);
       return this;
     }
 

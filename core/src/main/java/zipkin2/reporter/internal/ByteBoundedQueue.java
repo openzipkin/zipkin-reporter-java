@@ -15,7 +15,10 @@ import zipkin2.reporter.ReporterMetrics;
  * Multi-producer, multi-consumer queue that is bounded by both count and size.
  *
  * <p>This is similar to {@link java.util.concurrent.ArrayBlockingQueue} in implementation.
+ *
+ * @deprecated This will be removed in version 4.0. Use {@link CountBoundedQueue} instead.
  */
+@Deprecated
 final class ByteBoundedQueue<S> extends BoundedQueue<S> {
   final BytesEncoder<S> encoder;
   final BytesMessageSender sender;

@@ -1,5 +1,29 @@
 # zipkin-reporter rationale
 
+## AsyncReporter
+
+### Why is `queuedMaxBytes` (`ByteBoundedQueue`) deprecated?
+
+When introduced, `AsyncReporter` had three ways to trigger a queue flush:
+* `queuedMaxSpans` - when the number of spans in the queue exceeds a threshold
+* `queuedMaxBytes` - when the size of the spans in the queue exceeds a threshold
+* `messageTimeout` - when a span has been in the queue longer than a threshold
+
+`queuedMaxBytes` was deprecated because requires time in the critical path, to
+calculate the size of a span to make sure it doesn't breach the threshold.
+This is problematic in tools that check for blocking, like Virtual Threads.
+https://github.com/openzipkin/brave/issues/1426
+
+Also, the `queuedMaxBytes` is not representative of the total heap used by the
+queue. Moreover, any discussion of heap is confusing per this issue:
+https://github.com/openzipkin/zipkin-reporter-java/issues/204
+
+Meanwhile, for a lot of sites, the other two gates would hit prior to 1pct
+memory anyway.
+
+By deprecating this (in v3.4), we eliminate confusion on this topic and allow
+version 4 a chance to clean up some complicated code.
+
 ## HttpEndpointSupplier
 
 `HttpEndpointSupplier` was generalizes endpoint resolution for built-in and third-party senders.

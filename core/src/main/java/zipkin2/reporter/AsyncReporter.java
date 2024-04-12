@@ -146,7 +146,12 @@ public class AsyncReporter<S> extends Component implements Reporter<S>, Closeabl
       return this;
     }
 
-    /** Maximum backlog of span bytes reported vs sent. Default 1% of heap */
+    /**
+     * Maximum backlog of span bytes reported vs sent. Disabled by default
+     *
+     * @deprecated This will be removed in version 4.0. Use {@link #queuedMaxSpans(int)} instead.
+     */
+    @Deprecated
     public Builder queuedMaxBytes(int queuedMaxBytes) {
       this.delegate.queuedMaxBytes(queuedMaxBytes);
       return this;

@@ -74,7 +74,7 @@ public abstract class AsyncReporter<S> extends Component
     long messageTimeoutNanos = TimeUnit.SECONDS.toNanos(1);
     long closeTimeoutNanos = TimeUnit.SECONDS.toNanos(1);
     int queuedMaxSpans = 10000;
-    int queuedMaxBytes = onePercentOfMemory();
+    int queuedMaxBytes = 0; // disabled by default
 
     Builder(BoundedAsyncReporter<?> asyncReporter) {
       this.sender = asyncReporter.sender;
@@ -85,12 +85,6 @@ public abstract class AsyncReporter<S> extends Component
       this.closeTimeoutNanos = asyncReporter.closeTimeoutNanos;
       this.queuedMaxSpans = asyncReporter.pending.maxSize();
       this.queuedMaxBytes = asyncReporter.queuedMaxBytes;
-    }
-
-    static int onePercentOfMemory() {
-      long result = (long) (Runtime.getRuntime().totalMemory() * 0.01);
-      // don't overflow in the rare case 1% of memory is larger than 2 GiB!
-      return (int) Math.max(Math.min(Integer.MAX_VALUE, result), Integer.MIN_VALUE);
     }
 
     Builder(BytesMessageSender sender) {
@@ -159,7 +153,12 @@ public abstract class AsyncReporter<S> extends Component
       return this;
     }
 
-    /** Maximum backlog of span bytes reported vs sent. Default 1% of heap */
+    /**
+     * Maximum backlog of span bytes reported vs sent. Disabled by default
+     *
+     * @deprecated This will be removed in version 4.0. Use {@link #queuedMaxSpans(int)} instead.
+     */
+    @Deprecated
     public Builder queuedMaxBytes(int queuedMaxBytes) {
       this.queuedMaxBytes = queuedMaxBytes;
       return this;
