@@ -117,20 +117,6 @@
       <version>${log4j.version}</version>
       <scope>test</scope>
     </dependency>
-
-    <!-- Dependencies for integration tests -->
-    <dependency>
-      <groupId>io.zipkin.zipkin2</groupId>
-      <artifactId>zipkin-junit5</artifactId>
-      <version>${zipkin.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework</groupId>
-      <artifactId>spring-context</artifactId>
-      <version>${spring.version}</version>
-      <scope>test</scope>
-    </dependency>
   </dependencies>
 
   <build>
