@@ -4,13 +4,14 @@ name: deploy
 
 # We deploy on master and release versions, regardless of if the commit is
 # documentation-only or not.
-#
-# See https://docs.github.com/en/free-pro-team@latest/actions/reference/workflow-syntax-for-github-actions#filter-pattern-cheat-sheet
-on:
+on:  # yamllint disable-line rule:truthy
   push:
-    # Don't deploy tags as they conflict with [maven-release-plugin] prepare release MAJOR.MINOR.PATCH
-    tags: ''
-    branches: master
+    branches:
+      - master
+    # Don't deploy tags because the same commit for MAJOR.MINOR.PATCH is also
+    # on master: Redundant deployment of a release version will fail uploading.
+    tags-ignore:
+      - '*'
 
 jobs:
   deploy:
@@ -22,42 +23,39 @@ jobs:
         include:
           - name: jars
             deploy_script: build-bin/deploy
-          # Deploy the Bill of Materials (BOM) separately as it is unhooked from the main project intentionally
+          # Deploy the Bill of Materials (BOM) separately as it is unhooked
+          # from the main project intentionally.
           - name: bom
             deploy_script: build-bin/deploy_bom
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-        with:
-          # Prevent use of implicit GitHub Actions read-only token GITHUB_TOKEN.
-          # We push Javadocs to the gh-pages branch on commit.
-          token: ${{ secrets.GH_TOKEN }}
       - name: Setup java
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'  # zulu as it supports a wide version range
-          java-version: '11'  # earliest LTS and last that can compile the 1.6 release profile.
+          java-version: '11'  # last that can compile the 1.6 release profile
       - name: Cache local Maven repository
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-maven-
+          key: ${{ runner.os }}-jdk-11-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-jdk-11-maven-
       - name: Deploy
         env:
           GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
           # GPG_PASSPHRASE=<passphrase for GPG_SIGNING_KEY>
-          #   - referenced in .settings.xml
+          # * referenced in .settings.xml
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
           # SONATYPE_USER=<sonatype account token>
-          #   - deploys snapshots and releases to Sonatype
-          #   - needs access to io.zipkin via https://issues.sonatype.org/browse/OSSRH-16669
-          #   - generate via https://oss.sonatype.org/#profile;User%20Token
-          #   - referenced in .settings.xml
+          # * deploys snapshots and releases to Sonatype
+          # * needs access to io.zipkin via OSSRH-16669
+          # * generate via https://oss.sonatype.org/#profile;User%20Token
+          # * referenced in .settings.xml
           SONATYPE_USER: ${{ secrets.SONATYPE_USER }}
           # SONATYPE_PASSWORD=<password to sonatype account token>
-          #   - referenced in .settings.xml
+          #  * referenced in .settings.xml
           SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
-        run: |  # GITHUB_REF will be refs/heads/master or refs/tags/MAJOR.MINOR.PATCH
+        run: |  # GITHUB_REF = refs/heads/master or refs/tags/MAJOR.MINOR.PATCH
           build-bin/configure_deploy &&
           ${{ matrix.deploy_script }} $(echo ${GITHUB_REF} | cut -d/ -f 3)
