@@ -16,8 +16,10 @@ import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+
 import zipkin2.Span;
 import zipkin2.TestObjects;
 import zipkin2.reporter.BytesEncoder;
@@ -39,102 +41,147 @@ class AsyncReporterTest {
     Encoding.JSON.listSizeInBytes(
       Collections.singletonList(SpanBytesEncoder.JSON_V2.encode(span)));
 
-  AsyncReporter<Span> reporter;
   InMemoryReporterMetrics metrics = new InMemoryReporterMetrics();
 
-  @AfterEach void close() {
-    if (reporter != null) reporter.close();
-  }
-
-  @Test void messageMaxBytes_defaultsToSender() {
+  @ParameterizedTest(name = "queuedMaxBytes={0}")
+  @ValueSource(ints = { 0, 1000000 })
+  void messageMaxBytes_defaultsToSender(int queuedMaxBytes) {
     AtomicInteger sentSpans = new AtomicInteger();
-    reporter = AsyncReporter.newBuilder(FakeSender.create()
+    AsyncReporter<Span> reporter = AsyncReporter.newBuilder(FakeSender.create()
         .onSpans(spans -> sentSpans.addAndGet(spans.size()))
-        .messageMaxBytes(sizeInBytesOfSingleSpanMessage))
+      .messageMaxBytes(sizeInBytesOfSingleSpanMessage))
+      .queuedMaxBytes(queuedMaxBytes)
       .messageTimeout(0, TimeUnit.MILLISECONDS)
       .build(SpanBytesEncoder.JSON_V2);
 
     reporter.report(span);
     reporter.report(span); // drops
     reporter.flush();
+    reporter.close();
 
     assertThat(sentSpans.get()).isEqualTo(1);
   }
 
-  @Test void messageMaxBytes_dropsWhenOverqueuing() {
+  @ParameterizedTest(name = "queuedMaxBytes={0}")
+  @ValueSource(ints = { 0, 1000000 })
+  void messageMaxBytes_dropsWhenOverqueuing(int queuedMaxBytes) {
     AtomicInteger sentSpans = new AtomicInteger();
-    reporter = AsyncReporter.newBuilder(FakeSender.create()
+    AsyncReporter<Span> reporter = AsyncReporter.newBuilder(FakeSender.create()
         .onSpans(spans -> sentSpans.addAndGet(spans.size())))
       .messageMaxBytes(sizeInBytesOfSingleSpanMessage)
+      .queuedMaxBytes(queuedMaxBytes)
       .messageTimeout(0, TimeUnit.MILLISECONDS)
       .build(SpanBytesEncoder.JSON_V2);
 
     reporter.report(span);
     reporter.report(span); // dropped the one that queued more than allowed bytes
     reporter.flush();
+    reporter.close();
 
     assertThat(sentSpans.get()).isEqualTo(1);
   }
 
-  @Test void messageMaxBytes_dropsWhenTooLarge() {
+  @ParameterizedTest(name = "queuedMaxBytes={0}")
+  @ValueSource(ints = { 0, 1000000 })
+  void messageMaxBytes_dropsWhenTooLarge(int queuedMaxBytes) {
     AtomicInteger sentSpans = new AtomicInteger();
-    reporter = AsyncReporter.newBuilder(FakeSender.create()
+    AsyncReporter<Span> reporter = AsyncReporter.newBuilder(FakeSender.create()
         .onSpans(spans -> sentSpans.addAndGet(spans.size())))
       .messageMaxBytes(sizeInBytesOfSingleSpanMessage)
+      .queuedMaxBytes(queuedMaxBytes)
       .messageTimeout(0, TimeUnit.MILLISECONDS)
       .build(SpanBytesEncoder.JSON_V2);
 
     reporter.report(span.toBuilder().addAnnotation(1L, "fooooo").build());
     reporter.flush();
+    reporter.close();
 
     assertThat(sentSpans.get()).isEqualTo(0);
   }
 
-  @Test void queuedMaxSpans_dropsWhenOverqueuing() {
+  @ParameterizedTest(name = "queuedMaxBytes={0}")
+  @ValueSource(ints = { 0, 1000000 })
+  void queuedMaxSpans_dropsWhenOverqueuing(int queuedMaxBytes) {
     AtomicInteger sentSpans = new AtomicInteger();
-    reporter = AsyncReporter.newBuilder(FakeSender.create()
+    AsyncReporter<Span> reporter = AsyncReporter.newBuilder(FakeSender.create()
         .onSpans(spans -> sentSpans.addAndGet(spans.size())))
       .queuedMaxSpans(1)
+      .queuedMaxBytes(queuedMaxBytes)
       .messageTimeout(0, TimeUnit.MILLISECONDS)
       .build(SpanBytesEncoder.JSON_V2);
 
     reporter.report(span);
     reporter.report(span); // dropped the one that queued more than allowed count
     reporter.flush();
-
+    reporter.close();
+    
     assertThat(sentSpans.get()).isEqualTo(1);
   }
 
-  @Test void report_incrementsMetrics() {
-    reporter = AsyncReporter.newBuilder(FakeSender.create())
+  @ParameterizedTest(name = "queuedMaxBytes={0}")
+  @ValueSource(ints = { 0, 1000000 })
+  void report_incrementsMetrics(int queuedMaxBytes) {
+    AsyncReporter<Span> reporter = AsyncReporter.newBuilder(FakeSender.create())
       .metrics(metrics)
+      .queuedMaxBytes(queuedMaxBytes)
       .messageTimeout(0, TimeUnit.MILLISECONDS)
       .build(SpanBytesEncoder.JSON_V2);
 
     reporter.report(span);
     reporter.report(span);
+    reporter.flush();
+    reporter.close();
+    
     assertThat(metrics.spans()).isEqualTo(2);
     assertThat(metrics.spanBytes()).isEqualTo(SpanBytesEncoder.JSON_V2.encode(span).length * 2);
   }
 
-  @Test void report_incrementsSpansDropped() {
-    reporter = AsyncReporter.newBuilder(FakeSender.create())
+  @ParameterizedTest(name = "queuedMaxBytes={0}")
+  @ValueSource(ints = { 0, 1000000 })
+  void report_incrementsSpansDropped(int queuedMaxBytes) {
+    AsyncReporter<Span> reporter = AsyncReporter.newBuilder(FakeSender.create())
       .queuedMaxSpans(1)
       .metrics(metrics)
+      .queuedMaxBytes(queuedMaxBytes)
       .messageTimeout(0, TimeUnit.MILLISECONDS)
       .build(SpanBytesEncoder.JSON_V2);
 
     reporter.report(span);
     reporter.report(span);
+    reporter.flush();
+    reporter.close();
 
     assertThat(metrics.spans()).isEqualTo(2);
     assertThat(metrics.spansDropped()).isEqualTo(1);
   }
+  
+  
+  @ParameterizedTest(name = "queuedMaxBytes={0}")
+  @ValueSource(ints = { 0, 1000000 })
+  void report_incrementsSpansDroppedOversizing(int queuedMaxBytes) {
+    AsyncReporter<Span> reporter = AsyncReporter.newBuilder(FakeSender.create())
+      .messageMaxBytes(1)
+      .metrics(metrics)
+      .queuedMaxBytes(queuedMaxBytes)
+      .messageTimeout(0, TimeUnit.MILLISECONDS)
+      .build(SpanBytesEncoder.JSON_V2);
 
-  @Test void flush_incrementsMetrics() {
-    reporter = AsyncReporter.newBuilder(FakeSender.create())
+    reporter.report(span);
+    reporter.report(span);
+    reporter.flush();
+    reporter.close();
+
+    assertThat(metrics.spans()).isEqualTo(2);
+    assertThat(metrics.spansDropped()).isEqualTo(2);
+  }
+
+  @ParameterizedTest(name = "queuedMaxBytes={0}")
+  @ValueSource(ints = { 0, 1000000 })
+  void flush_incrementsMetrics(int queuedMaxBytes) {
+    AsyncReporter<Span> reporter = AsyncReporter.newBuilder(FakeSender.create())
       .metrics(metrics)
       .messageMaxBytes(sizeInBytesOfSingleSpanMessage)
+      .queuedMaxBytes(queuedMaxBytes)
       .messageTimeout(0, TimeUnit.MILLISECONDS)
       .build(SpanBytesEncoder.JSON_V2);
 
@@ -144,33 +191,40 @@ class AsyncReporterTest {
 
     reporter.flush();
     assertThat(metrics.queuedSpans()).isEqualTo(1); // still one span in the backlog
-    assertThat(metrics.queuedBytes()).isEqualTo(SpanBytesEncoder.JSON_V2.encode(span).length);
+    assertThat(metrics.queuedBytes()).isEqualTo(queuedMaxBytes > 0 ? SpanBytesEncoder.JSON_V2.encode(span).length : 0);
     assertThat(metrics.messages()).isEqualTo(1);
     assertThat(metrics.messageBytes()).isEqualTo(sizeInBytesOfSingleSpanMessage);
 
     reporter.flush();
+    reporter.close();
     assertThat(metrics.queuedSpans()).isZero();
     assertThat(metrics.queuedBytes()).isZero();
     assertThat(metrics.messages()).isEqualTo(2);
     assertThat(metrics.messageBytes()).isEqualTo(sizeInBytesOfSingleSpanMessage * 2);
   }
 
-  @Test void flush_incrementsMessagesDropped() {
-    reporter = AsyncReporter.newBuilder(FakeSender.create()
+  @ParameterizedTest(name = "queuedMaxBytes={0}")
+  @ValueSource(ints = { 0, 1000000 })
+  void flush_incrementsMessagesDropped(int queuedMaxBytes) {
+    AsyncReporter<Span> reporter = AsyncReporter.newBuilder(FakeSender.create()
         .onSpans(spans -> {
           throw new RuntimeException();
         }))
       .metrics(metrics)
+      .queuedMaxBytes(queuedMaxBytes)
       .messageTimeout(0, TimeUnit.MILLISECONDS)
       .build(SpanBytesEncoder.JSON_V2);
 
     reporter.report(span);
 
     reporter.flush();
+    reporter.close();
     assertThat(metrics.messagesDropped()).isEqualTo(1);
   }
 
-  @Test void flush_logsFirstErrorAsWarn() {
+  @ParameterizedTest(name = "queuedMaxBytes={0}")
+  @ValueSource(ints = { 0, 1000000 })
+  void flush_logsFirstErrorAsWarn(int queuedMaxBytes) {
     List<LogRecord> logRecords = new ArrayList<>();
     Handler testHandler = new Handler() {
       @Override
@@ -191,10 +245,11 @@ class AsyncReporterTest {
     logger.addHandler(testHandler);
     logger.setLevel(Level.FINE);
 
-    reporter = AsyncReporter.newBuilder(FakeSender.create()
+    AsyncReporter<Span> reporter = AsyncReporter.newBuilder(FakeSender.create()
         .onSpans(spans -> {
           throw new RuntimeException();
         }))
+      .queuedMaxBytes(queuedMaxBytes)
       .build(SpanBytesEncoder.JSON_V2);
 
     reporter.report(span);
@@ -211,13 +266,18 @@ class AsyncReporterTest {
 
     assertThat(logRecords.get(2).getLevel()).isEqualTo(Level.FINE);
     assertThat(logRecords.get(2).getMessage()).contains("RuntimeException");
+
+    reporter.close();
   }
 
   /** It can take up to the messageTimeout past the first span to send */
-  @Test void messageTimeout_flushesWhenTimeoutExceeded() throws InterruptedException {
+  @ParameterizedTest(name = "queuedMaxBytes={0}")
+  @ValueSource(ints = { 0, 1000000 })
+  void messageTimeout_flushesWhenTimeoutExceeded(int queuedMaxBytes) throws InterruptedException {
     CountDownLatch sentSpans = new CountDownLatch(1);
-    reporter = AsyncReporter.newBuilder(FakeSender.create()
+    AsyncReporter<Span> reporter = AsyncReporter.newBuilder(FakeSender.create()
         .onSpans(spans -> sentSpans.countDown()))
+      .queuedMaxBytes(queuedMaxBytes)
       .messageTimeout(10, TimeUnit.MILLISECONDS)
       .build(SpanBytesEncoder.JSON_V2);
 
@@ -226,12 +286,17 @@ class AsyncReporterTest {
       .isFalse();
     assertThat(sentSpans.await(10, TimeUnit.MILLISECONDS))
       .isTrue();
+
+    reporter.close();
   }
 
-  @Test void messageTimeout_disabled() throws InterruptedException {
+  @ParameterizedTest(name = "queuedMaxBytes={0}")
+  @ValueSource(ints = { 0, 1000000 })
+  void messageTimeout_disabled(int queuedMaxBytes) throws InterruptedException {
     CountDownLatch sentSpans = new CountDownLatch(1);
-    reporter = AsyncReporter.newBuilder(FakeSender.create()
+    AsyncReporter<Span> reporter = AsyncReporter.newBuilder(FakeSender.create()
         .onSpans(spans -> sentSpans.countDown()))
+      .queuedMaxBytes(queuedMaxBytes)
       .messageTimeout(0, TimeUnit.NANOSECONDS)
       .build(SpanBytesEncoder.JSON_V2);
 
@@ -241,11 +306,13 @@ class AsyncReporterTest {
     // Since no threads started, the above lingers
     assertThat(sentSpans.await(10, TimeUnit.MILLISECONDS))
       .isFalse();
+
+    reporter.close();
   }
 
   @Test void senderThread_threadHasAPrettyName() throws InterruptedException {
     BlockingQueue<String> threadName = new LinkedBlockingQueue<>();
-    reporter = AsyncReporter.newBuilder(FakeSender.create()
+    AsyncReporter<Span> reporter = AsyncReporter.newBuilder(FakeSender.create()
         .onSpans(spans -> threadName.offer(Thread.currentThread().getName())))
       .build(SpanBytesEncoder.JSON_V2);
 
@@ -254,10 +321,12 @@ class AsyncReporterTest {
     // check name is pretty
     assertThat(threadName.take())
       .isEqualTo("AsyncReporter{FakeSender}");
+    
+    reporter.close();
   }
 
   @Test void close_close_stopsFlushThread() throws InterruptedException {
-    reporter = AsyncReporter.newBuilder(FakeSender.create())
+    AsyncReporter<Span> reporter = AsyncReporter.newBuilder(FakeSender.create())
       .metrics(metrics)
       .messageTimeout(2, TimeUnit.MILLISECONDS)
       .build(SpanBytesEncoder.JSON_V2);
@@ -273,11 +342,13 @@ class AsyncReporterTest {
     BoundedAsyncReporter<Span> impl = (BoundedAsyncReporter<Span>) reporter;
     assertThat(impl.close.await(3, TimeUnit.MILLISECONDS))
       .isTrue();
+    
+    reporter.close();
   }
 
   @Test void flush_throwsOnClose() {
     assertThrows(IllegalStateException.class, () -> {
-      reporter = AsyncReporter.newBuilder(FakeSender.create())
+      AsyncReporter<Span> reporter = AsyncReporter.newBuilder(FakeSender.create())
         .metrics(metrics)
         .messageTimeout(0, TimeUnit.MILLISECONDS)
         .build(SpanBytesEncoder.JSON_V2);
@@ -289,7 +360,7 @@ class AsyncReporterTest {
   }
 
   @Test void report_doesntThrowWhenClosed() {
-    reporter = AsyncReporter.newBuilder(FakeSender.create())
+    AsyncReporter<Span> reporter = AsyncReporter.newBuilder(FakeSender.create())
       .metrics(metrics)
       .messageTimeout(0, TimeUnit.MILLISECONDS)
       .build(SpanBytesEncoder.JSON_V2);
@@ -310,7 +381,7 @@ class AsyncReporterTest {
   });
 
   @Test void senderThread_dropsOnSenderClose_flushThread() throws InterruptedException {
-    reporter = AsyncReporter.newBuilder(sleepingSender)
+    AsyncReporter<Span> reporter = AsyncReporter.newBuilder(sleepingSender)
       .metrics(metrics)
       .messageMaxBytes(sizeInBytesOfSingleSpanMessage)
       .build(SpanBytesEncoder.JSON_V2);
@@ -325,12 +396,14 @@ class AsyncReporterTest {
     assertThat(metrics.messagesDropped()).isEqualTo(1);
     assertThat(metrics.messagesDroppedByCause().keySet().iterator().next())
       .isEqualTo(ClosedSenderException.class);
+    
+    reporter.close();
   }
 
   @Test void senderThread_dropsOnReporterClose_flushThread() throws InterruptedException {
     CountDownLatch received = new CountDownLatch(1);
     CountDownLatch sent = new CountDownLatch(1);
-    reporter = AsyncReporter.newBuilder(FakeSender.create()
+    AsyncReporter<Span> reporter = AsyncReporter.newBuilder(FakeSender.create()
         .onSpans(spans -> {
           received.countDown();
           try {
@@ -352,9 +425,12 @@ class AsyncReporterTest {
     assertThat(metrics.spansDropped()).isEqualTo(1);
   }
 
-  @Test void blocksToClearPendingSpans() throws InterruptedException {
-    reporter = AsyncReporter.newBuilder(FakeSender.create())
+  @ParameterizedTest(name = "queuedMaxBytes={0}")
+  @ValueSource(ints = { 0, 1000000 })
+  void blocksToClearPendingSpans(int queuedMaxBytes) throws InterruptedException {
+    AsyncReporter<Span> reporter = AsyncReporter.newBuilder(FakeSender.create())
       .metrics(metrics)
+      .queuedMaxBytes(queuedMaxBytes)
       .messageTimeout(30, TimeUnit.SECONDS)
       .build(SpanBytesEncoder.JSON_V2);
 
@@ -367,8 +443,10 @@ class AsyncReporterTest {
     assertThat(metrics.spansDropped()).isEqualTo(0);
   }
 
-  @Test void quitsBlockingWhenOverTimeout() throws InterruptedException {
-    reporter = AsyncReporter.newBuilder(FakeSender.create()
+  @ParameterizedTest(name = "queuedMaxBytes={0}")
+  @ValueSource(ints = { 0, 1000000 })
+  void quitsBlockingWhenOverTimeout(int queuedMaxBytes) throws InterruptedException {
+    AsyncReporter<Span> reporter = AsyncReporter.newBuilder(FakeSender.create()
         .onSpans(spans -> {
           // note: we don't yet have a hook to cancel a sender, so this will remain in-flight
           // eventhough we are unblocking close. A later close on sender usually will kill in-flight
@@ -379,6 +457,7 @@ class AsyncReporterTest {
           }
         }))
       .metrics(metrics)
+      .queuedMaxBytes(queuedMaxBytes)
       .closeTimeout(1, TimeUnit.NANOSECONDS)
       .messageTimeout(30, TimeUnit.SECONDS)
       .build(SpanBytesEncoder.JSON_V2);
@@ -391,10 +470,12 @@ class AsyncReporterTest {
     reporter.close(); // close while there's a pending span
     assertThat(System.nanoTime() - start)
       .isLessThan(TimeUnit.MILLISECONDS.toNanos(10)); // give wiggle room
+
+    reporter.close();
   }
 
   @Test void flush_incrementsMetricsAndThrowsWhenClosed() {
-    reporter = AsyncReporter.newBuilder(sleepingSender)
+    AsyncReporter<Span> reporter = AsyncReporter.newBuilder(sleepingSender)
       .metrics(metrics)
       .messageTimeout(0, TimeUnit.MILLISECONDS)
       .build(SpanBytesEncoder.JSON_V2);
@@ -411,7 +492,7 @@ class AsyncReporterTest {
   }
 
   @Test void flush_incrementsMetricsAndThrowsWhenSenderClosed() {
-    reporter = AsyncReporter.newBuilder(sleepingSender)
+    AsyncReporter<Span> reporter = AsyncReporter.newBuilder(sleepingSender)
       .metrics(metrics)
       .messageTimeout(0, TimeUnit.MILLISECONDS)
       .build(SpanBytesEncoder.JSON_V2);
@@ -425,12 +506,14 @@ class AsyncReporterTest {
     } catch (IllegalStateException e) {
       assertThat(metrics.spansDropped()).isEqualTo(1);
       assertThat(metrics.messagesDropped()).isEqualTo(1);
+    } finally {
+      reporter.close();
     }
   }
 
   @Test void build_threadFactory() {
     Thread thread = new Thread();
-    reporter = AsyncReporter.newBuilder(FakeSender.create())
+    AsyncReporter<Span> reporter = AsyncReporter.newBuilder(FakeSender.create())
       .threadFactory(r -> thread)
       .build(SpanBytesEncoder.JSON_V2);
 
@@ -442,6 +525,7 @@ class AsyncReporterTest {
     assertThat(thread.toString()).contains("AsyncReporter{FakeSender}");
     assertThat(thread.isDaemon()).isTrue();
 
+    reporter.close();
     thread.interrupt();
   }
 

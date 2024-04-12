@@ -6,6 +6,8 @@ package zipkin2.reporter.internal;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Stream;
+
 import org.openjdk.jmh.annotations.AuxCounters;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -24,6 +26,7 @@ import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Warmup;
 import zipkin2.Span;
 import zipkin2.TestObjects;
+import zipkin2.reporter.BytesEncoder;
 import zipkin2.reporter.Encoding;
 import zipkin2.reporter.InMemoryReporterMetrics;
 import zipkin2.reporter.SpanBytesEncoder;
@@ -41,6 +44,9 @@ public class AsyncReporterBenchmarks {
 
   @Param
   public Encoding encoding;
+
+  @Param({"0", "20000000"})
+  public int maxBytes;
 
   @AuxCounters
   @State(Scope.Thread)
@@ -77,10 +83,17 @@ public class AsyncReporterBenchmarks {
 
   @Setup(Level.Trial)
   public void setup() {
+    final BytesEncoder<Span> encoder = Stream
+      .of(SpanBytesEncoder.JSON_V2, SpanBytesEncoder.PROTO3, SpanBytesEncoder.THRIFT)
+      .filter(e -> e.encoding().equals(encoding))
+      .findAny()
+      .orElseThrow(() -> new IllegalStateException("Unable to find BytesEncoder<Span> for " + encoding));
+
     reporter = AsyncReporter.newBuilder(new NoopSender(encoding))
       .messageMaxBytes(1000000) // example default from Kafka message.max.bytes
+      .queuedMaxBytes(maxBytes)
       .metrics(metrics)
-      .build(SpanBytesEncoder.JSON_V2);
+      .build(encoder);
   }
 
   @Benchmark @Group("no_contention") @GroupThreads(1)

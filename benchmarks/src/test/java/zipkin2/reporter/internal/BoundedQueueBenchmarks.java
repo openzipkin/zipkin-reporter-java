@@ -15,6 +15,7 @@ import org.openjdk.jmh.annotations.Level;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.annotations.OutputTimeUnit;
+import org.openjdk.jmh.annotations.Param;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
@@ -31,8 +32,11 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 @BenchmarkMode(Mode.Throughput)
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
 @State(Scope.Group)
-public class ByteBoundedQueueBenchmarks {
+public class BoundedQueueBenchmarks {
   static final byte ONE = 1;
+
+  @Param( {"0", "10000"})
+  public int maxBytes;
 
   @AuxCounters
   @State(Scope.Thread)
@@ -66,11 +70,11 @@ public class ByteBoundedQueueBenchmarks {
     }
   }
 
-  ByteBoundedQueue<Byte> q;
+  BoundedQueue<Byte> q;
 
   @Setup
   public void setup() {
-    q = new ByteBoundedQueue<>(null, null, null, 10000, 10000, 10000);
+    q = BoundedQueue.create(null, null, null, 10000, 10000, maxBytes);
   }
 
   @Benchmark @Group("no_contention") @GroupThreads(1)
@@ -134,7 +138,7 @@ public class ByteBoundedQueueBenchmarks {
   // Convenience main entry-point
   public static void main(String[] args) throws RunnerException {
     Options opt = new OptionsBuilder()
-      .include(".*" + ByteBoundedQueueBenchmarks.class.getSimpleName() + ".*")
+      .include(".*" + BoundedQueueBenchmarks.class.getSimpleName() + ".*")
       .build();
 
     new Runner(opt).run();
