@@ -40,7 +40,7 @@ jobs:
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-jdk-11-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-jdk-17-maven-
+          restore-keys: ${{ runner.os }}-jdk-11-maven-
       - name: Deploy
         env:
           GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
