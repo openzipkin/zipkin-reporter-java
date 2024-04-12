@@ -50,12 +50,6 @@
       <groupId>io.zipkin.brave</groupId>
       <artifactId>brave</artifactId>
       <version>${brave.version}</version>
-      <exclusions>
-        <exclusion>
-          <groupId>*</groupId>
-          <artifactId>*</artifactId>
-        </exclusion>
-      </exclusions>
       <!-- Don't pin Brave -->
       <scope>provided</scope>
     </dependency>

@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    Copyright The OpenZipkin Authors
+    SPDX-License-Identifier: Apache-2.0
+
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>@project.groupId@</groupId>
+  <artifactId>spring_context</artifactId>
+  <version>@project.version@</version>
+  <name>spring_context</name>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.build.resourceEncoding>UTF-8</project.build.resourceEncoding>
+
+    <maven.compiler.source>1.8</maven.compiler.source>
+    <maven.compiler.target>1.8</maven.compiler.target>
+    <maven.compiler.release>8</maven.compiler.release>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>@project.groupId@</groupId>
+      <artifactId>zipkin-reporter-spring-beans</artifactId>
+      <version>@project.version@</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>io.zipkin.brave</groupId>
+      <artifactId>brave</artifactId>
+      <version>@brave.version@</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>@project.groupId@</groupId>
+      <artifactId>zipkin-reporter-brave</artifactId>
+      <version>@project.version@</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>@project.groupId@</groupId>
+      <artifactId>zipkin-sender-okhttp3</artifactId>
+      <version>@project.version@</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <version>@junit-jupiter.version@</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <version>@assertj.version@</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>io.zipkin.zipkin2</groupId>
+      <artifactId>zipkin-junit5</artifactId>
+      <version>@zipkin.version@</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-context</artifactId>
+      <version>@spring.version@</version>
+    </dependency>
+
+    <!-- route jcl over log4j2 during integration tests -->
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-core</artifactId>
+      <version>@log4j.version@</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-jcl</artifactId>
+      <version>@log4j.version@</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <testResources>
+      <testResource>
+        <directory>@project.basedir@/src/test/resources</directory>
+      </testResource>
+    </testResources>
+    <plugins>
+      <plugin>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>@maven-compiler-plugin.version@</version>
+        <configuration>
+          <includes>
+            <include>**/IT*.java</include>
+          </includes>
+        </configuration>
+      </plugin>
+      <plugin>
+        <!-- Use surefire to run the ITs until someone figures out how to get invoker to run
+             failsafe -->
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>@maven-surefire-plugin.version@</version>
+        <configuration>
+          <failIfNoTests>true</failIfNoTests>
+          <includes>
+            <include>**/IT*.java</include>
+          </includes>
+          <!-- Try to prevent flakes in CI -->
+          <reuseForks>false</reuseForks>
+          <!-- workaround to SUREFIRE-1831 -->
+          <useModulePath>false</useModulePath>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>
