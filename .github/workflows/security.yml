@@ -49,4 +49,9 @@ jobs:
       - name: Set Summary
         shell: bash
         if: ${{ failure() && steps.trivy.conclusion == 'failure' }}
+        # Add the Trivy report to the summary
+        #
+        # Note: This will cause a workflow error if trivy-report.md > 1MiB.
+        # If this happened due to too many CVEs, consider fixing them ;)
+        # See https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#step-isolation-and-limits
         run: cat trivy-report.md >> $GITHUB_STEP_SUMMARY
