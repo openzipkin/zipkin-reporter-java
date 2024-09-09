@@ -120,7 +120,7 @@ public abstract class BaseHttpSender<U, B> extends BytesMessageSender.Base {
     if (endpoint == null) endpoint = nextEndpoint(endpointSupplier);
     B body = newBody(encodedSpans);
     if (body == null) throw new NullPointerException("newBody(encodedSpans) returned null");
-    postSpans(endpoint, newBody(encodedSpans));
+    postSpans(endpoint, body);
   }
 
   @Override public final void close() {
