@@ -117,6 +117,11 @@
       <version>${log4j.version}</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>zipkin-sender-pulsar-client</artifactId>
+      <scope>provided</scope>
+    </dependency>
   </dependencies>
 
   <build>

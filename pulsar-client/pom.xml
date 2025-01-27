@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    Copyright The OpenZipkin Authors
+    SPDX-License-Identifier: Apache-2.0
+
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <artifactId>zipkin-reporter-parent</artifactId>
+    <groupId>io.zipkin.reporter2</groupId>
+    <version>3.4.4-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>zipkin-sender-pulsar-client</artifactId>
+  <name>Zipkin Sender: Pulsar Client 4.x</name>
+
+  <properties>
+    <!-- Matches Export-Package in bnd.bnd -->
+    <module.name>zipkin2.reporter.pulsar</module.name>
+
+    <main.basedir>${project.basedir}/..</main.basedir>
+    <pulsar-client.version>4.0.2</pulsar-client.version>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>zipkin-reporter</artifactId>
+      <version>${project.version}</version>
+      <!-- Senders don't use zipkin types. Excluding allows brave users to
+           avoid them by default. -->
+      <exclusions>
+        <exclusion>
+          <groupId>io.zipkin.zipkin2</groupId>
+          <artifactId>zipkin</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.pulsar</groupId>
+      <artifactId>pulsar-client</artifactId>
+      <version>${pulsar-client.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <version>${testcontainers.version}</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <profiles>
+    <profile>
+      <id>release</id>
+      <properties>
+        <!-- pulsar 4.0+ is Java 8 bytecode -->
+        <maven.compiler.source>8</maven.compiler.source>
+        <maven.compiler.target>8</maven.compiler.target>
+        <maven.compiler.release>8</maven.compiler.release>
+      </properties>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-enforcer-plugin</artifactId>
+            <version>${maven-enforcer-plugin.version}</version>
+            <executions>
+              <execution>
+                <id>enforce-java</id>
+                <goals>
+                  <goal>enforce</goal>
+                </goals>
+                <configuration>
+                  <rules>
+                    <!-- The only LTS JDK we support that can compile 8 bytecode is 11.
+                         https://www.oracle.com/java/technologies/javase/17-relnote-issues.html -->
+                    <requireJavaVersion>
+                      <version>[11,12)</version>
+                    </requireJavaVersion>
+                  </rules>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+</project>

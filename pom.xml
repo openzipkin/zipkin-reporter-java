@@ -25,6 +25,7 @@
     <module>spring-beans</module>
     <module>brave</module>
     <module>metrics-micrometer</module>
+    <module>pulsar-client</module>
   </modules>
 
   <properties>
