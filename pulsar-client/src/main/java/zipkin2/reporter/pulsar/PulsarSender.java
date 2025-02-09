@@ -252,7 +252,8 @@ public final class PulsarSender extends Sender {
     if (client == null) {
       synchronized (this) {
         if (client == null) {
-          createProducer();
+          client = createClient();
+          producer = createProducer(client);
 
           try {
             producer.newMessage()
@@ -260,17 +261,7 @@ public final class PulsarSender extends Sender {
               .loadConf(messageProps)
               .sendAsync();
           } catch (Exception e) {
-            try {
-              producer.close();
-              producer = null;
-            } catch (PulsarClientException ignored) {
-            }
-            try {
-              client.close();
-              client = null;
-            } catch (PulsarClientException ignored) {
-            }
-
+            cleanup();
             throw new RuntimeException("Pulsar producer send failed." + e.getMessage(), e);
           }
         }
@@ -278,15 +269,7 @@ public final class PulsarSender extends Sender {
     }
   }
 
-  void createProducer() {
-    try {
-      client = PulsarClient.builder()
-        .loadConf(clientProps)
-        .build();
-    } catch (PulsarClientException e) {
-      throw new RuntimeException("Pulsar client creation failed. " + e.getMessage(), e);
-    }
-
+  Producer<byte[]> createProducer(PulsarClient client) {
     try {
       producer = client.newProducer()
         .topic(topic)
@@ -294,12 +277,37 @@ public final class PulsarSender extends Sender {
         .loadConf(producerProps)
         .create();
     } catch (Exception e) {
-      try {
+      cleanup();
+      throw new RuntimeException("Pulsar producer creation failed." + e.getMessage(), e);
+    }
+    return producer;
+  }
+
+  PulsarClient createClient() {
+    try {
+      client = PulsarClient.builder()
+        .loadConf(clientProps)
+        .build();
+    } catch (PulsarClientException e) {
+      throw new RuntimeException("Pulsar client creation failed. " + e.getMessage(), e);
+    }
+    return client;
+  }
+
+  void cleanup() {
+    try {
+      if (producer != null) {
+        producer.close();
+        producer = null;
+      }
+    } catch (PulsarClientException ignored) {
+    }
+    try {
+      if (client != null) {
         client.close();
         client = null;
-      } catch (PulsarClientException ignored) {
       }
-      throw new RuntimeException("Pulsar producer creation failed." + e.getMessage(), e);
+    } catch (PulsarClientException ignored) {
     }
   }
 
