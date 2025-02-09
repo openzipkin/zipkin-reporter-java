@@ -22,7 +22,7 @@ final class ZipkinContainer extends GenericContainer<ZipkinContainer> {
   static final int HTTP_PORT = 9411;
 
   ZipkinContainer() {
-    super(parse("ghcr.io/openzipkin/zipkin:3.1.1"));
+    super(parse("ghcr.io/openzipkin/zipkin:3.4.3"));
     // zipkin-server disables scribe by default.
     withEnv("COLLECTOR_SCRIBE_ENABLED", "true");
     withExposedPorts(SCRIBE_PORT, HTTP_PORT);

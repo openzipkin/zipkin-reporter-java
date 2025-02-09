@@ -5,12 +5,9 @@
 package zipkin2.reporter.pulsar;
 
 import io.opentelemetry.api.internal.StringUtils;
-import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.Producer;
 import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.PulsarClientException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import zipkin2.reporter.AsyncReporter;
 import zipkin2.reporter.BytesMessageSender;
 import zipkin2.reporter.Call;
@@ -24,7 +21,6 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -71,11 +67,10 @@ import java.util.concurrent.TimeUnit;
  * <p>clientProps {@link org.apache.pulsar.client.impl.conf.ClientConfigurationData}<p>
  * <p>producerProps {@link org.apache.pulsar.client.impl.conf.ProducerConfigurationData}<p>
  * <p>messageProps {@link org.apache.pulsar.client.api.TypedMessageBuilder}<p>
+ *
+ * @since 3.5
  */
 public final class PulsarSender extends Sender {
-
-  private static final Logger LOG = LoggerFactory.getLogger(PulsarSender.class);
-
   /** Creates a sender that sends {@link Encoding#JSON} messages. */
   public static PulsarSender create(String serviceUrl) {
     return newBuilder().serviceUrl(serviceUrl).build();
@@ -87,7 +82,7 @@ public final class PulsarSender extends Sender {
 
   public static final class Builder {
     Map<String, Object> clientProps = new HashMap<>(),
-        producerProps = new HashMap<>(), messageProps = new HashMap<>();
+      producerProps = new HashMap<>(), messageProps = new HashMap<>();
     String topic = "zipkin";
     Encoding encoding = Encoding.JSON;
     int messageMaxBytes = 500_000;
@@ -250,54 +245,61 @@ public final class PulsarSender extends Sender {
 
   void sender(byte[] message) {
     if (closeCalled) throw new ClosedSenderException();
-    createIfNeeded(message);
+    sendMessage(message);
   }
 
-  void createIfNeeded(byte[] message) {
+  void sendMessage(byte[] message) {
     if (client == null) {
       synchronized (this) {
         if (client == null) {
-          try {
-            client = PulsarClient.builder()
-                .loadConf(clientProps)
-                .build();
-          } catch (PulsarClientException e) {
-            throw new RuntimeException("Pulsar client creation failed. " + e.getMessage(), e);
-          }
+          createProducer();
 
           try {
-            producer = client.newProducer()
-                .topic(topic)
-                .enableBatching(false) // disabling batching as duplicates effort covered by sender buffering.
-                .loadConf(producerProps)
-                .create();
+            producer.newMessage()
+              .value(message)
+              .loadConf(messageProps)
+              .sendAsync();
           } catch (Exception e) {
+            try {
+              producer.close();
+              producer = null;
+            } catch (PulsarClientException ignored) {
+            }
             try {
               client.close();
               client = null;
             } catch (PulsarClientException ignored) {
             }
-            throw new RuntimeException("Pulsar producer creation failed." + e.getMessage(), e);
-          }
 
-          try {
-            CompletableFuture<MessageId> messageIdFuture = producer
-                .newMessage()
-                .value(message)
-                .loadConf(messageProps)
-                .sendAsync();
-            messageIdFuture.whenComplete((messageId, t) -> {
-              if (t != null) {
-                LOG.error("Failed to send message to Pulsar", t);
-              } else {
-                LOG.debug("Message sent to Pulsar, the messageId is {}", messageId);
-              }
-            });
-          } catch (Exception e) {
             throw new RuntimeException("Pulsar producer send failed." + e.getMessage(), e);
           }
         }
       }
+    }
+  }
+
+  void createProducer() {
+    try {
+      client = PulsarClient.builder()
+        .loadConf(clientProps)
+        .build();
+    } catch (PulsarClientException e) {
+      throw new RuntimeException("Pulsar client creation failed. " + e.getMessage(), e);
+    }
+
+    try {
+      producer = client.newProducer()
+        .topic(topic)
+        .enableBatching(false) // disabling batching as duplicates effort covered by sender buffering.
+        .loadConf(producerProps)
+        .create();
+    } catch (Exception e) {
+      try {
+        client.close();
+        client = null;
+      } catch (PulsarClientException ignored) {
+      }
+      throw new RuntimeException("Pulsar producer creation failed." + e.getMessage(), e);
     }
   }
 
@@ -323,11 +325,11 @@ public final class PulsarSender extends Sender {
 
   @Override public String toString() {
     return "PulsarSender{" +
-        "clientProps=" + clientProps +
-        ", producerProps=" + producerProps +
-        ", messageProps=" + messageProps +
-        ", topic=" + topic +
-        '}';
+      "clientProps=" + clientProps +
+      ", producerProps=" + producerProps +
+      ", messageProps=" + messageProps +
+      ", topic=" + topic +
+      '}';
   }
 
   class PulsarCall extends Call.Base<Void> {  // PulsarCall is not cancelable
