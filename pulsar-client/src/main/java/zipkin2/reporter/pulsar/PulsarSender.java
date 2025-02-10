@@ -324,10 +324,7 @@ public final class PulsarSender extends Sender {
 
   @Override public synchronized void close() throws IOException {
     if (closeCalled) return;
-    PulsarClient client = this.client;
-    if (client != null) client.close();
-    Producer<byte[]> producer = this.producer;
-    if (producer != null) producer.close();
+    cleanup();
     closeCalled = true;
   }
 
