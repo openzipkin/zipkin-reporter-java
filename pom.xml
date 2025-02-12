@@ -52,7 +52,6 @@
     <errorprone.args />
     <errorprone.version>2.30.0</errorprone.version>
 
-    <!-- use the same value in bom/pom.xml -->
     <!-- NOTE: Do not update to 3.x as that has floor Java 8 -->
     <zipkin.version>2.27.1</zipkin.version>
 
