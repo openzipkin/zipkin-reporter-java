@@ -245,28 +245,27 @@ public final class PulsarSender extends Sender {
 
   void sender(byte[] message) {
     if (closeCalled) throw new ClosedSenderException();
-    sendMessage(message);
+    try {
+      get().newMessage()
+        .value(message)
+        .loadConf(messageProps)
+        .sendAsync();
+    } catch (Exception e) {
+      cleanup();
+      throw new RuntimeException("Pulsar producer send message failed." + e.getMessage(), e);
+    }
   }
 
-  void sendMessage(byte[] message) {
+  Producer<byte[]> get() {
     if (client == null) {
       synchronized (this) {
         if (client == null) {
           client = createClient();
           producer = createProducer(client);
-
-          try {
-            producer.newMessage()
-              .value(message)
-              .loadConf(messageProps)
-              .sendAsync();
-          } catch (Exception e) {
-            cleanup();
-            throw new RuntimeException("Pulsar producer send failed." + e.getMessage(), e);
-          }
         }
       }
     }
+    return producer;
   }
 
   Producer<byte[]> createProducer(PulsarClient client) {
