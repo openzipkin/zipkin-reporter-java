@@ -9,34 +9,45 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>io.zipkin.reporter2</groupId>
     <artifactId>zipkin-reporter-parent</artifactId>
+    <groupId>io.zipkin.reporter2</groupId>
     <version>3.5.0-SNAPSHOT</version>
   </parent>
 
-  <artifactId>zipkin-reporter</artifactId>
-  <name>Zipkin Reporter: Core</name>
+  <artifactId>zipkin-sender-pulsar-client</artifactId>
+  <name>Zipkin Sender: Pulsar Client 4.x</name>
 
   <properties>
     <!-- Matches Export-Package in bnd.bnd -->
-    <module.name>zipkin2.reporter</module.name>
+    <module.name>zipkin2.reporter.pulsar</module.name>
 
     <main.basedir>${project.basedir}/..</main.basedir>
+    <pulsar-client.version>4.0.2</pulsar-client.version>
   </properties>
 
   <dependencies>
-    <!-- This dependency can be excluded for those not using
-         zipkin2.reporter.AsyncReporter, which uses zipkin2 types. -->
     <dependency>
-      <groupId>io.zipkin.zipkin2</groupId>
-      <artifactId>zipkin</artifactId>
-      <version>${zipkin.version}</version>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>zipkin-reporter</artifactId>
+      <version>${project.version}</version>
+      <!-- Senders don't use zipkin types. Excluding allows brave users to
+           avoid them by default. -->
+      <exclusions>
+        <exclusion>
+          <groupId>io.zipkin.zipkin2</groupId>
+          <artifactId>zipkin</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
-
     <dependency>
-      <groupId>org.mockito</groupId>
-      <artifactId>mockito-junit-jupiter</artifactId>
-      <version>${mockito.version}</version>
+      <groupId>org.apache.pulsar</groupId>
+      <artifactId>pulsar-client</artifactId>
+      <version>${pulsar-client.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <version>${testcontainers.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -45,10 +56,10 @@
     <profile>
       <id>release</id>
       <properties>
-        <!-- The core jar needs to be Java 1.6 bytecode -->
-        <maven.compiler.source>1.6</maven.compiler.source>
-        <maven.compiler.target>1.6</maven.compiler.target>
-        <maven.compiler.release>6</maven.compiler.release>
+        <!-- pulsar 4.0+ is Java 8 bytecode -->
+        <maven.compiler.source>8</maven.compiler.source>
+        <maven.compiler.target>8</maven.compiler.target>
+        <maven.compiler.release>8</maven.compiler.release>
       </properties>
       <build>
         <plugins>
@@ -63,8 +74,8 @@
                 </goals>
                 <configuration>
                   <rules>
-                    <!-- The only LTS JDK we support that can compile 1.6 bytecode is 11.
-                         https://www.oracle.com/java/technologies/javase/12-relnote-issues.html -->
+                    <!-- The only LTS JDK we support that can compile 8 bytecode is 11.
+                         https://www.oracle.com/java/technologies/javase/17-relnote-issues.html -->
                     <requireJavaVersion>
                       <version>[11,12)</version>
                     </requireJavaVersion>

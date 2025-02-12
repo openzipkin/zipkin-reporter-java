@@ -12,6 +12,7 @@ Bean Factories exist for the following types:
 * URLConnectionSenderFactoryBean - for [zipkin-sender-urlconnection](../urlconnection)
 * AsyncZipkinSpanHandlerFactoryBean - for [brave](https://github.com/openzipkin/brave)
 * ZipkinSpanHandlerFactoryBeanTest - for [brave](https://github.com/openzipkin/brave) reporter bridge
+* PulsarSenderFactoryBean - for [zipkin-sender-pulsar-client](../pulsar-client)
 
 * Here's a basic example
 ```xml
