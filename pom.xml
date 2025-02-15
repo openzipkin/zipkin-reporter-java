@@ -50,8 +50,7 @@
 
     <!-- override to set exclusions per-project -->
     <errorprone.args />
-    <!-- NOTE: Do not update as this is the last version to support Java 11 -->
-    <errorprone.version>2.31.0</errorprone.version>
+    <errorprone.version>2.36.0</errorprone.version>
 
     <!-- NOTE: Do not update to 3.x as that has floor Java 8 -->
     <zipkin-floor.version>2.27.1</zipkin-floor.version>
@@ -518,10 +517,10 @@
     </profile>
 
     <profile>
-      <id>error-prone-11+</id>
+      <id>error-prone-17+</id>
       <activation>
-        <!-- Only LTS versions -->
-        <jdk>[11,12),[17,18),[21,22)</jdk>
+        <!-- Only LTS versions that work with errorprone -->
+        <jdk>[17,18),[21,22)</jdk>
       </activation>
       <build>
         <plugins>
@@ -545,6 +544,7 @@
                   <forceJavacCompilerUse>true</forceJavacCompilerUse>
                   <compilerArgs>
                     <arg>-XDcompilePolicy=simple</arg>
+                    <arg>--should-stop=ifError=FLOW</arg>
                     <arg>-Xplugin:ErrorProne ${errorprone.args}</arg>
                     <!-- below needed for JDK16+ per https://errorprone.info/docs/installation -->
                     <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED</arg>
