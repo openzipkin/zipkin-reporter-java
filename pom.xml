@@ -53,7 +53,7 @@
     <errorprone.version>2.30.0</errorprone.version>
 
     <!-- NOTE: Do not update to 3.x as that has floor Java 8 -->
-    <zipkin.version>2.27.1</zipkin.version>
+    <zipkin-floor.version>2.27.1</zipkin-floor.version>
 
     <!-- Do not set this value in bom/pom.xml to avoid cyclic pinning -->
     <brave.version>6.0.3</brave.version>
@@ -165,7 +165,7 @@
     <dependency>
       <groupId>io.zipkin.zipkin2</groupId>
       <artifactId>zipkin-tests</artifactId>
-      <version>${zipkin.version}</version>
+      <version>${zipkin-floor.version}</version>
       <scope>test</scope>
     </dependency>
 
@@ -201,6 +201,13 @@
     <dependency>
       <groupId>org.apache.logging.log4j</groupId>
       <artifactId>log4j-slf4j-impl</artifactId>
+      <version>${log4j.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <!-- route slf4j 2 over log4j2 during integration tests -->
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-slf4j2-impl</artifactId>
       <version>${log4j.version}</version>
       <scope>test</scope>
     </dependency>

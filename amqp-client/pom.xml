@@ -24,7 +24,7 @@
     <main.basedir>${project.basedir}/..</main.basedir>
     <amqp-client.version>5.21.0</amqp-client.version>
     <!-- Last pre-1.8 version -->
-    <old-amqp-client.version>4.12.0</old-amqp-client.version>
+    <amqp-client-floor.version>4.12.0</amqp-client-floor.version>
   </properties>
 
   <dependencies>
@@ -78,7 +78,7 @@
             <DynamicDependency>
               <groupId>com.rabbitmq</groupId>
               <artifactId>amqp-client</artifactId>
-              <version>${old-amqp-client.version}</version>
+              <version>${amqp-client-floor.version}</version>
               <repositoryType>MAIN</repositoryType>
               <type>jar</type>
             </DynamicDependency>

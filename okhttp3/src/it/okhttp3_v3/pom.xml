@@ -52,13 +52,13 @@
     <dependency>
       <groupId>com.squareup.okhttp3</groupId>
       <artifactId>mockwebserver</artifactId>
-      <version>@old-okhttp.version@</version>
+      <version>@okhttp-floor.version@</version>
     </dependency>
 
     <dependency>
       <groupId>io.zipkin.zipkin2</groupId>
       <artifactId>zipkin-tests</artifactId>
-      <version>@zipkin.version@</version>
+      <version>@zipkin-floor.version@</version>
     </dependency>
 
     <!-- route jul over log4j2 during integration tests -->
