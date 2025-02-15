@@ -99,7 +99,7 @@
       <groupId>com.linecorp.armeria</groupId>
       <artifactId>armeria</artifactId>
       <!-- match Zipkin version to avoid classpath problems -->
-      <version>1.26.4</version>
+      <version>1.31.3</version>
       <scope>test</scope>
     </dependency>
 

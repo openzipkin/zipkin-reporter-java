@@ -24,7 +24,7 @@
     <!-- Be conscious about a 6.x upgrade: 5.x and 6.x types are incompatible
          as the former uses javax.jms and latter jakarta.jms. It could be
          better to make an activemq-client6 module. -->
-    <activemq.version>5.18.3</activemq.version>
+    <activemq.version>5.18.6</activemq.version>
   </properties>
 
   <dependencies>
