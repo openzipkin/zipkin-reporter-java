@@ -50,7 +50,8 @@
 
     <!-- override to set exclusions per-project -->
     <errorprone.args />
-    <errorprone.version>2.36.0</errorprone.version>
+    <!-- NOTE: Do not update as this is the last version to support Java 11 -->
+    <errorprone.version>2.31.0</errorprone.version>
 
     <!-- NOTE: Do not update to 3.x as that has floor Java 8 -->
     <zipkin-floor.version>2.27.1</zipkin-floor.version>
@@ -73,7 +74,8 @@
     <!-- TODO: cleanup any redundant ignores now also in the 4.0 release (once final) -->
     <license-maven-plugin.version>4.6</license-maven-plugin.version>
     <maven-assembly-plugin.version>3.7.1</maven-assembly-plugin.version>
-    <maven-bundle-plugin.version>6.0.0</maven-bundle-plugin.version>
+    <!-- NOTE: Do not update to 6.x as 5.x is the last version to support Java 11 -->
+    <maven-bundle-plugin.version>5.1.9</maven-bundle-plugin.version>
     <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
     <!-- Use same version as https://github.com/openzipkin/docker-java -->
     <maven-dependency-plugin.version>3.8.1</maven-dependency-plugin.version>
