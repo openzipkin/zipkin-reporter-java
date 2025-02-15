@@ -26,7 +26,7 @@
     <!-- Note: Spring 6 is JDK 17 bytecode, so we can't update to it until we
          stop supporting Java 6 compilation target, or change our release to
          use multiple tool chains. -->
-    <spring.version>5.3.34</spring.version>
+    <spring.version>5.3.35</spring.version>
 
     <spring-floor.version>2.5.6</spring-floor.version>
     <log4j12.version>1.2.17</log4j12.version>
