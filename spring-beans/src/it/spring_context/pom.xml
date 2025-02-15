@@ -70,7 +70,7 @@
     <dependency>
       <groupId>io.zipkin.zipkin2</groupId>
       <artifactId>zipkin-junit5</artifactId>
-      <version>@zipkin-floor.version@</version>
+      <version>@zipkin2.version@</version>
       <scope>test</scope>
     </dependency>
 

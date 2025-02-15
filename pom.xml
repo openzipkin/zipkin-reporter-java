@@ -53,7 +53,7 @@
     <errorprone.version>2.36.0</errorprone.version>
 
     <!-- NOTE: Do not update to 3.x as that has floor Java 8 -->
-    <zipkin-floor.version>2.27.1</zipkin-floor.version>
+    <zipkin2.version>2.27.1</zipkin2.version>
 
     <!-- Do not set this value in bom/pom.xml to avoid cyclic pinning -->
     <brave.version>6.0.3</brave.version>
@@ -166,7 +166,7 @@
     <dependency>
       <groupId>io.zipkin.zipkin2</groupId>
       <artifactId>zipkin-tests</artifactId>
-      <version>${zipkin-floor.version}</version>
+      <version>${zipkin2.version}</version>
       <scope>test</scope>
     </dependency>
 

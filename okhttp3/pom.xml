@@ -23,7 +23,7 @@
 
     <main.basedir>${project.basedir}/..</main.basedir>
     <!-- pre-1.8, pre-kotlin, and last version before Call.timeout. -->
-    <okhttp-floor.version>3.11.0</okhttp-floor.version>
+    <floor-okhttp.version>3.11.0</floor-okhttp.version>
   </properties>
 
   <dependencies>
@@ -77,7 +77,7 @@
             <DynamicDependency>
               <groupId>com.squareup.okhttp3</groupId>
               <artifactId>mockwebserver</artifactId>
-              <version>${okhttp-floor.version}</version>
+              <version>${floor-okhttp.version}</version>
               <repositoryType>MAIN</repositoryType>
               <type>jar</type>
             </DynamicDependency>

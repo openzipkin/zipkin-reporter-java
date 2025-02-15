@@ -28,8 +28,8 @@
          use multiple tool chains. -->
     <spring.version>5.3.35</spring.version>
 
-    <spring-floor.version>2.5.6</spring-floor.version>
-    <log4j12.version>1.2.17</log4j12.version>
+    <spring2.version>2.5.6</spring2.version>
+    <log4j1.version>1.2.17</log4j1.version>
   </properties>
 
   <dependencyManagement>
@@ -59,7 +59,7 @@
     <dependency>
       <groupId>io.zipkin.zipkin2</groupId>
       <artifactId>zipkin</artifactId>
-      <version>${zipkin-floor.version}</version>
+      <version>${zipkin2.version}</version>
       <optional>true</optional>
     </dependency>
     <dependency>
@@ -147,14 +147,14 @@
             <DynamicDependency>
               <groupId>log4j</groupId>
               <artifactId>log4j</artifactId>
-              <version>${log4j12.version}</version>
+              <version>${log4j1.version}</version>
               <repositoryType>MAIN</repositoryType>
               <type>jar</type>
             </DynamicDependency>
             <DynamicDependency>
               <groupId>org.springframework</groupId>
               <artifactId>spring-beans</artifactId>
-              <version>${spring-floor.version}</version>
+              <version>${spring2.version}</version>
               <repositoryType>MAIN</repositoryType>
               <type>jar</type>
             </DynamicDependency>
