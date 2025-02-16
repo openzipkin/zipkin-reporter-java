@@ -59,7 +59,7 @@
     <brave.version>6.0.3</brave.version>
 
     <log4j.version>2.24.3</log4j.version>
-    <okhttp.version>4.12.0</okhttp.version>
+    <okhttp4.version>4.12.0</okhttp4.version>
 
     <junit-jupiter.version>5.11.4</junit-jupiter.version>
     <mockito.version>5.15.2</mockito.version>
@@ -546,7 +546,7 @@
                     <arg>-XDcompilePolicy=simple</arg>
                     <arg>--should-stop=ifError=FLOW</arg>
                     <arg>-Xplugin:ErrorProne ${errorprone.args}</arg>
-                    <!-- below needed for JDK16+ per https://errorprone.info/docs/installation -->
+                    <!-- below needed per https://errorprone.info/docs/installation -->
                     <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED</arg>
                     <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED</arg>
                     <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.main=ALL-UNNAMED</arg>

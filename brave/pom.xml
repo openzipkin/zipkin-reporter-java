@@ -97,7 +97,7 @@
             <DynamicDependency>
               <groupId>com.squareup.okhttp3</groupId>
               <artifactId>mockwebserver</artifactId>
-              <version>${okhttp.version}</version>
+              <version>${okhttp4.version}</version>
               <repositoryType>MAIN</repositoryType>
               <type>jar</type>
             </DynamicDependency>
