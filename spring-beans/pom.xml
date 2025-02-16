@@ -9,7 +9,7 @@
   <parent>
     <groupId>io.zipkin.reporter2</groupId>
     <artifactId>zipkin-reporter-parent</artifactId>
-    <version>3.5.0-SNAPSHOT</version>
+    <version>3.5.0</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
