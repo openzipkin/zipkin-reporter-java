@@ -40,7 +40,7 @@
     <dependency>
       <groupId>com.rabbitmq</groupId>
       <artifactId>amqp-client</artifactId>
-      <version>@old-amqp-client.version@</version>
+      <version>@floor-amqp-client.version@</version>
     </dependency>
 
     <dependency>
@@ -58,7 +58,7 @@
     <dependency>
       <groupId>io.zipkin.zipkin2</groupId>
       <artifactId>zipkin-tests</artifactId>
-      <version>@zipkin.version@</version>
+      <version>@zipkin2.version@</version>
     </dependency>
 
     <dependency>

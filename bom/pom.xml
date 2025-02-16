@@ -144,7 +144,7 @@
           <plugin>
             <groupId>org.sonatype.plugins</groupId>
             <artifactId>nexus-staging-maven-plugin</artifactId>
-            <version>1.6.13</version>
+            <version>1.7.0</version>
             <extensions>true</extensions>
             <configuration>
               <serverId>ossrh</serverId>
@@ -155,12 +155,12 @@
 
           <plugin>
             <artifactId>maven-deploy-plugin</artifactId>
-            <version>3.1.1</version>
+            <version>3.1.2</version>
           </plugin>
 
           <plugin>
             <artifactId>maven-gpg-plugin</artifactId>
-            <version>3.2.2</version>
+            <version>3.2.7</version>
             <executions>
               <execution>
                 <id>sign-artifacts</id>
