@@ -291,7 +291,7 @@ public abstract class AsyncReporter<S> extends Component
 
         // Old senders in other artifacts may be using this less precise way of indicating they've been closed
         // out-of-band.
-        if (t instanceof IllegalStateException && t.getMessage().equals("closed")) {
+        if (t instanceof IllegalStateException && "closed".equals(t.getMessage())) {
           throw (IllegalStateException) t;
         }
       }

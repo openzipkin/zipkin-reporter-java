@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -114,7 +115,7 @@ class AsyncReporterTest {
     reporter.report(span); // dropped the one that queued more than allowed count
     reporter.flush();
     reporter.close();
-    
+
     assertThat(sentSpans.get()).isEqualTo(1);
   }
 
@@ -131,7 +132,7 @@ class AsyncReporterTest {
     reporter.report(span);
     reporter.flush();
     reporter.close();
-    
+
     assertThat(metrics.spans()).isEqualTo(2);
     assertThat(metrics.spanBytes()).isEqualTo(SpanBytesEncoder.JSON_V2.encode(span).length * 2);
   }
@@ -154,8 +155,7 @@ class AsyncReporterTest {
     assertThat(metrics.spans()).isEqualTo(2);
     assertThat(metrics.spansDropped()).isEqualTo(1);
   }
-  
-  
+
   @ParameterizedTest(name = "queuedMaxBytes={0}")
   @ValueSource(ints = { 0, 1000000 })
   void report_incrementsSpansDroppedOversizing(int queuedMaxBytes) {
@@ -321,7 +321,7 @@ class AsyncReporterTest {
     // check name is pretty
     assertThat(threadName.take())
       .isEqualTo("AsyncReporter{FakeSender}");
-    
+
     reporter.close();
   }
 
@@ -342,7 +342,7 @@ class AsyncReporterTest {
     BoundedAsyncReporter<Span> impl = (BoundedAsyncReporter<Span>) reporter;
     assertThat(impl.close.await(3, TimeUnit.MILLISECONDS))
       .isTrue();
-    
+
     reporter.close();
   }
 
@@ -396,7 +396,7 @@ class AsyncReporterTest {
     assertThat(metrics.messagesDropped()).isEqualTo(1);
     assertThat(metrics.messagesDroppedByCause().keySet().iterator().next())
       .isEqualTo(ClosedSenderException.class);
-    
+
     reporter.close();
   }
 
@@ -509,6 +509,41 @@ class AsyncReporterTest {
     } finally {
       reporter.close();
     }
+  }
+
+  @Test void flush_incrementsMetricsAndThrowsWhenIllegalStateExceptionWithMessage() {
+    AsyncReporter<Span> reporter = AsyncReporter.newBuilder(sleepingSender)
+      .metrics(metrics)
+      .messageTimeout(0, TimeUnit.MILLISECONDS)
+      .build(SpanBytesEncoder.JSON_V2);
+
+    reporter.report(span);
+
+    sleepingSender.throwException(new IllegalStateException("closed"));
+    try {
+      reporter.flush();
+      failBecauseExceptionWasNotThrown(IllegalStateException.class);
+    } catch (IllegalStateException e) {
+      assertThat(metrics.spansDropped()).isEqualTo(1);
+      assertThat(metrics.messagesDropped()).isEqualTo(1);
+    } finally {
+      reporter.close();
+    }
+  }
+
+  @Test void flush_incrementsMetricsAndDontThrowsWhenCancellationException() {
+    AsyncReporter<Span> reporter = AsyncReporter.newBuilder(sleepingSender)
+      .metrics(metrics)
+      .messageTimeout(0, TimeUnit.MILLISECONDS)
+      .build(SpanBytesEncoder.JSON_V2);
+
+    reporter.report(span);
+
+    sleepingSender.throwException(new CancellationException());
+    reporter.flush();
+    assertThat(metrics.spansDropped()).isEqualTo(1);
+    assertThat(metrics.messagesDropped()).isEqualTo(1);
+    reporter.close();
   }
 
   @Test void build_threadFactory() {

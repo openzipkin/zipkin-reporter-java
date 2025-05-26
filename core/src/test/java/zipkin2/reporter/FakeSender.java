@@ -52,17 +52,21 @@ public final class FakeSender extends BytesMessageSender.Base {
     return messageMaxBytes;
   }
 
-  /** close is typically called from a different thread */
-  volatile boolean closeCalled;
+  // allow us to simulate an exception
+  volatile RuntimeException exceptionToThrow;
 
   @Override public void send(List<byte[]> encodedSpans) {
-    if (closeCalled) throw new ClosedSenderException();
+    if (exceptionToThrow != null) throw exceptionToThrow;
     List<Span> decoded = encodedSpans.stream().map(decoder::decodeOne).collect(Collectors.toList());
     onSpans.accept(decoded);
   }
 
   @Override public void close() {
-    closeCalled = true;
+    exceptionToThrow = new ClosedSenderException();
+  }
+
+  public void throwException(RuntimeException e) {
+    exceptionToThrow = e;
   }
 
   @Override public String toString() {
