@@ -22,7 +22,7 @@
     <module.name>zipkin2.reporter.metrics.micrometer</module.name>
 
     <main.basedir>${project.basedir}/..</main.basedir>
-    <micrometer.version>1.14.4</micrometer.version>
+    <micrometer.version>1.14.7</micrometer.version>
   </properties>
 
   <dependencies>

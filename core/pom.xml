@@ -38,6 +38,13 @@
       <artifactId>mockito-junit-jupiter</artifactId>
       <version>${mockito.version}</version>
       <scope>test</scope>
+      <exclusions>
+        <exclusion>
+          <!-- remove exclusion when this matches the version of junit jupiter we want -->
+          <artifactId>junit-jupiter-api</artifactId>
+          <groupId>org.junit.jupiter</groupId>
+        </exclusion>
+      </exclusions>
     </dependency>
   </dependencies>
 
