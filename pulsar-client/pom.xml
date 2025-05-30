@@ -11,7 +11,7 @@
   <parent>
     <artifactId>zipkin-reporter-parent</artifactId>
     <groupId>io.zipkin.reporter2</groupId>
-    <version>3.5.1-SNAPSHOT</version>
+    <version>3.5.1</version>
   </parent>
 
   <artifactId>zipkin-sender-pulsar-client</artifactId>
