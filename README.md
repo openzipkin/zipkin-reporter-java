@@ -2,7 +2,7 @@
 
 [![Gitter chat](http://img.shields.io/badge/gitter-join%20chat%20%E2%86%92-brightgreen.svg)](https://gitter.im/openzipkin/zipkin)
 [![Build Status](https://github.com/openzipkin/zipkin-reporter-java/workflows/test/badge.svg)](https://github.com/openzipkin/zipkin/actions?query=workflow%3Atest)
-[![Maven Central](https://img.shields.io/maven-central/v/io.zipkin.reporter2/zipkin-reporter.svg)](https://search.maven.org/search?q=g:io.zipkin.reporter2%20AND%20a:zipkin-reporter)
+[![Maven Central](https://img.shields.io/maven-central/v/io.zipkin.reporter2/zipkin-reporter.svg)](https://central.sonatype.com/search?q=zipkin-reporter&namespace=io.zipkin.reporter2)
 
 Zipkin Reporter buffers and sends trace data collected from tracer libraries to a Zipkin compatible backend.
 
@@ -158,11 +158,10 @@ All artifacts publish to the group ID "io.zipkin.zipkin.reporter2". We use a com
 release version for all components.
 
 ### Library Releases
-Releases are uploaded to [Sonatype](https://oss.sonatype.org/content/repositories/releases) which
-synchronizes with [Maven Central](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22io.zipkin.zipkin.reporter2%22)
+Releases are at [Maven Central](https://central.sonatype.com/search?q=zipkin-reporter&namespace=io.zipkin.reporter2)
 
 ### Library Snapshots
-Snapshots are uploaded to [Sonatype](https://oss.sonatype.org/content/repositories/snapshots) after
+Snapshots are uploaded to [Sonatype](https://central.sonatype.com/repository/maven-snapshots/) after
 commits to master.
 
 ### Version alignments
