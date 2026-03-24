@@ -22,7 +22,8 @@
     <module.name>zipkin2.reporter.pulsar</module.name>
 
     <main.basedir>${project.basedir}/..</main.basedir>
-    <pulsar-client.version>4.0.5</pulsar-client.version>
+    <!-- 4.1+ is Java 17 bytecode, can't use until we floor JDK 17 -->
+    <pulsar-client.version>4.0.9</pulsar-client.version>
   </properties>
 
   <dependencies>
@@ -46,7 +47,7 @@
     </dependency>
     <dependency>
       <groupId>org.testcontainers</groupId>
-      <artifactId>junit-jupiter</artifactId>
+      <artifactId>testcontainers-junit-jupiter</artifactId>
       <version>${testcontainers.version}</version>
       <scope>test</scope>
     </dependency>

@@ -47,12 +47,12 @@
            common in libthrift and lead to rev-lock. As scribe is a deprecated
            transport in Zipkin, it is ok to update this to a signature breaking
            version on minor, but increment to the next minor in the PR. -->
-      <version>0.21.0</version>
+      <version>0.22.0</version>
     </dependency>
 
     <dependency>
       <groupId>org.testcontainers</groupId>
-      <artifactId>junit-jupiter</artifactId>
+      <artifactId>testcontainers-junit-jupiter</artifactId>
       <version>${testcontainers.version}</version>
       <scope>test</scope>
     </dependency>

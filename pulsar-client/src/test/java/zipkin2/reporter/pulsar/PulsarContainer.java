@@ -20,7 +20,7 @@ final class PulsarContainer extends GenericContainer<PulsarContainer> {
   static final int BROKER_HTTP_PORT = 8080;
 
   PulsarContainer() {
-    super(parse("ghcr.io/openzipkin/zipkin-pulsar:3.4.3"));
+    super(parse("ghcr.io/openzipkin/zipkin-pulsar:3.6.0"));
     withExposedPorts(BROKER_PORT, BROKER_HTTP_PORT);
     String cmd = "/pulsar/bin/apply-config-from-env.py /pulsar/conf/standalone.conf " +
         "&& bin/pulsar standalone " +

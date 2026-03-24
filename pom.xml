@@ -50,45 +50,45 @@
 
     <!-- override to set exclusions per-project -->
     <errorprone.args />
-    <errorprone.version>2.38.0</errorprone.version>
+    <errorprone.version>2.48.0</errorprone.version>
 
     <!-- NOTE: Do not update to 3.x as that has floor Java 8 -->
     <zipkin2.version>2.27.1</zipkin2.version>
 
     <!-- Do not set this value in bom/pom.xml to avoid cyclic pinning -->
-    <brave.version>6.1.0</brave.version>
+    <brave.version>6.3.0</brave.version>
 
-    <log4j.version>2.24.3</log4j.version>
+    <log4j.version>2.25.3</log4j.version>
     <okhttp4.version>4.12.0</okhttp4.version>
 
-    <junit-jupiter.version>5.12.2</junit-jupiter.version>
-    <mockito.version>5.18.0</mockito.version>
-    <assertj.version>3.27.3</assertj.version>
+    <junit-jupiter.version>5.14.3</junit-jupiter.version>
+    <mockito.version>5.23.0</mockito.version>
+    <assertj.version>3.27.7</assertj.version>
     <awaitility.version>4.3.0</awaitility.version>
-    <testcontainers.version>1.21.1</testcontainers.version>
+    <testcontainers.version>2.0.4</testcontainers.version>
 
     <license.skip>${skipTests}</license.skip>
 
     <go-offline-maven-plugin.version>1.2.8</go-offline-maven-plugin.version>
     <!-- TODO: cleanup any redundant ignores now also in the 4.0 release (once final) -->
     <license-maven-plugin.version>5.0.0</license-maven-plugin.version>
-    <maven-assembly-plugin.version>3.7.1</maven-assembly-plugin.version>
+    <maven-assembly-plugin.version>3.8.0</maven-assembly-plugin.version>
     <!-- NOTE: Do not update to 6.x as 5.x is the last version to support Java 11 -->
     <maven-bundle-plugin.version>5.1.9</maven-bundle-plugin.version>
-    <maven-compiler-plugin.version>3.14.0</maven-compiler-plugin.version>
+    <maven-compiler-plugin.version>3.15.0</maven-compiler-plugin.version>
     <!-- Use same version as https://github.com/openzipkin/docker-java -->
-    <maven-dependency-plugin.version>3.8.1</maven-dependency-plugin.version>
+    <maven-dependency-plugin.version>3.10.0</maven-dependency-plugin.version>
     <maven-deploy-plugin.version>3.1.4</maven-deploy-plugin.version>
-    <maven-enforcer-plugin.version>3.5.0</maven-enforcer-plugin.version>
+    <maven-enforcer-plugin.version>3.6.2</maven-enforcer-plugin.version>
     <!-- Use same version as https://github.com/openzipkin/docker-java -->
     <maven-help-plugin.version>3.5.1</maven-help-plugin.version>
     <maven-install-plugin.version>3.1.4</maven-install-plugin.version>
-    <maven-invoker-plugin.version>3.9.0</maven-invoker-plugin.version>
-    <maven-javadoc-plugin.version>3.11.2</maven-javadoc-plugin.version>
-    <maven-jar-plugin.version>3.4.2</maven-jar-plugin.version>
-    <maven-release-plugin.version>3.1.1</maven-release-plugin.version>
-    <maven-source-plugin.version>3.3.1</maven-source-plugin.version>
-    <maven-surefire-plugin.version>3.5.3</maven-surefire-plugin.version>
+    <maven-invoker-plugin.version>3.9.1</maven-invoker-plugin.version>
+    <maven-javadoc-plugin.version>3.12.0</maven-javadoc-plugin.version>
+    <maven-jar-plugin.version>3.5.0</maven-jar-plugin.version>
+    <maven-release-plugin.version>3.3.1</maven-release-plugin.version>
+    <maven-source-plugin.version>3.4.0</maven-source-plugin.version>
+    <maven-surefire-plugin.version>3.5.5</maven-surefire-plugin.version>
     <central-publishing-maven-plugin.version>0.10.0</central-publishing-maven-plugin.version>
   </properties>
 
@@ -412,7 +412,7 @@
                 <requireJavaVersion>
                   <!-- Change this to control LTS JDK versions allowed to build
                        the project. Keep in sync with .github/workflows -->
-                  <version>[11,12),[17,18),[21,22)</version>
+                  <version>[11,12),[25,26)</version>
                 </requireJavaVersion>
               </rules>
             </configuration>
@@ -426,8 +426,6 @@
         <version>${license-maven-plugin.version}</version>
         <configuration>
           <skip>${license.skip}</skip>
-          <!-- session.executionRootDirectory resolves properly even with nested modules -->
-          <header>${main.basedir}/src/etc/header.txt</header>
           <mapping>
             <!-- Don't use javadoc style as this makes code formatters break it by adding tags! -->
             <java>SLASHSTAR_STYLE</java>
@@ -445,25 +443,31 @@
             <maven_opts>SCRIPT_STYLE</maven_opts>
             <maven_release>SCRIPT_STYLE</maven_release>
           </mapping>
-          <excludes>
-            <exclude>**/log4j2.properties</exclude>
-            <exclude>.editorconfig</exclude>
-            <exclude>.gitattributes</exclude>
-            <exclude>.gitignore</exclude>
-            <exclude>.mailmap</exclude>
-            <exclude>.mvn/**</exclude>
-            <exclude>mvnw*</exclude>
-            <exclude>etc/header.txt</exclude>
-            <exclude>**/.idea/**</exclude>
-            <exclude>**/.editorconfig</exclude>
-            <exclude>LICENSE</exclude>
-            <exclude>NOTICE</exclude>
-            <exclude>**/*.md</exclude>
-            <exclude>**/*.bnd</exclude>
-            <exclude>src/test/resources/**</exclude>
-            <exclude>.github/**</exclude>
-            <exclude>build-bin/*</exclude>
-          </excludes>
+          <licenseSets>
+            <licenseSet>
+              <!-- session.executionRootDirectory resolves properly even with nested modules -->
+              <header>${main.basedir}/src/etc/header.txt</header>
+              <excludes>
+                <exclude>**/log4j2.properties</exclude>
+                <exclude>.editorconfig</exclude>
+                <exclude>.gitattributes</exclude>
+                <exclude>.gitignore</exclude>
+                <exclude>.mailmap</exclude>
+                <exclude>.mvn/**</exclude>
+                <exclude>mvnw*</exclude>
+                <exclude>etc/header.txt</exclude>
+                <exclude>**/.idea/**</exclude>
+                <exclude>**/.editorconfig</exclude>
+                <exclude>LICENSE</exclude>
+                <exclude>NOTICE</exclude>
+                <exclude>**/*.md</exclude>
+                <exclude>**/*.bnd</exclude>
+                <exclude>src/test/resources/**</exclude>
+                <exclude>.github/**</exclude>
+                <exclude>build-bin/*</exclude>
+              </excludes>
+            </licenseSet>
+          </licenseSets>
           <strictCheck>true</strictCheck>
         </configuration>
         <dependencies>
@@ -513,10 +517,10 @@
     </profile>
 
     <profile>
-      <id>error-prone-17+</id>
+      <id>error-prone-21+</id>
       <activation>
-        <!-- Only LTS versions that work with errorprone -->
-        <jdk>[17,18),[21,22)</jdk>
+        <!-- errorprone 2.48+ requires JDK 21+ (Java 21 bytecode) -->
+        <jdk>[21,)</jdk>
       </activation>
       <build>
         <plugins>
@@ -537,11 +541,12 @@
                   <goal>compile</goal>
                 </goals>
                 <configuration>
-                  <forceJavacCompilerUse>true</forceJavacCompilerUse>
+                  <forceLegacyJavacApi>true</forceLegacyJavacApi>
                   <compilerArgs>
                     <arg>-XDcompilePolicy=simple</arg>
                     <arg>--should-stop=ifError=FLOW</arg>
                     <arg>-Xplugin:ErrorProne ${errorprone.args}</arg>
+                    <arg>-XDaddTypeAnnotationsToSymbol=true</arg>
                     <!-- below needed per https://errorprone.info/docs/installation -->
                     <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED</arg>
                     <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED</arg>
@@ -585,7 +590,7 @@
 
           <plugin>
             <artifactId>maven-gpg-plugin</artifactId>
-            <version>3.1.0</version>
+            <version>3.2.8</version>
             <executions>
               <execution>
                 <id>sign-artifacts</id>

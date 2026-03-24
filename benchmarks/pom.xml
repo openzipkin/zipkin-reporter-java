@@ -99,13 +99,13 @@
       <groupId>com.linecorp.armeria</groupId>
       <artifactId>armeria</artifactId>
       <!-- match Zipkin version to avoid classpath problems -->
-      <version>1.31.3</version>
+      <version>1.37.0</version>
       <scope>test</scope>
     </dependency>
 
     <dependency>
       <groupId>org.testcontainers</groupId>
-      <artifactId>junit-jupiter</artifactId>
+      <artifactId>testcontainers-junit-jupiter</artifactId>
       <version>${testcontainers.version}</version>
       <scope>test</scope>
     </dependency>
