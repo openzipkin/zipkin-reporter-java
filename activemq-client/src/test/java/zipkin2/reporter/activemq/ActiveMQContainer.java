@@ -19,7 +19,7 @@ final class ActiveMQContainer extends GenericContainer<ActiveMQContainer> {
   static final int ACTIVEMQ_PORT = 61616;
 
   ActiveMQContainer() {
-    super(parse("ghcr.io/openzipkin/zipkin-activemq:3.4.3"));
+    super(parse("ghcr.io/openzipkin/zipkin-activemq:3.6.0"));
     withExposedPorts(ACTIVEMQ_PORT);
     waitStrategy = Wait.forListeningPorts(ACTIVEMQ_PORT);
     withStartupTimeout(Duration.ofSeconds(60));

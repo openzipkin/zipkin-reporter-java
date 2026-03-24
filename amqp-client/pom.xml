@@ -22,7 +22,7 @@
     <module.name>zipkin2.reporter.amqp</module.name>
 
     <main.basedir>${project.basedir}/..</main.basedir>
-    <amqp-client.version>5.25.0</amqp-client.version>
+    <amqp-client.version>5.29.0</amqp-client.version>
     <!-- Last pre-1.8 version -->
     <floor-amqp-client.version>4.12.0</floor-amqp-client.version>
   </properties>
@@ -50,7 +50,7 @@
 
     <dependency>
       <groupId>org.testcontainers</groupId>
-      <artifactId>junit-jupiter</artifactId>
+      <artifactId>testcontainers-junit-jupiter</artifactId>
       <version>${testcontainers.version}</version>
       <scope>test</scope>
     </dependency>
