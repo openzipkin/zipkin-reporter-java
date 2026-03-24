@@ -4,6 +4,4 @@
 #
 # See [README.md] for an explanation of this and how CI should use it.
 
-# We use install, not verify, because maven-invoker-tests need modules in this
-# project  installed into the local repository before tests run.
-./mvnw -T1C install -nsu "$@"
+./mvnw -T1C verify -nsu "$@"
